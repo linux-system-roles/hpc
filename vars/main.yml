@@ -1,15 +1,7 @@
 # SPDX-License-Identifier: MIT
 ---
-# Put the role's internal variables here that are not distribution specific.
-# You can override these by defining the same variable with a different
-# value in a platform/version specific file in vars/
-
-# Examples of non-distribution specific (generic) internal variables:
-__template_foo_config: foo.conf
-__template_packages: []
-__template_services: []
 # ansible_facts required by the role
-__template_required_facts:
+__hpc_required_facts:
   - distribution
   - distribution_major_version
   - distribution_version
@@ -17,8 +9,29 @@ __template_required_facts:
 # the subsets of ansible_facts that need to be gathered in case any of the
 # facts in required_facts is missing; see the documentation of
 # the 'gather_subset' parameter of the 'setup' module
-__template_required_facts_subsets: "{{ ['!all', '!min'] +
-  __template_required_facts }}"
+__hpc_required_facts_subsets: "{{ ['!all', '!min'] +
+  __hpc_required_facts }}"
+
+hpc_rhel_epel_rpm_key: https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-9
+hpc_rhel_epel_rpm: https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+hpc_nvidia_rpm_key: https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/D42D0685.pub
+hpc_nvidia_cuda_repository: https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64
+hpc_nvidia_driver_module: "@nvidia-driver:575-dkms"
+hpc_cuda_driver_packages:
+  - cuda-drivers
+hpc_cuda_toolkit_packages:
+  - cuda-toolkit-12-9
+hpc_nvidia_nccl_packages:
+  - libnccl-2.27.5-1+cuda12.9
+  - libnccl-devel-2.27.5-1+cuda12.9
+hpc_nvidia_fabric_manager_packages:
+  - nvidia-fabric-manager
+hpc_nvidia_rdma_packages:
+  - rdma-core
+  - libibverbs-utils
+  - perftest
+hpc_openmpi_packages:
+  - openmpi
 
 # BEGIN - DO NOT EDIT THIS BLOCK - rh distros variables
 # Ansible distribution identifiers that the role treats like RHEL
@@ -37,3 +50,5 @@ __template_is_rh_distro: "{{ ansible_distribution in __template_rh_distros }}"
 # Use this in conditionals to check if distro is Red Hat or clone, or Fedora
 __template_is_rh_distro_fedora: "{{ ansible_distribution in __template_rh_distros_fedora }}"
 # END - DO NOT EDIT THIS BLOCK - rh distros variables
+
+__hpc_gather_facts_no_log: false

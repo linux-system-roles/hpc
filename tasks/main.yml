@@ -3,25 +3,175 @@
 - name: Set platform/version specific variables
   include_tasks: tasks/set_vars.yml
 
-# Examples of some tasks:
-- name: Ensure required packages are installed
-  package:
-    name: "{{ __template_packages }}"
+- name: Deploy the GPG key for RHEL EPEL repository
+  rpm_key:
+    key: "{{ hpc_rhel_epel_rpm_key }}"
     state: present
-    use: "{{ (__template_is_ostree | d(false)) |
-             ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
-- name: Ensure required services are enabled and started
-  service:
-    name: "{{ item }}"
-    state: started
-    enabled: true
-  loop: "{{ __template_services }}"
+# package dkms is required from this repo
+- name: Install EPEL release package
+  package:
+    name: "{{ hpc_rhel_epel_rpm }}"
+    state: present
+    use: "{{ (__hpc_server_is_ostree | d(false)) |
+      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
-- name: Generate /etc/{{ __template_foo_config }}
-  template:
-    src: "{{ __template_foo_config }}.j2"
-    dest: /etc/{{ __template_foo_config }}
-    backup: true
-    mode: "0400"
-  notify: Handler for template to restart services
+- name: Deploy the GPG key for NVIDIA repositories
+  rpm_key:
+    key: "{{ hpc_nvidia_rpm_key }}"
+    state: present
+
+- name: Configure the NVIDIA CUDA repository
+  yum_repository:
+    name: nvidia-cuda
+    description: NVIDIA CUDA repository
+    baseurl: "{{ hpc_nvidia_cuda_repository }}"
+    gpgcheck: true
+
+- name: Configure storage
+  when: hpc_manage_storage
+  block:
+    - name: Install lvm2 to get lvs command
+      package:
+        name: lvm2
+        state: present
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
+    - name: Get current LV size of {{ hpc_rootlv_name }}
+      vars:
+        __hpc_lv: /dev/mapper/{{ hpc_rootvg_name }}-{{ hpc_rootlv_name }}
+      command: lvs --noheadings --units g --nosuffix -o lv_size {{ __hpc_lv }}
+      register: __hpc_rootlv_size_cmd
+      changed_when: false
+
+    - name: Get current LV size of {{ hpc_usrlv_name }}
+      vars:
+        __hpc_lv: /dev/mapper/{{ hpc_rootvg_name }}-{{ hpc_usrlv_name }}
+      command: lvs --noheadings --units g --nosuffix -o lv_size {{ __hpc_lv }}
+      register: __hpc_usrlv_size_cmd
+      changed_when: false
+
+    - name: Configure storage
+      include_role:
+        name: fedora.linux_system_roles.storage
+      vars:
+        hpc_rootlv_size_expected: >-
+          {{ hpc_rootlv_size | regex_replace('[^0-9]', '') | int }}
+        hpc_rootlv_size_curr: "{{ __hpc_rootlv_size_cmd.stdout | int }}"
+        __hpc_rootlv_size: >-
+          {{ (hpc_rootlv_size_expected | int > hpc_rootlv_size_curr | int)
+          | ternary(hpc_rootlv_size, hpc_rootlv_size_curr ~ "G") }}
+        hpc_usrlv_size_expected: >-
+          {{ hpc_usrlv_size | regex_replace('[^0-9]', '') | int }}
+        hpc_usrlv_size_curr: "{{ __hpc_usrlv_size_cmd.stdout | int }}"
+        __hpc_usrlv_size: >-
+          {{ (hpc_usrlv_size_expected | int > hpc_usrlv_size_curr | int)
+          | ternary(hpc_usrlv_size, hpc_usrlv_size_curr ~ "G") }}
+        storage_pools:
+          - name: "{{ hpc_rootvg_name }}"
+            grow_to_fill: true
+            volumes:
+              - name: "{{ hpc_rootlv_name }}"
+                size: "{{ __hpc_rootlv_size }}"
+                mount_point: "{{ hpc_rootlv_mount }}"
+              - name: "{{ hpc_usrlv_name }}"
+                size: "{{ __hpc_usrlv_size }}"
+                mount_point: "{{ hpc_usrlv_mount }}"
+
+- name: Enable proprietary nvidia-driver
+  package:
+    name: "{{ hpc_nvidia_driver_module }}"
+    state: present
+    use: "{{ (__hpc_server_is_ostree | d(false)) |
+      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+  register: __hpc_nvidia_driver_module_cmd
+
+- name: Get version of kernel-devel package installed in the previous step
+  package_facts:
+  no_log: "{{ __hpc_gather_facts_no_log | d(false) }}"
+
+# hpc_nvidia_driver_module installs kernel-devel but not kernel
+- name: >-
+    Install kernel of the same version as kernel-devel-{{ __hpc_kernel_ver }}
+  when:
+    - ansible_facts.packages["kernel-devel"] is defined
+    - ansible_facts.packages["kernel-devel"][0]["version"]
+      != ansible_facts.packages["kernel"][0]["version"]
+    - ansible_facts.packages["kernel-devel"][0]["release"]
+      != ansible_facts.packages["kernel"][0]["release"]
+  vars:
+    __hpc_kernel_ver: >-
+      {{ ansible_facts.packages["kernel-devel"][0]["version"] ~ "-" ~
+      ansible_facts.packages["kernel-devel"][0]["release"] }}
+  package:
+    name: kernel-{{ __hpc_kernel_ver }}
+    use: "{{ (__hpc_server_is_ostree | d(false)) |
+      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
+- name: Notify about reboot
+  debug:
+    msg: Reboot is required because kernel has been updated
+  notify: Reboot system
+  when:
+    - __hpc_nvidia_driver_module_cmd is changed
+    - >-
+      'Installed: kernel' in
+      __hpc_nvidia_driver_module_cmd.results | join('\n')
+
+- name: Install CUDA driver and enable nvidia-persistenced.service
+  when: hpc_install_cuda_driver
+  block:
+    - name: Install CUDA driver
+      package:
+        name: "{{ hpc_cuda_driver_packages }}"
+        state: present
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
+    - name: Enable nvidia-persistenced.service
+      service:
+        name: nvidia-persistenced.service
+        enabled: true
+
+- name: Install CUDA Toolkit
+  when: hpc_install_cuda_toolkit
+  package:
+    name: "{{ hpc_cuda_toolkit_packages }}"
+    state: present
+    use: "{{ (__hpc_server_is_ostree | d(false)) |
+      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+  register: __hpc_install_cuda_toolkit
+  until: __hpc_install_cuda_toolkit is success
+
+- name: Install NVIDIA NCCL
+  when: hpc_install_hpc_nvidia_nccl
+  package:
+    name: "{{ hpc_nvidia_nccl_packages }}"
+    state: present
+    use: "{{ (__hpc_server_is_ostree | d(false)) |
+      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
+- name: Install NVIDIA Fabric Manager
+  when: hpc_install_nvidia_fabric_manager
+  package:
+    name: "{{ hpc_nvidia_fabric_manager_packages }}"
+    state: present
+    use: "{{ (__hpc_server_is_ostree | d(false)) |
+      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
+- name: Install NVIDIA RDMA packages
+  when: hpc_install_nvidia_rdma
+  package:
+    name: "{{ hpc_nvidia_rdma_packages }}"
+    state: present
+    use: "{{ (__hpc_server_is_ostree | d(false)) |
+      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
+- name: Install openmpi
+  when: hpc_install_openmpi
+  package:
+    name: "{{ hpc_openmpi_packages }}"
+    state: present
+    use: "{{ (__hpc_server_is_ostree | d(false)) |
+      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"

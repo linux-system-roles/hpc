@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Reboot system when hpc_reboot_ok is true
+  reboot:
+  when: hpc_reboot_ok | bool
+
+- name: Notify about reboot
+  when: not hpc_reboot_ok
+  debug:
+    msg: A reboot is required in order to apply the changes.
+
+- name: Set hpc_reboot_required
+  set_fact:
+    hpc_reboot_required: "{{ not hpc_reboot_ok }}"
