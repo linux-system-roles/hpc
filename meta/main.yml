@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: MIT
+---
+galaxy_info:
+  author: John Doe <jdoe@corp.com>
+  description: Basic template for Linux system roles
+  company: John Doe, Inc.
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Fedora
+      versions:
+        - all
+    - name: EL
+      versions:
+        - "9"
+  galaxy_tags:
+    - el9
+    - el10
+    - fedora
+    # Support running this role in system container environments, and enable
+    # tests. Remove if not applicable.
+    - container
+    # Support running this role during container builds (mostly useful for
+    # bootc), and enable tests. Remove if not applicable.
+    - containerbuild
+dependencies: []
