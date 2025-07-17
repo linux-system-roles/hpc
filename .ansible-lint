@@ -21,6 +21,6 @@ exclude_paths:
   - .markdownlint.yaml
   - examples/roles/
 mock_roles:
-  - linux-system-roles.template
+  - linux-system-roles.hpc
 supported_ansible_also:
   - "2.14.0"

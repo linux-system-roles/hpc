@@ -9,7 +9,7 @@ provision:
     role: managed_node
 environment:
   SR_ANSIBLE_VER: 2.17
-  SR_REPO_NAME: template
+  SR_REPO_NAME: hpc
   SR_PYTHON_VERSION: 3.12
   SR_ONLY_TESTS: ""  # tests_default.yml
   SR_TEST_LOCAL_CHANGES: true
