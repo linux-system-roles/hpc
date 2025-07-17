@@ -1,0 +1,113 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Verify if role configures a custom storage properly
+  hosts: all
+  gather_facts: true
+  vars:
+    hpc_rootvg_name: rootvg
+    hpc_rootlv_name: rootlv
+    hpc_rootlv_size: 1G
+    hpc_rootlv_mount: /hpc-test1
+    hpc_usrlv_name: usrlv
+    hpc_usrlv_size: 2G
+    hpc_usrlv_mount: /hpc-test2
+    # Toolkit is about 6GB, let's skip it to save bandwidth
+    hpc_install_cuda_toolkit: false
+  tasks:
+    - name: Run test in block to clean up afterwards
+      block:
+        # These tasks are copied from storage/tests/get_unused_disk.yml
+        - name: Get unused disks
+          block:
+            - name: Ensure test packages
+              package:
+                name: "{{ test_packages }}"
+                state: present
+                use: "{{ (__storage_is_ostree | d(false)) |
+                        ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+              vars:
+                # util-linux needed for lsblk, findmnt, etc.
+                test_packages: "{{ ['util-linux-core']
+                  if (ansible_facts['os_family'] == 'RedHat' and
+                      ansible_facts['distribution_major_version'] is version('8', '>'))
+                  else ['util-linux'] if ansible_facts['os_family'] == 'RedHat'
+                  else ['util-linux'] }}"
+
+            - name: Find unused disks in the system  # noqa syntax-check[unknown-module]
+              fedora.linux_system_roles.find_unused_disk:
+                min_size: "{{ min_size | d(omit) }}"
+                max_size: "{{ max_size | d(omit) }}"
+                max_return: "{{ max_return | d(omit) }}"
+                with_interface: "{{ storage_test_use_interface | d(omit) }}"
+                match_sector_size: "{{ match_sector_size | d(omit) }}"
+              register: unused_disks_return
+
+            - name: Debug why there are no unused disks
+              shell: |
+                set -x
+                exec 1>&2
+                lsblk -p --pairs --bytes -o NAME,TYPE,SIZE,FSTYPE,LOG-SEC
+                journalctl -ex
+              changed_when: false
+              when: "'Unable to find unused disk' in unused_disks_return.disks"
+
+            - name: Set unused_disks if necessary
+              set_fact:
+                unused_disks: "{{ unused_disks_return.disks }}"
+              when: "'Unable to find unused disk' not in unused_disks_return.disks"
+
+            - name: Exit playbook when there's not enough unused disks in the system
+              fail:
+                msg: "Unable to find enough unused disks. Exiting playbook."
+              when: unused_disks | d([]) | length < disks_needed | d(1)
+
+        - name: Prepare storage
+          include_role:
+            name: fedora.linux_system_roles.storage
+          vars:
+            storage_pools:
+              - name: "{{ hpc_rootvg_name }}"
+                disks: "{{ unused_disks }}"
+                grow_to_fill: true
+                volumes:
+                  - name: "{{ hpc_rootlv_name }}"
+                    size: 2G
+                    mount_point: "{{ hpc_rootlv_mount }}"
+                  - name: "{{ hpc_usrlv_name }}"
+                    size: 1G
+                    mount_point: "{{ hpc_usrlv_mount }}"
+
+        - name: Run the role
+          include_role:
+            name: linux-system-roles.hpc
+
+        # Both should be 2G
+        # rootlv because it was set to 2G with the storage role
+        # usrlv because it was set to 2G with the hpc role
+        - name: Assert current LV size of {{ item }}
+          vars:
+            __hpc_lv: /dev/mapper/{{ hpc_rootvg_name }}-{{ item }}
+          command: lvs --noheadings --units g --nosuffix -o lv_size {{ __hpc_lv }}
+          register: __hpc_lv_size_cmd
+          changed_when: false
+          failed_when: __hpc_lv_size_cmd.stdout | int != 2
+          loop:
+            - "{{ hpc_rootlv_name }}"
+            - "{{ hpc_usrlv_name }}"
+      always:
+        - name: Remove both of the LVM logical volumes in 'foo' created above
+          include_role:
+            name: fedora.linux_system_roles.storage
+          vars:
+            storage_pools:
+              - name: "{{ hpc_rootvg_name }}"
+                disks: "{{ unused_disks }}"
+                grow_to_fill: true
+                state: "absent"
+                volumes:
+                  - name: "{{ hpc_rootlv_name }}"
+                    size: 2G
+                    mount_point: "{{ hpc_rootlv_mount }}"
+                  - name: "{{ hpc_usrlv_name }}"
+                    size: 1G
+                    mount_point: "{{ hpc_usrlv_mount }}"

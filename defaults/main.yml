@@ -1,8 +1,19 @@
 # SPDX-License-Identifier: MIT
 ---
-# Here is the right place to put the role's input variables.
-# This file also serves as a documentation for such a variables.
+hpc_reboot_ok: false
 
-# Examples of role input variables:
-template_foo: foo
-template_bar: true
+hpc_manage_storage: true
+hpc_rootvg_name: rootvg
+hpc_rootlv_name: rootlv
+hpc_rootlv_size: 10G
+hpc_rootlv_mount: /
+hpc_usrlv_name: usrlv
+hpc_usrlv_size: 20G
+hpc_usrlv_mount: /usr
+
+hpc_install_cuda_driver: true
+hpc_install_cuda_toolkit: true
+hpc_install_hpc_nvidia_nccl: true
+hpc_install_nvidia_fabric_manager: true
+hpc_install_nvidia_rdma: true
+hpc_install_openmpi: true

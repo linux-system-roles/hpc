@@ -2,94 +2,237 @@
 
 [![ansible-lint.yml](https://github.com/linux-system-roles/hpc/actions/workflows/ansible-lint.yml/badge.svg)](https://github.com/linux-system-roles/hpc/actions/workflows/ansible-lint.yml) [![ansible-test.yml](https://github.com/linux-system-roles/hpc/actions/workflows/ansible-test.yml/badge.svg)](https://github.com/linux-system-roles/hpc/actions/workflows/ansible-test.yml) [![codespell.yml](https://github.com/linux-system-roles/hpc/actions/workflows/codespell.yml/badge.svg)](https://github.com/linux-system-roles/hpc/actions/workflows/codespell.yml) [![markdownlint.yml](https://github.com/linux-system-roles/hpc/actions/workflows/markdownlint.yml/badge.svg)](https://github.com/linux-system-roles/hpc/actions/workflows/markdownlint.yml) [![qemu-kvm-integration-tests.yml](https://github.com/linux-system-roles/hpc/actions/workflows/qemu-kvm-integration-tests.yml/badge.svg)](https://github.com/linux-system-roles/hpc/actions/workflows/qemu-kvm-integration-tests.yml) [![shellcheck.yml](https://github.com/linux-system-roles/hpc/actions/workflows/shellcheck.yml/badge.svg)](https://github.com/linux-system-roles/hpc/actions/workflows/shellcheck.yml) [![tft.yml](https://github.com/linux-system-roles/hpc/actions/workflows/tft.yml/badge.svg)](https://github.com/linux-system-roles/hpc/actions/workflows/tft.yml) [![tft_citest_bad.yml](https://github.com/linux-system-roles/hpc/actions/workflows/tft_citest_bad.yml/badge.svg)](https://github.com/linux-system-roles/hpc/actions/workflows/tft_citest_bad.yml) [![woke.yml](https://github.com/linux-system-roles/hpc/actions/workflows/woke.yml/badge.svg)](https://github.com/linux-system-roles/hpc/actions/workflows/woke.yml)
 
-![template](https://github.com/linux-system-roles/template/workflows/tox/badge.svg)
+![hpc](https://github.com/linux-system-roles/hpc/workflows/tox/badge.svg)
 
-A template for an ansible role that configures some GNU/Linux subsystem or
-service. A brief description of the role goes here.
+Ansible role that configures RHEL 9.6 image in Microsoft Azure Cloud for HPC.
 
 ## Requirements
 
-Any prerequisites that may not be covered by Ansible itself or the role should
-be mentioned here.  This includes platform dependencies not managed by the
-role, hardware requirements, external collections, etc.  There should be a
-distinction between *control node* requirements (like collections) and
-*managed node* requirements (like special hardware, platform provisioning).
+See below
 
 ### Collection requirements
 
-For instance, if the role depends on some collections and has a
-`meta/collection-requirements.yml` file for installing those dependencies, and
-in order to manage `rpm-ostree` systems, it should be mentioned here that the
- user should run
+If you don't want to manage `ostree` systems, the role has no requirements.
+
+If you want to manage `ostree` systems, the role requires additional modules
+from external collections.  Please use the following command to install them:
 
 ```bash
 ansible-galaxy collection install -vv -r meta/collection-requirements.yml
 ```
 
-on the *control node* before using the role.
+## Variables for Controlling Packages to Install
 
-## Role Variables
+These variables control what packages the role installs.
+By default, the role installs all the packages.
+You can set some of the variables to `false` to make the role not install particular packages.
 
-A description of all input variables (i.e. variables that are defined in
-`defaults/main.yml`) for the role should go here as these form an API of the
-role.  Each variable should have its own section e.g.
+### hpc_install_cuda_driver
 
-### template_foo
+Whether to install the CUDA Driver package.
 
-This variable is required.  It is a string that lists the foo of the role.
-There is no default value.
+Default: `true`
 
-### template_bar
+Type: `bool`
 
-This variable is optional.  It is a boolean that tells the role to disable bar.
-The default value is `true`.
+### hpc_install_cuda_toolkit
 
-Variables that are not intended as input, like variables defined in
-`vars/main.yml`, variables that are read from other roles and/or the global
-scope (ie. hostvars, group vars, etc.) can be also mentioned here but keep in
-mind that as these are probably not part of the role API they may change during
-the lifetime.
+Whether to install the CUDA Toolkit package.
 
-Example of setting the variables:
+Default: `true`
+
+Type: `bool`
+
+### hpc_install_hpc_nvidia_nccl
+
+Whether to install the NVIDIA Collective Communications Library (NCCL) package.
+
+Default: `true`
+
+Type: `bool`
+
+### hpc_install_nvidia_fabric_manager
+
+Whether to install the NVIDIA Fabric Manager package.
+
+Default: `true`
+
+Type: `bool`
+
+### hpc_install_nvidia_rdma
+
+Whether to install the NVIDIA RDMA package.
+
+Default: `true`
+
+Type: `bool`
+
+### hpc_install_openmpi
+
+Whether to install the Open MPI package.
+
+Default: `true`
+
+Type: `bool`
+
+## Variables for Configuring How Role Reboots Managed Nodes
+
+### hpc_reboot_ok
+
+If `true`, if the role detects that something was changed that requires a reboot to take effect, the role will reboot the managed host.
+
+If `false`, it is up to you to determine when to reboot the managed host.
+
+The role returns the variable [hpc_reboot_needed](#hpc_reboot_needed) with a value of `true` to indicate that some change has occurred which needs a reboot to take effect.
+
+Default: `false`
+
+Type: `bool`
+
+### Example Playbook for Configuring Packages
 
 ```yaml
-template_foo: "oof"
-template_bar: false
+- name: Configure my virtual machine for HPC
+  hosts: localhost
+  vars:
+    hpc_install_cuda_driver: true
+    hpc_install_cuda_toolkit: true
+    hpc_install_hpc_nvidia_nccl: true
+    hpc_install_nvidia_fabric_manager: true
+    hpc_install_nvidia_rdma: true
+    hpc_install_openmpi: true
+  roles:
+    - linux-system-roles.hpc
+```
+
+## Variables for Configuring Storage
+
+By default, the role ensures that `rootlv` and `usrlv` in Azure has enough storage for packages to be installed.
+You can use variables described in this section to control the exact sizes and paths.
+
+### hpc_manage_storage
+
+Whether to configure the VG from [hpc_rootvg_name](#hpc_rootvg_name) to have logical volumes [hpc_rootlv_name](#hpc_rootlv_name) and [hpc_usrlv_name](#hpc_usrlv_name) with indicated sizes and mounted to indicated mount points.
+
+Note that the role configures not the exact size, but ensures that the size is at least as indicated, i.e. the role won't shrink logical volumes.
+
+Default: `true`
+
+Type: `bool`
+
+### hpc_rootvg_name
+
+Name of the root volume group to use.
+The role configures logical volumes [hpc_rootlv_name](#hpc_rootlv_name) and [hpc_usrlv_name](#hpc_usrlv_name) to extend them to the size required to install HPC packages.
+
+Default: `rootvg`
+
+Type: `string`
+
+### hpc_rootlv_name
+
+Name of the `root` logical volume to use.
+
+Default: `rootlv`
+
+Type: `string`
+
+### hpc_rootlv_size
+
+The size of the [hpc_rootlv_size](#hpc_rootlv_name) logical volume to configure.
+
+Note that the role configures not the exact size, but ensures that the size is at least as indicated, i.e. the role won't shrink logical volumes if current size is larger than value of this variable.
+
+Default: `10G`
+
+Type: `string`
+
+### hpc_rootlv_mount
+
+Mount point of the [hpc_rootlv_size](#hpc_rootlv_name) logical volume to configure.
+
+Default: `/`
+
+Type: `string`
+
+### hpc_usrlv_name
+
+Name of the `usr` logical volume to use.
+
+Default: `usrlv`
+
+Type: `string`
+
+### hpc_usrlv_size
+
+The size of the [hpc_usrlv_name](#hpc_usrlv_name) logical volume to configure.
+
+Note that the role configures not the exact size, but ensures that the size is at least as indicated, i.e. the role won't shrink logical volumes if current size is larger than value of this variable.
+
+Default: `20G`
+
+Type: `string`
+
+### hpc_usrlv_mount
+
+Mount point of the [hpc_usrlv_name](#hpc_usrlv_name) logical volume to configure.
+
+Default: `/usr`
+
+Type: `string`
+
+### Example Playbook for Configuring Storage
+
+```yaml
+- name: Configure my virtual machine for HPC
+  hosts: localhost
+  vars:
+    hpc_manage_storage: true
+    hpc_rootvg_name: rootvg
+    hpc_rootlv_name: rootlv
+    hpc_rootlv_size: 10G
+    hpc_rootlv_mount: /
+    hpc_usrlv_name: usrlv
+    hpc_usrlv_size: 20G
+    hpc_usrlv_mount: /usr
+  roles:
+    - linux-system-roles.hpc
 ```
 
 ## Variables Exported by the Role
 
-This section is optional.  Some roles may export variables for playbooks to
-use later.  These are analogous to "return values" in Ansible modules.  For
-example, if a role performs some action that will require a system reboot, but
-the user wants to defer the reboot, the role might set a variable like
-`template_reboot_needed: true` that the playbook can use to reboot at a more
-convenient time.
+### hpc_reboot_needed
 
-Example:
+Default `false` - if `true`, this means a reboot is needed to apply the changes made by the role.
 
-### template_reboot_needed
+## Example Playbooks
 
-Default `false` - if `true`, this means a reboot is needed to apply the changes
-made by the role
-
-## Example Playbook
-
-Including an example of how to use your role (for instance, with variables
-passed in as parameters) is always nice for users too:
+Run the role to configure storage, install all packages, and reboot if needed.
 
 ```yaml
-- name: Manage the template subsystem
-  hosts: all
+- name: Configure my virtual machine for HPC
+  hosts: localhost
   vars:
-    template_foo: "foo foo!"
-    template_bar: false
-  roles:
-    - linux-system-roles.template
-```
+    hpc_manage_storage: true
+    hpc_rootvg_name: rootvg
+    hpc_rootlv_name: rootlv
+    hpc_rootlv_size: 10G
+    hpc_rootlv_mount: /
+    hpc_usrlv_name: usrlv
+    hpc_usrlv_size: 20G
+    hpc_usrlv_mount: /usr
 
-More examples can be provided in the [`examples/`](examples) directory. These
-can be useful, especially for documentation.
+    hpc_install_cuda_driver: true
+    hpc_install_cuda_toolkit: true
+    hpc_install_hpc_nvidia_nccl: true
+    hpc_install_nvidia_fabric_manager: true
+    hpc_install_nvidia_rdma: true
+    hpc_install_openmpi: true
+
+    hpc_reboot_ok: true
+  roles:
+    - linux-system-roles.hpc
+```
 
 ## rpm-ostree
 
@@ -97,9 +240,4 @@ See README-ostree.md
 
 ## License
 
-Whenever possible, please prefer MIT.
-
-## Author Information
-
-An optional section for the role authors to include contact information, or a
-website (HTML is not allowed).
+MIT

@@ -2,12 +2,16 @@
 ---
 - name: Ensure that the role runs with default parameters
   hosts: all
-  gather_facts: false  # test that role works in this case
+  gather_facts: false
+  # Do not do anything in this stest, otherwise fails with not enough storage
+  vars:
+    hpc_manage_storage: false
+    hpc_install_nvidia_driver: false
+    hpc_install_cuda_driver: false
+    hpc_install_cuda_toolkit: false
+    hpc_install_hpc_nvidia_nccl: false
+    hpc_install_nvidia_fabric_manager: false
+    hpc_install_nvidia_rdma: false
+    hpc_install_openmpi: false
   roles:
-    - linux-system-roles.template
-  tasks:
-    - name: Check header for ansible_managed, fingerprint
-      include_tasks: tasks/check_header.yml
-      vars:
-        __file: /etc/foo.conf
-        __fingerprint: system_role:template
+    - linux-system-roles.hpc
