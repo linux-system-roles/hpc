@@ -30,8 +30,20 @@ hpc_nvidia_rdma_packages:
   - rdma-core
   - libibverbs-utils
   - perftest
+  - ucx
+  - ucx-ib
+  - ucx-rdmacm
+  - mpitests-openmpi
 hpc_openmpi_packages:
   - openmpi
+__hpc_versionlock_path: /etc/dnf/plugins/versionlock.list
+__hpc_versionlock_rpms:
+  - kernel
+  - kernel-core
+  - kernel-modules
+  - kernel-modules-extra
+  - kernel-devel
+  - kernel-headers
 
 # BEGIN - DO NOT EDIT THIS BLOCK - rh distros variables
 # Ansible distribution identifiers that the role treats like RHEL
@@ -50,5 +62,3 @@ __hpc_is_rh_distro: "{{ ansible_distribution in __hpc_rh_distros }}"
 # Use this in conditionals to check if distro is Red Hat or clone, or Fedora
 __hpc_is_rh_distro_fedora: "{{ ansible_distribution in __hpc_rh_distros_fedora }}"
 # END - DO NOT EDIT THIS BLOCK - rh distros variables
-
-__hpc_gather_facts_no_log: false

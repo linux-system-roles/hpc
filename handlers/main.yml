@@ -2,3 +2,8 @@
 ---
 - name: Reboot system
   include_tasks: tasks/reboot.yml
+
+- name: Reboot waagent
+  service:
+    name: waagent
+    state: restarted

@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Verify if role configures a custom storage properly
+  hosts: all
+  gather_facts: true
+  vars:
+    # Toolkit is about 6GB, let's skip it to save bandwidth
+    hpc_install_cuda_toolkit: false
+  tasks:
+    - name: Determine whether VM is running on Azure
+      command: dmidecode -s system-manufacturer
+      register: __hpcdmidecode_output
+      changed_when: false
+
+    - name: End if not running on Azure
+      meta: end_play
+      when: __hpcdmidecode_output.stdout != "Microsoft Corporation"
+
+    - name: Run the role
+      include_role:
+        name: linux-system-roles.hpc
