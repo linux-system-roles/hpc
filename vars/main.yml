@@ -36,6 +36,7 @@ hpc_nvidia_rdma_packages:
   - ucx-ib
   - ucx-rdmacm
   - mpitests-openmpi
+  - WALinuxAgent
 hpc_openmpi_packages:
   - openmpi
 __hpc_versionlock_path: /etc/dnf/plugins/versionlock.list
