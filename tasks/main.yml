@@ -80,10 +80,10 @@
                 mount_point: "{{ hpc_usrlv_mount }}"
 
 # This is only needed for MicrosoftAzure VMs
-- name: Update RHUI packages from Microsoft repositories only
+- name: Update RHUI packages from Microsoft repositories
   package:
     name: "rhui*"
-    state: latest
+    state: latest  # noqa package-latest
     disablerepo: "*"
     enablerepo: "rhui-microsoft-*"
   when: ansible_system_vendor == "Microsoft Corporation"
@@ -189,8 +189,9 @@
   lineinfile:
     path: /etc/waagent.conf
     line: "OS.EnableRDMA=y"
-    create: yes
-    backup: yes
+    create: true
+    backup: true
+    mode: "0644"
   notify: Restart waagent
 
 - name: Install openmpi
