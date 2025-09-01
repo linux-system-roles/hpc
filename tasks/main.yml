@@ -78,6 +78,9 @@
               - name: "{{ hpc_usrlv_name }}"
                 size: "{{ __hpc_usrlv_size }}"
                 mount_point: "{{ hpc_usrlv_mount }}"
+        # Skip installing blivet due to issues with dependencies with kernel
+        storage_skip_checks:
+          - blivet_available
 
 # This is only needed for MicrosoftAzure VMs
 - name: Update RHUI packages from Microsoft repositories
