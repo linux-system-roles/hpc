@@ -17,6 +17,3 @@ hpc_install_hpc_nvidia_nccl: true
 hpc_install_nvidia_fabric_manager: true
 hpc_install_nvidia_rdma: true
 hpc_install_openmpi: true
-
-# For now only one provider is supported, hence not documenting this in README
-hpc_cloud_provider: azure

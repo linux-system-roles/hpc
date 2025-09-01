@@ -79,18 +79,14 @@
                 size: "{{ __hpc_usrlv_size }}"
                 mount_point: "{{ hpc_usrlv_mount }}"
 
+# This is only needed for MicrosoftAzure VMs
 - name: Update RHUI packages from Microsoft repositories only
   package:
     name: "rhui*"
     state: latest
     disablerepo: "*"
     enablerepo: "rhui-microsoft-*"
-  when: hpc_cloud_provider == "azure"
-
-- name: Get current kernel release version
-  command: uname -r
-  register: __hpc_kernel_release
-  changed_when: false
+  when: ansible_system_vendor == "Microsoft Corporation"
 
 # nvidia packages installed by the HPC system role don't pull a mismatched version
 - name: >-
@@ -98,8 +94,8 @@
     currently running kernel
   package:
     name:
-      - kernel-devel-{{ __hpc_kernel_release.stdout }}
-      - kernel-headers-{{ __hpc_kernel_release.stdout }}
+      - kernel-devel-{{ ansible_kernel }}
+      - kernel-headers-{{ ansible_kernel }}
     state: present
   notify: Reboot system
 
@@ -195,7 +191,7 @@
     line: "OS.EnableRDMA=y"
     create: yes
     backup: yes
-  notify: Reboot waagent
+  notify: Restart waagent
 
 - name: Install openmpi
   when: hpc_install_openmpi

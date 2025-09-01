@@ -7,14 +7,9 @@
     # Toolkit is about 6GB, let's skip it to save bandwidth
     hpc_install_cuda_toolkit: false
   tasks:
-    - name: Determine whether VM is running on Azure
-      command: dmidecode -s system-manufacturer
-      register: __hpcdmidecode_output
-      changed_when: false
-
     - name: End if not running on Azure
       meta: end_play
-      when: __hpcdmidecode_output.stdout != "Microsoft Corporation"
+      when: ansible_system_vendor != "Microsoft Corporation"
 
     - name: Run the role
       include_role:
