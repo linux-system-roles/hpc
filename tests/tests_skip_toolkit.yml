@@ -76,9 +76,6 @@
                   - name: "{{ hpc_usrlv_name }}"
                     size: 1G
                     mount_point: "{{ hpc_usrlv_mount }}"
-            # Skip installing blivet due to issues with dependencies with kernel
-            storage_skip_checks:
-              - blivet_available
 
         - name: Run the role
           include_role:
@@ -114,3 +111,6 @@
                   - name: "{{ hpc_usrlv_name }}"
                     size: 1G
                     mount_point: "{{ hpc_usrlv_mount }}"
+
+        - name: Clean up after the role invocation
+          include_tasks: tasks/cleanup.yml

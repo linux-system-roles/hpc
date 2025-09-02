@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Check if versionlock entries exist
+  stat:
+    path: /etc/dnf/plugins/versionlock.list
+  register: __hpc_versionlock_stat
+
+- name: Clear dnf versionlock entries
+  command: dnf versionlock clear
+  changed_when: true
+  when: __hpc_versionlock_stat.stat.exists

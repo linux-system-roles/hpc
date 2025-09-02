@@ -52,13 +52,6 @@
       register: __hpc_usrlv_size_cmd
       changed_when: false
 
-    - name: Debug
-      vars:
-        storage_skip_checks:
-          - blivet_available
-      debug:
-        var: storage_skip_checks
-
     - name: Configure storage
       include_role:
         name: fedora.linux_system_roles.storage
@@ -85,9 +78,6 @@
               - name: "{{ hpc_usrlv_name }}"
                 size: "{{ __hpc_usrlv_size }}"
                 mount_point: "{{ hpc_usrlv_mount }}"
-        # Skip installing blivet due to issues with dependencies with kernel
-        storage_skip_checks:
-          - blivet_available
 
 # This is only needed for MicrosoftAzure VMs
 - name: Update RHUI packages from Microsoft repositories
@@ -113,7 +103,7 @@
     name: dnf-command(versionlock)
     state: present
 
-- name: Check if kernel versionlock entries exist in local file
+- name: Check if kernel versionlock entries exist
   stat:
     path: "{{ __hpc_versionlock_path }}"
   register: __hpc_versionlock_stat
