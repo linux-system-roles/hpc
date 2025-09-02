@@ -91,7 +91,6 @@
     enablerepo: "rhui-microsoft-*"
   when: ansible_system_vendor == "Microsoft Corporation"
 
-# nvidia packages installed by the HPC system role don't pull a mismatched version
 - name: >-
     Explicitly install kernel-devel and kernel-headers packages matching the
     currently running kernel
@@ -118,6 +117,8 @@
   changed_when: false
   when: __hpc_versionlock_stat.stat.exists
 
+# once nvidia drivers are built for a specific kernel version, we need to
+# prevent installation of all kernel packages of a different version
 # MS unsuccessfully tries to do this in azhpc-images build scripts:
 # https://github.com/Azure/azhpc-images/blob/a3f92d283af6c9d11bf08eb0f8763ab67f7c8713/partners/rhel/common/install_utils.sh#L61
 - name: Prevent installation of all kernel packages of a different version
