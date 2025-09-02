@@ -52,6 +52,29 @@
       register: __hpc_usrlv_size_cmd
       changed_when: false
 
+    - name: Debug
+      vars:
+        storage_skip_checks:
+          - blivet_available
+      debug:
+        var: storage_skip_checks
+
+
+    - name: Debug1
+      vars:
+        storage_skip_checks:
+          - blivet_available
+      debug:
+        var: '"blivet_available" not in storage_skip_checks'
+
+    - name: Debug2
+      vars:
+        storage_skip_checks:
+          - blivet_available
+      debug:
+        var: storage_skip_checks is not defined
+          or "blivet_available" not in storage_skip_checks
+
     - name: Configure storage
       include_role:
         name: fedora.linux_system_roles.storage
