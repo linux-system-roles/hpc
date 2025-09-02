@@ -17,3 +17,6 @@ hpc_install_hpc_nvidia_nccl: true
 hpc_install_nvidia_fabric_manager: true
 hpc_install_nvidia_rdma: true
 hpc_install_openmpi: true
+
+# Hidden variable for testing purposes to force a specific kernel version to be installed
+__hpc_force_kernel_version: null

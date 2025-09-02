@@ -88,6 +88,16 @@
     enablerepo: "rhui-microsoft-*"
   when: ansible_system_vendor == "Microsoft Corporation"
 
+- name: Force install kernel
+  package:
+    name: kernel-{{ __hpc_force_kernel_version }}
+    state: present
+  when: __hpc_force_kernel_version is not none
+  notify: Reboot system
+
+- name: Flush handlers to apply new kernel
+  meta: flush_handlers
+
 - name: >-
     Explicitly install kernel-devel and kernel-headers packages matching the
     currently running kernel
