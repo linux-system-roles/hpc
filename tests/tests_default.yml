@@ -13,5 +13,12 @@
     hpc_install_nvidia_fabric_manager: false
     hpc_install_nvidia_rdma: false
     hpc_install_openmpi: false
-  roles:
-    - linux-system-roles.hpc
+  tasks:
+    - name: Run test in a block to clean up in always
+      block:
+        - name: Run the role
+          include_role:
+            name: linux-system-roles.hpc
+      always:
+        - name: Cleanup
+          include_tasks: tasks/cleanup.yml

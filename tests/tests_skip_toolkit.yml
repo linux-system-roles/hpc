@@ -111,3 +111,6 @@
                   - name: "{{ hpc_usrlv_name }}"
                     size: 1G
                     mount_point: "{{ hpc_usrlv_mount }}"
+
+        - name: Clean up after the role invocation
+          include_tasks: tasks/cleanup.yml
