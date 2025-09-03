@@ -137,7 +137,7 @@
     or __hpc_versionlock_content.stdout is not search(item  + "-[0-9]")
   loop: "{{ __hpc_versionlock_rpms }}"
 
-- name: Enable proprietary nvidia-driver
+- name: Install nvidia-driver
   package:
     name: "{{ hpc_nvidia_driver_module }}"
     state: present
