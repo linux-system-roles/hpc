@@ -28,6 +28,27 @@
     baseurl: "{{ hpc_nvidia_cuda_repository }}"
     gpgcheck: true
 
+- name: Deploy Microsoft GPG key
+  rpm_key:
+    key: "{{ mssql_rpm_key }}"
+    state: present
+  register: __mssql_gpg
+  until: __mssql_gpg is success
+
+- name: Configure Microsoft repository
+  yum_repository:
+    name: microsoft-prod
+    description: Microsoft Production Repository
+    baseurl: "{{ hpc_microsoft_rpm }}"
+    gpgcheck: true
+
+- name: Configure Azure Lustre repository
+  yum_repository:
+    name: amlfs
+    description: Azure Lustre Packages
+    baseurl: "{{ hpc_azure_lustre_rpm }}"
+    gpgcheck: true
+
 - name: Configure storage
   when: hpc_manage_storage
   block:
@@ -95,8 +116,6 @@
   when: __hpc_force_kernel_version is not none
   notify: Reboot system
 
-- name: Flush handlers to apply new kernel
-  meta: flush_handlers
 
 - name: >-
     Explicitly install kernel-devel and kernel-headers packages matching the
@@ -107,6 +126,9 @@
       - kernel-headers-{{ ansible_kernel }}
     state: present
   notify: Reboot system
+
+- name: Flush handlers to apply new kernel
+  meta: flush_handlers
 
 - name: Ensure that dnf-command(versionlock) is installed
   package:
@@ -136,6 +158,386 @@
     not __hpc_versionlock_stat.stat.exists
     or __hpc_versionlock_content.stdout is not search(item  + "-[0-9]")
   loop: "{{ __hpc_versionlock_rpms }}"
+
+
+# Install utilities for building packages
+- name: Install development tools and pre-requisites for building packages
+  package:
+    name:
+      - "@Development Tools"
+      - numactl
+      - numactl-devel
+      - libxml2-devel
+      - byacc
+      - python3-devel
+      - python3-setuptools
+      - gtk2
+      - atk
+      - cairo
+      - tcl
+      - tk
+      - m4
+      - glibc-devel
+      - libudev-devel
+      - binutils
+      - binutils-devel
+      - selinux-policy-devel
+      - nfs-utils
+      - fuse-libs
+      - libpciaccess
+      - cmake
+      - libnl3-devel
+      - libsecret
+      - rpm-build
+      - make
+      - check
+      - check-devel
+      - lsof
+      - kernel-rpm-macros
+      - tcsh
+      - gcc-gfortran
+      - perl
+      - gcc
+      # Below are utilites from EPEL
+      - pssh
+      - dkms
+      - subunit
+      - subunit-devel
+      - jq
+      - environment-modules
+    state: present
+
+- name: Install azcopy
+  when: ansible_facts.packages["azcopy"] is not defined
+  block:
+    - name: Create a tempfile on the host for azcopy tarball
+      tempfile:
+        state: file
+        prefix: "azcopy_"
+        suffix: .tar.gz
+      register: __hpc_azcopy_tempfile
+
+    - name: Download azcopy tarball
+      get_url:
+        url: "{{ hpc_azcopy_package.url }}"
+        dest: "{{ __hpc_azcopy_tempfile.path }}"
+        mode: '0644'
+        checksum: "{{ hpc_azcopy_package.sha256 }}"
+
+    - name: Extract azcopy tarball
+      unarchive:
+        src: "{{ __hpc_azcopy_tempfile.path }}"
+        dest: "{{ __hpc_azcopy_tempfile.path }}_extracted"
+        remote_src: true
+
+    - name: Copy azcopy binary to system path
+      copy:
+        src: "{{ __hpc_azcopy_tempfile.path }}_extracted/azcopy"
+        dest: /usr/bin/azcopy
+        mode: '0755'
+        remote_src: true
+
+    - name: Write azcopy component version
+      lineinfile:
+        path: /etc/azurehpc/versions
+        line: "AZCOPY={{ hpc_azcopy_package.version }}"
+        create: yes
+        state: present
+
+    - name: Clean up azcopy temporary files
+      file:
+        path: "{{ item }}"
+        state: absent
+      ignore_errors: yes
+      loop:
+        - "{{ __hpc_azcopy_tempfile.path }}"
+        - "{{ __hpc_azcopy_tempfile.path }}_extracted"
+
+- name: Install kvp client
+  when: ansible_facts.packages["kvpc"] is not defined
+  block:
+    - name: Create a tempfile dir on the host for kvp_client
+      tempfile:
+        state: directory
+        prefix: "kvp_client_"
+      register: __hpc_kvp_client_tempfile
+
+    - name: Ensure that /opt/azurehpc/tools exists
+      file:
+        path: /opt/azurehpc/tools
+        state: directory
+        mode: "0755"
+
+    - name: Download kvp_client.c source
+      get_url:
+        url: "{{ hpc_kvp_client_package.url }}"
+        dest: "{{ __hpc_kvp_client_tempfile.path }}"
+        mode: "0644"
+
+    - name: Compile kvp_client
+      command: >-
+        gcc {{ __hpc_kvp_client_tempfile.path }}/kvp_client.c
+        -o /opt/azurehpc/tools/kvp_client
+
+
+
+
+- name: Install Azure Lustre client
+  when: hpc_lustre_package not it ansible_facts.packages
+  when: ansible_facts.packages["amlfs-lustre-client"] is not defined
+  block:
+    - name: Download Azure Lustre client
+      command: dnf download {{ hpc_lustre_package }}
+      register: __hpc_lustre_download
+      changed_when: true
+
+    # Install using rpm --nodeps to workaround kernel version dependency
+    - name: Install Azure Lustre client
+      command: rpm --install --nodeps {{ hpc_lustre_package }}
+      changed_when: true
+
+    - name: Remove downloaded package
+      file:
+        path: "{{ hpc_lustre_package }}.rpm"
+        state: absent
+
+
+
+
+# Skipping copying torset tool
+
+
+
+
+- name: Install gcc-9.2 and its requirements
+  when: ansible_facts.packages["gcc-9.2"] is not defined
+  block:
+    - name: Download and build dependencies
+      include_tasks: tasks/download_extract_build.yml
+      loop_control:
+        loop_var: package_info
+      loop:
+        - "{{ hpc_gmp_info }}"
+        - "{{ hpc_mpfr_info }}"
+        - "{{ hpc_mpc_info }}"
+        - "{{ hpc_gcc_info }}"
+
+    - name: Create module files directory
+      file:
+        path: "{{ hpc_module_files_directory }}"
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Create GCC module file
+      copy:
+        dest: "{{ hpc_module_files_directory }}/gcc-{{ hpc_gcc_info.version }}"
+        content: |
+          #%Module 1.0
+          #
+          #  GCC {{ hpc_gcc_info.version }}
+          #
+          prepend-path    PATH            /opt/gcc-{{ hpc_gcc_info.version }}/bin
+          prepend-path    LD_LIBRARY_PATH /opt/gcc-{{ hpc_gcc_info.version }}/lib64
+          setenv          CC              /opt/gcc-{{ hpc_gcc_info.version }}/bin/gcc
+          setenv          GCC             /opt/gcc-{{ hpc_gcc_info.version }}/bin/gcc
+        mode: '0644'
+
+
+
+# Install pmix
+- name: Enable slurm repository
+  yum_repository:
+    name: slurm
+    description: Slurm Workload Manager
+    baseurl: "{{ hpc_microsoft_srurm_rpm }}"
+    gpgcheck: true
+
+- name: Install PMIX and dependencies
+  yum:
+    name:
+      - "pmix-{{ hpc_pmix_info.version }}.el9"
+      - hwloc-devel
+      - libevent-devel
+      - munge-devel
+    state: present
+
+
+
+
+# =============================================================================
+# MPI Libraries Installation Tasks
+# =============================================================================
+
+- name: Download and build HPCX
+  include_tasks: tasks/download_extract_build.yml
+  vars:
+    package_info: "{{ hpc_hpcx_info }}"
+
+- name: Set environment variables for GCC
+  set_fact:
+    # gcc_path: /opt/{{ gcc_version }}/bin
+    # gcc_lib_path: "/opt/{{ gcc_version }}/lib64"
+    pmix_path: /opt/pmix/"{{ hpc_pmix_info.version[:2] }}"
+    hpcx_folder: "{{ __hpc_build_extracted.path | basename }}"
+    hpcx_path: /opt/{{ hpcx_folder }}
+    ucx_path: "{{ hpcx_path }}/ucx"
+    hcoll_path: "{{ hpcx_path }}/hcoll"
+
+- name: Fix HPC-X pkg-config file path
+  replace:
+    path: "{{ __hpc_build_extracted.path }}/hcoll/lib/pkgconfig/hcoll.pc"
+    regexp: '/build-result/'
+    replace: '/opt/'
+
+- name: Copy HPC-X to install directory
+  copy:
+    src: "{{ __hpc_build_extracted.path }}"
+    dest: "{{ hpcx_path }}"
+
+- name: Remove extracted dir
+  file:
+    path: "{{ __hpc_build_extracted.path }}"
+    state: absent
+
+- name: Rebuild HPC-X with PMIx
+  command: "{{ hpcx_path }}/utils/hpcx_rebuild.sh --with-hcoll --ompi-extra-config '--with-pmix={{ pmix_path }} --enable-orterun-prefix-by-default'"
+  args:
+    chdir: "{{ hpcx_path }}"
+
+- name: Copy HPC-X tests to rebuild directory
+  command: cp -r {{ hpcx_path }}/ompi/tests {{ hpcx_path }}/hpcx-rebuild
+  args:
+    creates: "{{ hpcx_path }}/hpcx-rebuild"
+
+- name: Exclude UCX from updates
+  command: dnf versionlock add ucx
+  changed_when: true
+  when: >-
+    not __hpc_versionlock_stat.stat.exists
+    or __hpc_versionlock_content.stdout is not search(item  + "-[0-9]")
+
+- name: Download and build MVAPICH2, Open MPI, and Intel MPI
+  include_tasks: tasks/download_extract_build.yml
+  loop_control:
+    loop_var: package_info
+  loop:
+    - "{{ hpc_mvapich2_info }}"
+    - "{{ hpc_ompi_info }}"
+    - "{{ hpc_impi_info }}"
+
+- name: Install Intel MPI
+  shell: bash {{ __hpc_build_download.path }}/{{ hpc_impi_info.url | basename }} -s -a -s --eula accept
+
+- name: Rename Intel MPI module file
+  command: mv /opt/intel/oneapi/mpi/{{ hpc_impi_info.version_short }}/etc/modulefiles/mpi /opt/intel/oneapi/mpi/{{ hpc_impi_info.version_short }}/etc/modulefiles/impi
+  args:
+    creates: "/opt/intel/oneapi/mpi/{{ hpc_impi_info.version_short }}/etc/modulefiles/impi"
+
+- name: Create MPI module files directory
+  file:
+    path: "{{ hpc_module_files_directory }}/mpi"
+    state: directory
+    mode: '0755'
+
+- name: Create HPC-X module file
+  copy:
+    content: |
+      #%Module 1.0
+      #
+      #  HPCx {{ hpc_hpcx_info.version }}
+      #
+      conflict        mpi
+      module load {{ hpcx_path }}/modulefiles/hpcx
+    dest: "{{ hpc_module_files_directory }}/mpi/hpcx-{{ hpc_hpcx_info.version }}"
+    mode: '0644'
+
+- name: Create HPC-X with PMIX module file
+  copy:
+    content: |
+      #%Module 1.0
+      #
+      #  HPCx {{ hpc_hpcx_info.version }}
+      #
+      conflict        mpi
+      module load {{ hpcx_path }}/modulefiles/hpcx-rebuild
+    dest: "{{ hpc_module_files_directory }}/mpi/hpcx-pmix-{{ hpc_hpcx_info.version }}"
+    mode: '0644'
+
+- name: Create MVAPICH2 module file
+  copy:
+    content: |
+      #%Module 1.0
+      #
+      #  MVAPICH2 {{ hpc_mvapich2_info.version }}
+      #
+      conflict        mpi
+      module load {{ hpc_gcc_info.version }}
+      prepend-path    PATH            /opt/mvapich2-{{ hpc_mvapich2_info.version }}/bin
+      prepend-path    LD_LIBRARY_PATH /opt/mvapich2-{{ hpc_mvapich2_info.version }}/lib
+      prepend-path    MANPATH         /opt/mvapich2-{{ hpc_mvapich2_info.version }}/share/man
+      setenv          MPI_BIN         /opt/mvapich2-{{ hpc_mvapich2_info.version }}/bin
+      setenv          MPI_INCLUDE     /opt/mvapich2-{{ hpc_mvapich2_info.version }}/include
+      setenv          MPI_LIB         /opt/mvapich2-{{ hpc_mvapich2_info.version }}/lib
+      setenv          MPI_MAN         /opt/mvapich2-{{ hpc_mvapich2_info.version }}/share/man
+      setenv          MPI_HOME        /opt/mvapich2-{{ hpc_mvapich2_info.version }}
+    dest: "{{ hpc_module_files_directory }}/mpi/mvapich2-{{ hpc_mvapich2_info.version }}"
+    mode: '0644'
+
+- name: Create OpenMPI module file
+  copy:
+    content: |
+      #%Module 1.0
+      #
+      #  OpenMPI {{ hpc_ompi_info.version }}
+      #
+      conflict        mpi
+      module load {{ hpc_gcc_info.version }}
+      prepend-path    PATH            /opt/openmpi-{{ hpc_ompi_info.version }}/bin
+      prepend-path    LD_LIBRARY_PATH /opt/openmpi-{{ hpc_ompi_info.version }}/lib:{{ hcoll_path }}/lib
+      prepend-path    MANPATH         /opt/openmpi-{{ hpc_ompi_info.version }}/share/man
+      setenv          MPI_BIN         /opt/openmpi-{{ hpc_ompi_info.version }}/bin
+      setenv          MPI_INCLUDE     /opt/openmpi-{{ hpc_ompi_info.version }}/include
+      setenv          MPI_LIB         /opt/openmpi-{{ hpc_ompi_info.version }}/lib
+      setenv          MPI_MAN         /opt/openmpi-{{ hpc_ompi_info.version }}/share/man
+      setenv          MPI_HOME        /opt/openmpi-{{ hpc_ompi_info.version }}
+    dest: "{{ hpc_module_files_directory }}/mpi/openmpi-{{ hpc_ompi_info.version }}"
+    mode: '0644'
+
+- name: Create Intel MPI module file
+  copy:
+    content: |
+      #%Module 1.0
+      #
+      #  Intel MPI {{ hpc_impi_info.version_short }}
+      #
+      conflict        mpi
+      module load /opt/intel/oneapi/mpi/{{ hpc_impi_info.version_short }}/etc/modulefiles/impi/{{ hpc_impi_info.version_short }}
+      setenv          MPI_BIN         /opt/intel/oneapi/mpi/{{ hpc_impi_info.version_short }}/bin
+      setenv          MPI_INCLUDE     /opt/intel/oneapi/mpi/{{ hpc_impi_info.version_short }}/include
+      setenv          MPI_LIB         /opt/intel/oneapi/mpi/{{ hpc_impi_info.version_short }}/lib
+      setenv          MPI_MAN         /opt/intel/oneapi/mpi/{{ hpc_impi_info.version_short }}/share/man
+      setenv          MPI_HOME        /opt/intel/oneapi/mpi/{{ hpc_impi_info.version_short }}
+    dest: "{{ hpc_module_files_directory }}/mpi/impi_{{ hpc_impi_info.version_short }}"
+    mode: '0644'
+
+- name: Create MPI module symlinks
+  file:
+    src: "{{ hpc_module_files_directory }}/mpi/{{ item.src }}"
+    dest: "{{ hpc_module_files_directory }}/mpi/{{ item.dest }}"
+    state: link
+  loop:
+    - src: "hpcx-{{ hpc_hpcx_info.version }}"
+      dest: "{{ hpc_hpcx_info.name }}"
+    - src: "hpcx-pmix-{{ hpc_hpcx_info.version }}"
+      dest: "hpcx-pmix"
+    - src: "mvapich2-{{ hpc_mvapich2_info.version }}"
+      dest: "{{ hpc_mvapich2_info.name }}"
+    - src: "openmpi-{{ hpc_ompi_info.version }}"
+      dest: "{{ hpc_ompi_info.name }}"
+    - src: "{{ hpc_impi_info.name }}_{{ hpc_impi_info.version_short }}"
+      dest: "{{ hpc_impi_info.name }}-{{ hpc_impi_info.version_short }}"
 
 - name: Install nvidia-driver
   package:

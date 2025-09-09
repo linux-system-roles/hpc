@@ -1,18 +1,8 @@
 # SPDX-License-Identifier: MIT
 ---
-# ansible_facts required by the role
-__hpc_required_facts:
-  - distribution
-  - distribution_major_version
-  - distribution_version
-  - os_family
-  # needed for ansible_system_vendor
-  - devices
-# the subsets of ansible_facts that need to be gathered in case any of the
-# facts in required_facts is missing; see the documentation of
-# the 'gather_subset' parameter of the 'setup' module
-__hpc_required_facts_subsets: "{{ ['!all', '!min'] +
-  __hpc_required_facts }}"
+hpc_microsoft_rpm_key: https://packages.microsoft.com/keys/microsoft.asc
+hpc_microsoft_rpm: https://packages.microsoft.com/config/rhel/9/prod
+hpc_azure_lustre_rpm: https://packages.microsoft.com/yumrepos/amlfs-el9-test
 
 hpc_rhel_epel_rpm_key: https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-9
 hpc_rhel_epel_rpm: https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
@@ -47,6 +37,21 @@ __hpc_versionlock_rpms:
   - kernel-modules-extra
   - kernel-devel
   - kernel-headers
+hpc_module_files_directory: /usr/share/Modules/modulefiles
+
+# ansible_facts required by the role
+__hpc_required_facts:
+  - distribution
+  - distribution_major_version
+  - distribution_version
+  - os_family
+  # needed for ansible_system_vendor
+  - devices
+# the subsets of ansible_facts that need to be gathered in case any of the
+# facts in required_facts is missing; see the documentation of
+# the 'gather_subset' parameter of the 'setup' module
+__hpc_required_facts_subsets: "{{ ['!all', '!min'] +
+  __hpc_required_facts }}"
 
 # BEGIN - DO NOT EDIT THIS BLOCK - rh distros variables
 # Ansible distribution identifiers that the role treats like RHEL
