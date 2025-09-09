@@ -21,12 +21,14 @@ hpc_nvidia_fabric_manager_packages:
 hpc_nvidia_rdma_packages:
   - rdma-core
   - libibverbs-utils
+  - librdmacm-utils
   - perftest
   - ucx
   - ucx-ib
   - ucx-rdmacm
   - mpitests-openmpi
   - WALinuxAgent
+  - infiniband-diags
 hpc_openmpi_packages:
   - openmpi
 __hpc_versionlock_path: /etc/dnf/plugins/versionlock.list

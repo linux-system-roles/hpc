@@ -588,6 +588,12 @@
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
+- name: Enable Fabric Manager service
+  service:
+    name: nvidia-fabricmanager
+    status: started
+    enabled: true
+
 - name: Install NVIDIA RDMA packages
   when: hpc_install_nvidia_rdma
   package:
@@ -607,6 +613,17 @@
     backup: true
     mode: "0644"
   notify: Restart waagent
+
+- name: Let user's applications lock as much memory as they need
+  lineinfile:
+    path: /etc/security/limits.conf
+    line: "{{ item }}"
+    create: true
+    backup: true
+    mode: "0644"
+  loop:
+    - "* soft memlock unlimited"
+    - "* hard memlock unlimited"
 
 - name: Install openmpi
   when: hpc_install_openmpi
