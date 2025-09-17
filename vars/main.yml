@@ -31,12 +31,14 @@ hpc_nvidia_fabric_manager_packages:
 hpc_nvidia_rdma_packages:
   - rdma-core
   - libibverbs-utils
+  - librdmacm-utils
   - perftest
   - ucx
   - ucx-ib
   - ucx-rdmacm
   - mpitests-openmpi
   - WALinuxAgent
+  - infiniband-diags
 hpc_openmpi_packages:
   - openmpi
 __hpc_versionlock_path: /etc/dnf/plugins/versionlock.list
@@ -47,6 +49,9 @@ __hpc_versionlock_rpms:
   - kernel-modules-extra
   - kernel-devel
   - kernel-headers
+
+# A variable for testing purposes to force a specific kernel version to be installed
+__hpc_force_kernel_version: null
 
 # BEGIN - DO NOT EDIT THIS BLOCK - rh distros variables
 # Ansible distribution identifiers that the role treats like RHEL

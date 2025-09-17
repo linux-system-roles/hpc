@@ -88,6 +88,13 @@
     enablerepo: "rhui-microsoft-*"
   when: ansible_system_vendor == "Microsoft Corporation"
 
+- name: Force install kernel
+  package:
+    name: kernel-{{ __hpc_force_kernel_version }}
+    state: present
+  when: __hpc_force_kernel_version is not none
+  notify: Reboot system
+
 - name: >-
     Explicitly install kernel-devel and kernel-headers packages matching the
     currently running kernel
@@ -97,6 +104,9 @@
       - kernel-headers-{{ ansible_kernel }}
     state: present
   notify: Reboot system
+
+- name: Flush handlers to apply new kernel
+  meta: flush_handlers
 
 - name: Ensure that dnf-command(versionlock) is installed
   package:
@@ -127,16 +137,19 @@
     or __hpc_versionlock_content.stdout is not search(item  + "-[0-9]")
   loop: "{{ __hpc_versionlock_rpms }}"
 
-- name: Enable proprietary nvidia-driver
+- name: Enable nvidia-driver
   package:
     name: "{{ hpc_nvidia_driver_module }}"
     state: present
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
   notify: Reboot system
+  when: ansible_system_vendor == "Microsoft Corporation"
 
 - name: Install CUDA driver and enable nvidia-persistenced.service
-  when: hpc_install_cuda_driver
+  when:
+    - ansible_system_vendor == "Microsoft Corporation"
+    - hpc_install_cuda_driver
   block:
     - name: Install CUDA driver
       package:
@@ -151,7 +164,9 @@
         enabled: true
 
 - name: Install CUDA Toolkit
-  when: hpc_install_cuda_toolkit
+  when:
+    - hpc_install_cuda_toolkit
+    - ansible_system_vendor == "Microsoft Corporation"
   package:
     name: "{{ hpc_cuda_toolkit_packages }}"
     state: present
@@ -176,6 +191,13 @@
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
+- name: Enable Fabric Manager service
+  service:
+    name: nvidia-fabricmanager.service
+    state: started
+    enabled: true
+  when: ansible_system_vendor == "Microsoft Corporation"
+
 - name: Install NVIDIA RDMA packages
   when: hpc_install_nvidia_rdma
   package:
@@ -195,6 +217,17 @@
     backup: true
     mode: "0644"
   notify: Restart waagent
+
+- name: Let user's applications lock as much memory as they need
+  lineinfile:
+    path: /etc/security/limits.conf
+    line: "{{ item }}"
+    create: true
+    backup: true
+    mode: "0644"
+  loop:
+    - "* soft memlock unlimited"
+    - "* hard memlock unlimited"
 
 - name: Install openmpi
   when: hpc_install_openmpi
