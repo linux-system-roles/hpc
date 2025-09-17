@@ -50,6 +50,9 @@ __hpc_versionlock_rpms:
   - kernel-devel
   - kernel-headers
 
+# A variable for testing purposes to force a specific kernel version to be installed
+__hpc_force_kernel_version: null
+
 # BEGIN - DO NOT EDIT THIS BLOCK - rh distros variables
 # Ansible distribution identifiers that the role treats like RHEL
 __hpc_rh_distros:

@@ -88,6 +88,13 @@
     enablerepo: "rhui-microsoft-*"
   when: ansible_system_vendor == "Microsoft Corporation"
 
+- name: Force install kernel
+  package:
+    name: kernel-{{ __hpc_force_kernel_version }}
+    state: present
+  when: __hpc_force_kernel_version is not none
+  notify: Reboot system
+
 - name: >-
     Explicitly install kernel-devel and kernel-headers packages matching the
     currently running kernel
@@ -97,6 +104,9 @@
       - kernel-headers-{{ ansible_kernel }}
     state: present
   notify: Reboot system
+
+- name: Flush handlers to apply new kernel
+  meta: flush_handlers
 
 - name: Ensure that dnf-command(versionlock) is installed
   package:
@@ -179,7 +189,7 @@
 - name: Enable Fabric Manager service
   service:
     name: nvidia-fabricmanager
-    status: started
+    state: started
     enabled: true
 
 - name: Install NVIDIA RDMA packages
