@@ -137,16 +137,19 @@
     or __hpc_versionlock_content.stdout is not search(item  + "-[0-9]")
   loop: "{{ __hpc_versionlock_rpms }}"
 
-- name: Enable proprietary nvidia-driver
+- name: Enable nvidia-driver
   package:
     name: "{{ hpc_nvidia_driver_module }}"
     state: present
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
   notify: Reboot system
+  when: ansible_system_vendor == "Microsoft Corporation"
 
 - name: Install CUDA driver and enable nvidia-persistenced.service
-  when: hpc_install_cuda_driver
+  when:
+    - ansible_system_vendor == "Microsoft Corporation"
+    - hpc_install_cuda_driver
   block:
     - name: Install CUDA driver
       package:
@@ -161,7 +164,9 @@
         enabled: true
 
 - name: Install CUDA Toolkit
-  when: hpc_install_cuda_toolkit
+  when:
+    - hpc_install_cuda_toolkit
+    - ansible_system_vendor == "Microsoft Corporation"
   package:
     name: "{{ hpc_cuda_toolkit_packages }}"
     state: present
@@ -188,9 +193,10 @@
 
 - name: Enable Fabric Manager service
   service:
-    name: nvidia-fabricmanager
+    name: nvidia-fabricmanager.service
     state: started
     enabled: true
+  when: ansible_system_vendor == "Microsoft Corporation"
 
 - name: Install NVIDIA RDMA packages
   when: hpc_install_nvidia_rdma
