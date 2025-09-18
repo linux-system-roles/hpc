@@ -28,6 +28,20 @@
     baseurl: "{{ hpc_nvidia_cuda_repository }}"
     gpgcheck: true
 
+- name: Deploy Microsoft GPG key
+  rpm_key:
+    key: "{{ hpc_microsoft_rpm_key }}"
+    state: present
+  register: __mssql_gpg
+  until: __mssql_gpg is success
+
+- name: Configure Microsoft repository
+  yum_repository:
+    name: microsoft-prod
+    description: Microsoft Production Repository
+    baseurl: "{{ hpc_microsoft_rpm }}"
+    gpgcheck: true
+
 - name: Configure storage
   when: hpc_manage_storage
   block:
@@ -79,14 +93,19 @@
                 size: "{{ __hpc_usrlv_size }}"
                 mount_point: "{{ hpc_usrlv_mount }}"
 
-# This is only needed for MicrosoftAzure VMs
-- name: Update RHUI packages from Microsoft repositories
+- name: Clean dnf cache
+  command: dnf clean expire-cache
+  changed_when: false
+
+# use --nobest to work around broken kernel module update dependencies in base
+# image
+- name: Update packages
   package:
-    name: "rhui*"
-    state: latest  # noqa package-latest
-    disablerepo: "*"
-    enablerepo: "rhui-microsoft-*"
-  when: ansible_system_vendor == "Microsoft Corporation"
+    name: "*"
+    state: latest
+    nobest: true
+    use: "{{ (__hpc_server_is_ostree | d(false)) |
+      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
 - name: Force install kernel
   package:
@@ -218,6 +237,120 @@
     mode: "0644"
   notify: Restart waagent
 
+- name: Get package facts
+  package_facts:
+  no_log: true
+
+- name: Debug package facts
+  debug:
+    var: ansible_facts.packages
+
+- name: Install gdrcopy packages
+  when: >-
+    ("gdrcopy" not in ansible_facts.packages
+    or ansible_facts.packages.gdrcopy.version != hpc_gdrcopy_info.version)
+    or ("gdrcopy-kmod" not in ansible_facts.packages
+    or ansible_facts.packages.["gdrcopy-kmod"].version
+    != hpc_gdrcopy_info.version)
+    or ("gdrcopy-devel" not in ansible_facts.packages
+    or ansible_facts.packages.["gdrcopy-devel"].version
+    != hpc_gdrcopy_info.version)
+  block:
+      - name: Download gdrcopy
+        include_tasks: tasks/download_extract_package.yml
+        vars:
+          package_info: "{{ hpc_gdrcopy_info }}"
+
+      - name: Install packages for {{ hpc_gdrcopy_info.name }}
+        package:
+          name:
+            - gdrcopy-kmod-{{ hpc_gdrcopy_info.version }}dkms.{{ hpc_gdrcopy_info.distribution }}.noarch.rpm
+            - gdrcopy-{{ hpc_gdrcopy_info.version }}.{{ hpc_gdrcopy_info.distribution }}.x86_64.rpm
+            - gdrcopy-devel-{{ hpc_gdrcopy_info.version }}.{{ hpc_gdrcopy_info.distribution }}.noarch.rpm
+          state: present
+          use: "{{ (__hpc_server_is_ostree | d(false)) |
+            ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
+- name: Download hpcx
+  include_tasks: tasks/download_extract_package.yml
+  vars:
+    package_info: "{{ hpc_hpcx_info }}"
+
+- debug:
+    var: __hpc_package_extracted
+
+- name: Set facts for building hpcx and openmpi
+  set_fact:
+    hpc_hpcx_folder:  "{{ __hpc_package_extracted.path | basename }}"
+    hpc_hpcx_path: "{{ hpc_install_prefix }}/{{ hpc_hpcx_folder }}"
+    hpc_hcoll_path: "{{ hpc_hpcx_path }}/hcoll"
+    hpc_ucx_path: "{{ hpc_hpcx_path }}/ucx"
+    hpc_pmix_path: "{{ hpc_install_prefix }}/{{ hpc_pmix_info.name }}/{{ hpc_pmix_info.version | split('-') | first }}"
+    hpc_openmpi_path: "{{ hpc_install_prefix }}/{{ hpc_openmpi_info.name }}/{{ hpc_openmpi_info.version }}"
+
+# Pacakages are installed in /opt, not "/build-result", so pkgconfig
+# files used by openmpi's cmake configure scripts need to be updated.
+- name: Update pkgconfig files used by openmpi's cmake configure scripts
+  replace:
+    path: "{{ item }}"
+    regexp: "/build-result/"
+    replace: "{{ hpc_install_prefix }}"
+  loop:
+    - "{{ __hpc_package_extracted.path }}/hcoll/lib/pkgconfig/hcoll.pc"
+    - "{{ __hpc_package_extracted.path }}/ucx/lib/pkgconfig/ucx.pc"
+
+# the shipped pkgconfig for hcoll only includes -lhcoll. However, this
+# library depends on -locoms, so we have to add that to prevent openmpi
+# from failing to link against libhcoll.
+- name: Update hcoll pkgconfig file
+  replace:
+    path: "{{ __hpc_package_extracted.path }}/hcoll/lib/pkgconfig/hcoll.pc"
+    regexp: "-lhcoll"
+    replace: "-lhcoll -locoms"
+
+- name: Copy hpcx to {{ hpc_install_prefix }}
+  copy:
+    src: "{{ __hpc_package_extracted.path }}"
+    dest: "{{ hpc_hpcx_path }}"
+    mode: "0755"
+    owner: root
+    group: root
+
+- name: Rebuild hpcx
+  shell: >-
+    CUDA_HOME=/usr/local/cuda
+    {{ hpc_hpcx_path }}/utils/hpcx_rebuild.sh --with-hcoll --cuda
+    --rebuild-ucx --ompi-extra-config "--with-pmix={{ hpc_pmix_path }}
+    --enable-orterun-prefix-by-default"
+  changed_when: true
+
+- name: Copy hpcx-rebuild to {{ hpc_install_prefix }}
+  copy:
+    src: "{{ hpc_hpcx_path }}/ompi/tests"
+    dest: "{{ hpc_hpcx_path }}/hpcx-rebuild"
+    mode: "0755"
+    owner: root
+    group: root
+
+- name: Download {{ hpc_openmpi_info.name }}
+  include_tasks: tasks/download_extract_package.yml
+  vars:
+    package_info: "{{ hpc_openmpi_info }}"
+
+- name: Build {{ hpc_openmpi_info.name }}
+  shell:
+    cmd: >-
+      ./configure --prefix={{ hpc_openmpi_path }}
+        --with-ucx={{ hpc_ucx_path }} --with-hcoll={{ hpc_hcoll_path }}
+        --with-pmix={{ hpc_pmix_path }} --enable-mpirun-prefix-by-default
+        --with-platform=contrib/platform/mellanox/optimized
+    chdir: "{{ __hpc_package_extracted.path }}"
+  changed_when: true
+
+- name: Build {{ hpc_openmpi_info.name }}
+  shell: make -j$(nproc) && make install
+  changed_when: true
+
 - name: Let user's applications lock as much memory as they need
   lineinfile:
     path: /etc/security/limits.conf
@@ -228,11 +361,3 @@
   loop:
     - "* soft memlock unlimited"
     - "* hard memlock unlimited"
-
-- name: Install openmpi
-  when: hpc_install_openmpi
-  package:
-    name: "{{ hpc_openmpi_packages }}"
-    state: present
-    use: "{{ (__hpc_server_is_ostree | d(false)) |
-      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"

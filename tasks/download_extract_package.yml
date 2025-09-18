@@ -1,0 +1,25 @@
+---
+- name: Create temp file for downloading tarball {{ package_info.name }}
+  tempfile:
+    state: directory
+    prefix: "{{ package_info.name }}_"
+  register: __hpc_package_tarball
+
+- name: Create temp directory for extracting tarball {{ package_info.name }}
+  tempfile:
+    state: directory
+    prefix: "{{ package_info.name }}_"
+  register: __hpc_package_extracted
+
+- name: Download package and verify checksum
+  get_url:
+    url: "{{ package_info.url }}"
+    dest: "{{ __hpc_package_tarball.path }}"
+    checksum: "{{ package_info.sha256 }}"
+    mode: "0644"
+    checksum_algo: sha256
+
+- name: Extract package
+  unarchive:
+    src: "{{ __hpc_package_tarball.path }}"
+    dest: "{{ __hpc_package_extracted }}"
