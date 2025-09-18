@@ -1,7 +1,45 @@
 # SPDX-License-Identifier: MIT
 ---
-# Put internal variables here with Red Hat Enterprise Linux 9 specific values.
+# Vars related to repositories
+__hpc_rhel_epel_rpm_key: https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-9
+__hpc_rhel_epel_rpm: https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+__hpc_nvidia_rpm_key: https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/D42D0685.pub
+__hpc_nvidia_cuda_rpm: https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64
+__hpc_microsoft_prod_rpm: https://packages.microsoft.com/rhel/9/prod/
+# Slurm repo is to install pmix-4.2.9-1
+__hpc_microsoft_slurm_rpm: https://packages.microsoft.com/yumrepos/slurm-el9-insiders
+__hpc_microsoft_slurm_key: https://packages.microsoft.com/yumrepos/slurm-el9-insiders/repodata/repomd.xml.key
 
-# Example:
-__template_packages: []
-__template_services: []
+# Vars related to RPMs
+__hpc_nvidia_driver_module: "@nvidia-driver:575-dkms"
+__hpc_cuda_toolkit_packages:
+  - cuda-toolkit-12-9
+__hpc_nvidia_nccl_packages:
+  - libnccl-2.27.5-1+cuda12.9
+  - libnccl-devel-2.27.5-1+cuda12.9
+
+# Vars related to building packages from source
+__hpc_pmix_info:
+  name: pmix
+  version: 4.2.9-1
+__hpc_pmix_packages:
+  - pmix-{{ __hpc_pmix_info.version }}
+  - hwloc-devel
+  - libevent-devel
+  - munge-devel
+__hpc_gdrcopy_info:
+  name: gdrcopy
+  version: 2.5.1-1
+  sha256: d6c61358adb52d9a9b71d4e05cb6ac9288ac18274e8d8177a6f197f0ee006130
+  url: https://github.com/NVIDIA/gdrcopy/archive/0f7366e73b019e7facf907381f6b0b2f5a1576e4.tar.gz
+  distribution: el9
+__hpc_hpcx_info:
+  name: hpcx
+  version: 2.24.1
+  sha256: 92f746dd8cf293cf5b3955a0addd92e162dd012e1f8f728983a85c6c134e33b0
+  url: https://content.mellanox.com/hpc/hpc-x/v2.24.1_cuda12/hpcx-v2.24.1-gcc-inbox-redhat9-cuda12-x86_64.tbz
+__hpc_openmpi_info:
+  name: openmpi
+  version: 5.0.8
+  sha256: 53131e1a57e7270f645707f8b0b65ba56048f5b5ac3f68faabed3eb0d710e449
+  url: https://download.open-mpi.org/release/open-mpi/v5.0/openmpi-5.0.8.tar.bz2

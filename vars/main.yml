@@ -6,31 +6,27 @@ __hpc_required_facts:
   - distribution_major_version
   - distribution_version
   - os_family
-  # needed for ansible_system_vendor
+  # required for ansible_system_vendor
   - devices
+  # required for ansible_processor_nproc
+  - processor
 # the subsets of ansible_facts that need to be gathered in case any of the
 # facts in required_facts is missing; see the documentation of
 # the 'gather_subset' parameter of the 'setup' module
 __hpc_required_facts_subsets: "{{ ['!all', '!min'] +
   __hpc_required_facts }}"
 
-hpc_rhel_epel_rpm_key: https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-9
-hpc_rhel_epel_rpm: https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
-hpc_nvidia_rpm_key: https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/D42D0685.pub
-hpc_nvidia_cuda_repository: https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64
-hpc_nvidia_driver_module: "@nvidia-driver:575-dkms"
-hpc_cuda_driver_packages:
+__hpc_microsoft_prod_rpm_key: https://packages.microsoft.com/keys/microsoft.asc
+__hpc_cuda_driver_packages:
   - cuda-drivers
-hpc_cuda_toolkit_packages:
-  - cuda-toolkit-12-9
-hpc_nvidia_nccl_packages:
-  - libnccl-2.27.5-1+cuda12.9
-  - libnccl-devel-2.27.5-1+cuda12.9
-hpc_nvidia_fabric_manager_packages:
+__hpc_nvidia_fabric_manager_packages:
   - nvidia-fabric-manager
-hpc_nvidia_rdma_packages:
+__hpc_rdma_packages:
   - rdma-core
+  - rdma-core-devel
+  - libibverbs
   - libibverbs-utils
+  - libibverbs-devel
   - librdmacm-utils
   - perftest
   - ucx
@@ -39,16 +35,33 @@ hpc_nvidia_rdma_packages:
   - mpitests-openmpi
   - WALinuxAgent
   - infiniband-diags
-hpc_openmpi_packages:
-  - openmpi
+  - pciutils-devel
+__hpc_rpmbuild_packages:
+  - rpm-build
+  - rpmdevtools
+  # OpenMPI build packages
+  - binutils
+  - binutils-devel
 __hpc_versionlock_path: /etc/dnf/plugins/versionlock.list
 __hpc_versionlock_rpms:
+  # Kernel packages
   - kernel
   - kernel-core
   - kernel-modules
   - kernel-modules-extra
   - kernel-devel
   - kernel-headers
+  # NVIDIA nccl packages
+  - libnccl
+  - libnccl-devel
+  # GDRCopy packages
+  - gdrcopy-kmod
+  - gdrcopy
+  - gdrcopy-devel
+  # PMIx packages
+  - pmix
+
+__hpc_install_prefix: /opt
 
 # A variable for testing purposes to force a specific kernel version to be installed
 __hpc_force_kernel_version: null

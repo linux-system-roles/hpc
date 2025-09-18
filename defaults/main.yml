@@ -15,5 +15,5 @@ hpc_install_cuda_driver: true
 hpc_install_cuda_toolkit: true
 hpc_install_hpc_nvidia_nccl: true
 hpc_install_nvidia_fabric_manager: true
-hpc_install_nvidia_rdma: true
+hpc_install_rdma: true
 hpc_install_openmpi: true

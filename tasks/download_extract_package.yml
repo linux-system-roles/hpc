@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Create temp file for downloading tarball {{ __hpc_pkg_info.name }}
+  tempfile:
+    state: file
+    prefix: "{{ __hpc_pkg_info.name }}_"
+    suffix: "{{ __hpc_pkg_info.url | basename
+      | regex_search('\\.(tar\\.gz|tbz|tar\\.bz2|zip|tar)$')
+      | default('') }}"
+  register: __hpc_pkg_tarball
+  changed_when: false
+
+- name: Create temp directory for extracting tarball {{ __hpc_pkg_info.name }}
+  tempfile:
+    state: directory
+    prefix: "{{ __hpc_pkg_info.name }}_"
+  register: __hpc_pkg_extracted
+  changed_when: false
+
+- name: Download package and verify checksum
+  get_url:
+    url: "{{ __hpc_pkg_info.url }}"
+    dest: "{{ __hpc_pkg_tarball.path }}"
+    checksum: sha256:{{ __hpc_pkg_info.sha256 }}
+    mode: "0644"
+  changed_when: false
+
+- name: Extract package
+  unarchive:
+    src: "{{ __hpc_pkg_tarball.path }}"
+    dest: "{{ __hpc_pkg_extracted.path }}"
+    remote_src: true
+    extra_opts:
+      - "--strip-components=1"
+  changed_when: false
+
+- name: Remove downloaded tarball
+  file:
+    path: "{{ __hpc_pkg_tarball.path }}"
+    state: absent
+  changed_when: false

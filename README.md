@@ -39,6 +39,8 @@ Type: `bool`
 
 Whether to install the CUDA Toolkit package.
 
+Note that This package is required for installing OpenMPI.
+
 Default: `true`
 
 Type: `bool`
@@ -59,7 +61,7 @@ Default: `true`
 
 Type: `bool`
 
-### hpc_install_nvidia_rdma
+### hpc_install_rdma
 
 Whether to install the NVIDIA RDMA package.
 
@@ -99,7 +101,7 @@ Type: `bool`
     hpc_install_cuda_toolkit: true
     hpc_install_hpc_nvidia_nccl: true
     hpc_install_nvidia_fabric_manager: true
-    hpc_install_nvidia_rdma: true
+    hpc_install_rdma: true
     hpc_install_openmpi: true
   roles:
     - linux-system-roles.hpc
@@ -226,7 +228,7 @@ Run the role to configure storage, install all packages, and reboot if needed.
     hpc_install_cuda_toolkit: true
     hpc_install_hpc_nvidia_nccl: true
     hpc_install_nvidia_fabric_manager: true
-    hpc_install_nvidia_rdma: true
+    hpc_install_rdma: true
     hpc_install_openmpi: true
 
     hpc_reboot_ok: true
