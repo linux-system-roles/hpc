@@ -183,20 +183,20 @@
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
-- name: Install NVIDIA Fabric Manager
+- name: Install NVIDIA Fabric Manager and enable service
   when: hpc_install_nvidia_fabric_manager
-  package:
-    name: "{{ hpc_nvidia_fabric_manager_packages }}"
-    state: present
-    use: "{{ (__hpc_server_is_ostree | d(false)) |
-      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+  block:
+    - name: Install NVIDIA Fabric Manager
+      package:
+        name: "{{ hpc_nvidia_fabric_manager_packages }}"
+        state: present
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
-- name: Enable Fabric Manager service
-  service:
-    name: nvidia-fabricmanager.service
-    state: started
-    enabled: true
-  when: ansible_system_vendor == "Microsoft Corporation"
+    - name: Ensure that Fabric Manager service is enabled
+      service:
+        name: nvidia-fabricmanager
+        enabled: true
 
 - name: Install NVIDIA RDMA packages
   when: hpc_install_nvidia_rdma

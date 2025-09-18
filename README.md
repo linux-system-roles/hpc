@@ -53,7 +53,7 @@ Type: `bool`
 
 ### hpc_install_nvidia_fabric_manager
 
-Whether to install the NVIDIA Fabric Manager package.
+Whether to install the NVIDIA Fabric Manager package and enable the nvidia-fabricmanager service.
 
 Default: `true`
 
