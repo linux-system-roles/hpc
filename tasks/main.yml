@@ -285,33 +285,45 @@
     or (ansible_facts.packages["gdrcopy-devel"] is not defined
     or ansible_facts.packages["gdrcopy-devel"][0].version != gdrcopy_version)
   block:
-      - name: Download gdrcopy
-        include_tasks: tasks/download_extract_package.yml
-        vars:
-          package_info: "{{ hpc_gdrcopy_info }}"
+    - name: Download gdrcopy
+      include_tasks: tasks/download_extract_package.yml
+      vars:
+        package_info: "{{ hpc_gdrcopy_info }}"
 
-      - name: Build gdrcopy RPM packages
-        shell:
-          cmd: CUDA=/usr/local/cuda packages/build-rpm-packages.sh
-          chdir: "{{ __hpc_package_extracted.path }}"
-        changed_when: false
+    - name: Build gdrcopy RPM packages
+      shell:
+        cmd: CUDA=/usr/local/cuda packages/build-rpm-packages.sh
+        chdir: "{{ __hpc_package_extracted.path }}"
+      changed_when: false
 
-      - name: Install packages from built rpms for {{ hpc_gdrcopy_info.name }}
-        package:
-          name:
-            - "{{ __hpc_package_extracted.path }}/gdrcopy-kmod-{{ hpc_gdrcopy_info.version }}dkms.{{ hpc_gdrcopy_info.distribution }}.noarch.rpm"
-            - "{{ __hpc_package_extracted.path }}/gdrcopy-{{ hpc_gdrcopy_info.version }}.{{ hpc_gdrcopy_info.distribution }}.x86_64.rpm"
-            - "{{ __hpc_package_extracted.path }}/gdrcopy-devel-{{ hpc_gdrcopy_info.version }}.{{ hpc_gdrcopy_info.distribution }}.noarch.rpm"
-          disable_gpg_check: true
-          state: present
-          use: "{{ (__hpc_server_is_ostree | d(false)) |
-            ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
-  always:
-      - name: Remove extracted tarball
-        file:
-          path: "{{ __hpc_package_extracted.path }}"
-          state: absent
-        changed_when: false
+    - name: Install packages from built rpms for {{ hpc_gdrcopy_info.name }}
+      package:
+        name:
+          - "{{ __hpc_package_extracted.path }}/gdrcopy-kmod-{{ hpc_gdrcopy_info.version }}dkms.{{ hpc_gdrcopy_info.distribution }}.noarch.rpm"
+          - "{{ __hpc_package_extracted.path }}/gdrcopy-{{ hpc_gdrcopy_info.version }}.{{ hpc_gdrcopy_info.distribution }}.x86_64.rpm"
+          - "{{ __hpc_package_extracted.path }}/gdrcopy-devel-{{ hpc_gdrcopy_info.version }}.{{ hpc_gdrcopy_info.distribution }}.noarch.rpm"
+        disable_gpg_check: true
+        state: present
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
+    - name: Remove extracted tarball
+      file:
+        path: "{{ __hpc_package_extracted.path }}"
+        state: absent
+      changed_when: false
+
+
+- name: Set hpc_hpcx_path fact
+  set_fact:
+    hpc_hpcx_path: "{{ hpc_install_prefix }}/hpcx-v{{ hpc_hpcx_info.version }}-gcc-inbox-redhat9-cuda12-x86_64"
+
+- name: Set facts for building hpcx and openmpi
+  set_fact:
+    hpc_hcoll_path: "{{ hpc_hpcx_path }}/hcoll"
+    hpc_ucx_path: "{{ hpc_hpcx_path }}/ucx"
+    hpc_pmix_path: "{{ hpc_install_prefix }}/{{ hpc_pmix_info.name }}/{{ hpc_pmix_info.version | split('-') | first }}"
+    hpc_openmpi_path: "{{ hpc_install_prefix }}/{{ hpc_openmpi_info.name }}/{{ hpc_openmpi_info.version }}"
 
 - name: Download  and build hpcx
   block:
@@ -319,17 +331,6 @@
       include_tasks: tasks/download_extract_package.yml
       vars:
         package_info: "{{ hpc_hpcx_info }}"
-
-    - name: Set hpc_hpcx_path fact
-      set_fact:
-        hpc_hpcx_path: "{{ hpc_install_prefix }}/hpcx-v{{ hpc_hpcx_info.version }}-gcc-inbox-redhat9-cuda12-x86_64"
-
-    - name: Set facts for building hpcx and openmpi
-      set_fact:
-        hpc_hcoll_path: "{{ hpc_hpcx_path }}/hcoll"
-        hpc_ucx_path: "{{ hpc_hpcx_path }}/ucx"
-        hpc_pmix_path: "{{ hpc_install_prefix }}/{{ hpc_pmix_info.name }}/{{ hpc_pmix_info.version | split('-') | first }}"
-        hpc_openmpi_path: "{{ hpc_install_prefix }}/{{ hpc_openmpi_info.name }}/{{ hpc_openmpi_info.version }}"
 
     # Pacakages are installed in /opt, not "/build-result", so pkgconfig
     # files used by openmpi's cmake configure scripts need to be updated.
@@ -375,12 +376,12 @@
         mode: "0755"
         owner: root
         group: root
-  always:
-      - name: Remove extracted tarball
-        file:
-          path: "{{ __hpc_package_extracted.path }}"
-          state: absent
-        changed_when: false
+
+    - name: Remove extracted tarball
+      file:
+        path: "{{ __hpc_package_extracted.path }}"
+        state: absent
+      changed_when: false
 
 - name: Download and build openmpi
   block:
@@ -402,12 +403,12 @@
     - name: Build {{ hpc_openmpi_info.name }}
       shell: make -j$(nproc) && make install
       changed_when: true
-  always:
-      - name: Remove extracted tarball
-        file:
-          path: "{{ __hpc_package_extracted.path }}"
-          state: absent
-        changed_when: false
+
+    - name: Remove extracted tarball
+      file:
+        path: "{{ __hpc_package_extracted.path }}"
+        state: absent
+      changed_when: false
 
 - name: Let user's applications lock as much memory as they need
   lineinfile:
