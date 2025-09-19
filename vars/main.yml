@@ -45,17 +45,27 @@ hpc_openmpi_packages:
 hpc_rpmbuild_packages:
   - rpm-build
   - rpmdevtools
-hpc_openmpi_build_packages:
+  # OpenMPI build packages
   - binutils
   - binutils-devel
 __hpc_versionlock_path: /etc/dnf/plugins/versionlock.list
 __hpc_versionlock_rpms:
+  # Kernel packages
   - kernel
   - kernel-core
   - kernel-modules
   - kernel-modules-extra
   - kernel-devel
   - kernel-headers
+  # NVIDIA nccl packages
+  - libnccl
+  - libnccl-devel
+  # GDRCopy packages
+  - gdrcopy-kmod
+  - gdrcopy
+  - gdrcopy-devel
+  # PMIx packages
+  - pmix
 
 hpc_install_prefix: /opt
 

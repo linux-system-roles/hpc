@@ -6,12 +6,12 @@ hpc_nvidia_rpm_key: https://developer.download.nvidia.com/compute/cuda/repos/rhe
 hpc_nvidia_cuda_repository: https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64
 hpc_microsoft_rpm: https://packages.microsoft.com/rhel/9/prod/
 hpc_microsoft_srurm_rpm: https://packages.microsoft.com/yumrepos/slurm-el9-insiders
+hpc_microsoft_slurm_key: https://packages.microsoft.com/yumrepos/slurm-el9-insiders/repodata/repomd.xml.key
 hpc_pmix_info:
   name: pmix
   version: 4.2.9-1
 hpc_pmix_packages:
   - pmix-{{ hpc_pmix_info.version }}
-  - pmix-devel-{{ hpc_pmix_info.version }
   - hwloc-devel
   - libevent-devel
   - munge-devel

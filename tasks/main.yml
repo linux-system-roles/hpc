@@ -41,14 +41,24 @@
   rpm_key:
     key: "{{ hpc_microsoft_rpm_key }}"
     state: present
-  register: __mssql_gpg
-  until: __mssql_gpg is success
 
 - name: Configure Microsoft repository
   yum_repository:
     name: microsoft-prod
     description: Microsoft Production Repository
     baseurl: "{{ hpc_microsoft_rpm }}"
+    gpgcheck: true
+
+- name: Deploy Microsoft slurm GPG key
+  rpm_key:
+    key: "{{ hpc_microsoft_slurm_key }}"
+    state: present
+
+- name: Configure Microsoft slurm repository
+  yum_repository:
+    name: yumreposslurm-el9-insiders
+    description: yumrepos/slurm-el9-insiders
+    baseurl: "{{ hpc_microsoft_srurm_rpm }}"
     gpgcheck: true
 
 - name: Configure storage
@@ -257,6 +267,13 @@
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
+- name: Install pmix packages
+  package:
+    name: "{{ hpc_pmix_packages }}"
+    state: present
+    use: "{{ (__hpc_server_is_ostree | d(false)) |
+      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
 - name: Install gdrcopy packages
   vars:
     gdrcopy_version: "{{ hpc_gdrcopy_info.version | split('-') | first }}"
@@ -343,7 +360,7 @@
         group: root
         remote_src: true
 
-    - name: Rebuild hpcx
+    - name: Rebuild hpcx with PMIx
       shell: >-
         CUDA_HOME=/usr/local/cuda
         {{ hpc_hpcx_path }}/utils/hpcx_rebuild.sh --with-hcoll --cuda
