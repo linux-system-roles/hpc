@@ -4,15 +4,10 @@
   hosts: all
   gather_facts: true
   tasks:
-    - name: Run test in a block to clean up in always
-      block:
-        - name: End if not running on Azure
-          meta: end_play
-          when: ansible_system_vendor != "Microsoft Corporation"
+    - name: End if not running on Azure
+      meta: end_play
+      when: ansible_system_vendor != "Microsoft Corporation"
 
-        - name: Run the role
-          include_role:
-            name: linux-system-roles.hpc
-      always:
-        - name: Clean up after the role invocation
-          include_tasks: tasks/cleanup.yml
+    - name: Run the role
+      include_role:
+        name: linux-system-roles.hpc

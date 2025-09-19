@@ -279,7 +279,7 @@
           chdir: "{{ __hpc_package_extracted.path }}"
         changed_when: false
 
-      - name: Install packages for {{ hpc_gdrcopy_info.name }}
+      - name: Install packages from built rpms for {{ hpc_gdrcopy_info.name }}
         package:
           name:
             - "{{ __hpc_package_extracted.path }}/gdrcopy-kmod-{{ hpc_gdrcopy_info.version }}dkms.{{ hpc_gdrcopy_info.distribution }}.noarch.rpm"
@@ -334,12 +334,6 @@
         regexp: "-lhcoll"
         replace: "-lhcoll -locoms"
 
-    # - name: Update hcoll pkgconfig file
-    #   replace:
-    #     path: "{{ __hpc_package_extracted.path }}/hcoll/lib/pkgconfig/hcoll.pc"
-    #     regexp: base_init_script="hpcx-init-ompi.sh"
-    #     replace: base_init_script="hpcx-init.sh"
-
     - name: Copy hpcx to {{ hpc_install_prefix }}
       copy:
         src: "{{ __hpc_package_extracted.path }}/"
@@ -353,8 +347,8 @@
       shell: >-
         CUDA_HOME=/usr/local/cuda
         {{ hpc_hpcx_path }}/utils/hpcx_rebuild.sh --with-hcoll --cuda
-        --rebuild-ucx --ompi-extra-config --with-pmix={{ hpc_pmix_path }}
-        --enable-orterun-prefix-by-default
+        --rebuild-ucx --ompi-extra-config "--with-pmix={{ hpc_pmix_path }}
+        --enable-orterun-prefix-by-default"
       changed_when: true
 
     - name: Copy hpcx-rebuild to {{ hpc_install_prefix }}
@@ -382,9 +376,9 @@
       shell:
         cmd: >-
           ./configure --prefix={{ hpc_openmpi_path }}
-            --with-ucx={{ hpc_ucx_path }} --with-hcoll={{ hpc_hcoll_path }}
-            --with-pmix={{ hpc_pmix_path }} --enable-mpirun-prefix-by-default
-            --with-platform=contrib/platform/mellanox/optimized
+          --with-ucx={{ hpc_ucx_path }} --with-hcoll={{ hpc_hcoll_path }}
+          --with-pmix={{ hpc_pmix_path }} --enable-mpirun-prefix-by-default
+          --with-platform=contrib/platform/mellanox/optimized
         chdir: "{{ __hpc_package_extracted.path }}"
       changed_when: true
 
