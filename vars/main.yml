@@ -14,12 +14,7 @@ __hpc_required_facts:
 __hpc_required_facts_subsets: "{{ ['!all', '!min'] +
   __hpc_required_facts }}"
 
-hpc_rhel_epel_rpm_key: https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-9
-hpc_rhel_epel_rpm: https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
-hpc_nvidia_rpm_key: https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/D42D0685.pub
-hpc_nvidia_cuda_repository: https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64
 hpc_microsoft_rpm_key: https://packages.microsoft.com/keys/microsoft.asc
-hpc_microsoft_rpm: https://packages.microsoft.com/config/rhel/9/prod
 hpc_nvidia_driver_module: "@nvidia-driver:575-dkms"
 hpc_cuda_driver_packages:
   - cuda-drivers

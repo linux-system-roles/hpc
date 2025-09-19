@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: MIT
 ---
+hpc_rhel_epel_rpm_key: https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-9
+hpc_rhel_epel_rpm: https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+hpc_nvidia_rpm_key: https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/D42D0685.pub
+hpc_nvidia_cuda_repository: https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64
+hpc_microsoft_rpm: https://packages.microsoft.com/rhel/9/prod/
 hpc_microsoft_srurm_rpm: https://packages.microsoft.com/yumrepos/slurm-el9-insiders
 hpc_pmix_info:
   name: pmix
@@ -12,7 +17,7 @@ hpc_pmix_packages:
   - munge-devel
 hpc_gdrcopy_info:
   name: gdrcopy
-  version: 2.5-1
+  version: 2.5.1-1
   sha256: d6c61358adb52d9a9b71d4e05cb6ac9288ac18274e8d8177a6f197f0ee006130
   url: https://github.com/NVIDIA/gdrcopy/archive/0f7366e73b019e7facf907381f6b0b2f5a1576e4.tar.gz
   distribution: el9

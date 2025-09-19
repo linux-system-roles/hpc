@@ -39,6 +39,8 @@ Type: `bool`
 
 Whether to install the CUDA Toolkit package.
 
+Note that This package is required for installing OpenMPI.
+
 Default: `true`
 
 Type: `bool`
