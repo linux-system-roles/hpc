@@ -172,6 +172,7 @@
   package:
     name: "{{ __hpc_nvidia_driver_module }}"
     state: present
+    allow_downgrade: true
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
   notify: Reboot system
@@ -203,6 +204,7 @@
   package:
     name: "{{ __hpc_cuda_toolkit_packages }}"
     state: present
+    allow_downgrade: true
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
   register: __hpc_install_cuda_toolkit
@@ -213,6 +215,7 @@
   package:
     name: "{{ __hpc_nvidia_nccl_packages }}"
     state: present
+    allow_downgrade: true
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 

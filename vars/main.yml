@@ -43,7 +43,6 @@ __hpc_pmix_build_dependencies:
   - libevent-devel
   - munge-devel
 __hpc_openmpi_build_dependencies:
-  - binutils
   - binutils-devel
   - autoconf
   - automake
