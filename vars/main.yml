@@ -39,9 +39,17 @@ __hpc_rdma_packages:
 __hpc_rpmbuild_packages:
   - rpm-build
   - rpmdevtools
-  # OpenMPI build packages
+__hpc_pmix_build_dependencies:
+  - hwloc-devel
+  - libevent-devel
+  - munge-devel
+__hpc_openmpi_build_dependencies:
   - binutils
   - binutils-devel
+  - autoconf
+  - automake
+  - libtool
+
 __hpc_versionlock_path: /etc/dnf/plugins/versionlock.list
 __hpc_versionlock_rpms:
   # Kernel packages
@@ -62,6 +70,7 @@ __hpc_versionlock_rpms:
   - pmix
 
 __hpc_install_prefix: /opt
+__hpc_module_dir: /usr/share/modulefiles
 
 # A variable for testing purposes to force a specific kernel version to be installed
 __hpc_force_kernel_version: null

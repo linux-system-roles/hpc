@@ -251,7 +251,10 @@
 
 - name: Install build dependencies
   package:
-    name: "{{ __hpc_rpmbuild_packages }}"
+    name: >-
+      {{ __hpc_rpmbuild_packages
+      + __hpc_pmix_build_dependencies
+      + __hpc_openmpi_build_dependencies }}
     state: present
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
@@ -269,9 +272,53 @@
     __hpc_hpcx_rebuild_path: "{{ __hpc_hpcx_path }}/hpcx-rebuild"
     __hpc_hcoll_path: "{{ __hpc_hpcx_path }}/hcoll"
     __hpc_ucx_path: "{{ __hpc_hpcx_path }}/ucx"
-    __hpc_pmix_path: "{{ __hpc_install_prefix }}/{{__hpc_pmix_info.name }}/{{ __hpc_pmix_info.version | split('-') | first }}"
+    __hpc_ucc_path: "{{ __hpc_hpcx_path }}/ucc"
+    __hpc_pmix_path: "{{ __hpc_install_prefix }}/{{__hpc_pmix_info.name }}/{{ __hpc_pmix_info.version }}"
     __hpc_openmpi_path: "{{ __hpc_install_prefix }}/{{ __hpc_openmpi_info.name }}-{{ __hpc_openmpi_info.version }}"
     __hpc_cuda_path: /usr/local/cuda
+
+- name: Get stat of pmix path
+  stat:
+    path: "{{ __hpc_pmix_path }}"
+  register: __hpc_pmix_path_stat
+
+- name: Download and build PMIx
+  when: not __hpc_pmix_path_stat.stat.exists
+  block:
+    - name: Download PMIx
+      include_tasks: tasks/download_extract_package.yml
+      vars:
+        __hpc_pkg_info: "{{ __hpc_pmix_info }}"
+
+    - name: Build {{ __hpc_openmpi_info.name }}
+      command:
+        cmd: "{{ item }}"
+        chdir: "{{ __hpc_pkg_extracted.path }}"
+      changed_when: true
+      loop:
+        - >-
+          ./configure --prefix={{ __hpc_pmix_path }}
+          --enable-pmix-binaries
+          --disable-dependency-tracking
+        - make -j {{ ansible_processor_nproc }}
+        - make install
+
+- name: Ensure PMIx modulefile directory exists
+  file:
+    path: "{{ __hpc_module_dir }}/pmix"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+# The openmpi-{{ __hpc_openmpi_info.version }} env module depends on this
+- name: Install PMIx modulefile
+  template:
+    src: pmix-ver.lua.j2
+    dest: "{{ __hpc_module_dir }}/pmix/pmix-{{ __hpc_pmix_info.version }}.lua"
+    owner: root
+    group: root
+    mode: '0644'
 
 - name: Install pmix packages
   package:
@@ -367,8 +414,11 @@
       # noqa command-instead-of-shell
       shell: >-
         CUDA_HOME={{ __hpc_cuda_path }}
-        {{ __hpc_hpcx_path }}/utils/hpcx_rebuild.sh --with-hcoll --cuda
-        --rebuild-ucx --ompi-extra-config
+        {{ __hpc_hpcx_path }}/utils/hpcx_rebuild.sh
+        --with-hcoll
+        --cuda
+        --rebuild-ucx
+        --ompi-extra-config
         '--with-pmix={{ __hpc_pmix_path }} --enable-orterun-prefix-by-default'
       changed_when: true
 
@@ -385,6 +435,14 @@
         path: "{{ __hpc_pkg_extracted.path }}"
         state: absent
       changed_when: false
+
+- name: Ensure that lmod modulespath file exsts
+  file:
+    path: /etc/lmod/.modulespath
+    state: file
+    owner: root
+    group: root
+    mode: '0644'
 
 - name: Get stat of openmpi path
   stat:
@@ -407,11 +465,14 @@
       loop:
         - >-
           ./configure --prefix={{ __hpc_openmpi_path }}
-          --with-ucx={{ __hpc_ucx_path }} --with-hcoll={{ __hpc_hcoll_path }}
+          --with-ucx={{ __hpc_ucx_path }}
+          --with-ucc={{ __hpc_ucc_path }}
+          --with-hcoll={{ __hpc_hcoll_path }}
           --with-pmix={{ __hpc_pmix_path }} --enable-mpirun-prefix-by-default
+          --enable-mpirun-prefix-by-default
           --with-platform=contrib/platform/mellanox/optimized
           --with-cuda={{ __hpc_cuda_path }}
-        - make -j{{ ansible_processor_nproc }}
+        - make -j {{ ansible_processor_nproc }}
         - make install
 
     - name: Remove extracted tarball
@@ -419,6 +480,23 @@
         path: "{{ __hpc_pkg_extracted.path }}"
         state: absent
       changed_when: false
+
+- name: Ensure MPI modulefile directory exists
+  file:
+    path: "{{ __hpc_module_dir }}/mpi"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+# The openmpi-{{ __hpc_openmpi_info.version }} env module depends on this
+- name: Install OpenMPI modulefile
+  template:
+    src: openmpi-ver.lua.j2
+    dest: "{{ __hpc_module_dir }}/mpi/openmpi-{{ __hpc_openmpi_info.version }}.lua"
+    owner: root
+    group: root
+    mode: '0644'
 
 - name: Let user's applications lock as much memory as they need
   lineinfile:

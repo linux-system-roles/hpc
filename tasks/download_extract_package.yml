@@ -1,4 +1,7 @@
 # SPDX-License-Identifier: MIT
+# This task checks sha256, downloads, and extracts, and then removes a tarball..
+# It takes __hpc_pkg_info dict with name, url, sha256 keys.
+# It sets __hpc_pkg_extracted variable with the path of the extracted tarball.
 ---
 - name: Create temp file for downloading tarball {{ __hpc_pkg_info.name }}
   tempfile:

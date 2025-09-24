@@ -19,14 +19,6 @@ __hpc_nvidia_nccl_packages:
   - libnccl-devel-2.27.5-1+cuda12.9
 
 # Vars related to building packages from source
-__hpc_pmix_info:
-  name: pmix
-  version: 4.2.9-1
-__hpc_pmix_packages:
-  - pmix-{{ __hpc_pmix_info.version }}
-  - hwloc-devel
-  - libevent-devel
-  - munge-devel
 __hpc_gdrcopy_info:
   name: gdrcopy
   version: 2.5.1-1
@@ -43,3 +35,8 @@ __hpc_openmpi_info:
   version: 5.0.8
   sha256: 53131e1a57e7270f645707f8b0b65ba56048f5b5ac3f68faabed3eb0d710e449
   url: https://download.open-mpi.org/release/open-mpi/v5.0/openmpi-5.0.8.tar.bz2
+__hpc_pmix_info:
+  name: pmix
+  version: 4.2.9
+  sha256: 6b11f4fd5c9d7f8e55fc6ebdee9af04b839f44d06044e58cea38c87c168784b3
+  url: https://github.com/openpmix/openpmix/releases/download/v4.2.9/pmix-4.2.9.tar.bz2
