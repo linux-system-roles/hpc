@@ -5,10 +5,10 @@ hpc_reboot_ok: false
 hpc_manage_storage: true
 hpc_rootvg_name: rootvg
 hpc_rootlv_name: rootlv
-hpc_rootlv_size: 10G
+hpc_rootlv_size: 15G
 hpc_rootlv_mount: /
 hpc_usrlv_name: usrlv
-hpc_usrlv_size: 20G
+hpc_usrlv_size: 25G
 hpc_usrlv_mount: /usr
 
 hpc_install_cuda_driver: true

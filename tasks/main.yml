@@ -102,21 +102,28 @@
                 size: "{{ __hpc_usrlv_size }}"
                 mount_point: "{{ hpc_usrlv_mount }}"
 
-# use --nobest to work around broken kernel module update dependencies in base
-# image
-- name: Update packages
-  package:
-    name: "*"
-    state: latest  # noqa package-latest
-    nobest: true
-    use: "{{ (__hpc_server_is_ostree | d(false)) |
-      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+# # use --nobest to work around broken kernel module update dependencies in base
+# # image
+# - name: Update packages
+#   package:
+#     name: "*"
+#     state: latest  # noqa package-latest
+#     nobest: true
+#     use: "{{ (__hpc_server_is_ostree | d(false)) |
+#       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
-- name: Force install kernel
+- name: Force install kernel version
   package:
     name: kernel-{{ __hpc_force_kernel_version }}
     state: present
   when: __hpc_force_kernel_version is not none
+  notify: Reboot system
+
+- name: Update kernel
+  package:
+    name: kernel
+    state: latest
+  when: __hpc_force_kernel_version is none
   notify: Reboot system
 
 - name: >-
@@ -279,7 +286,7 @@
 
 - name: Get stat of pmix path
   stat:
-    path: "{{ __hpc_pmix_path }}"
+    path: "{{ __hpc_pmix_path }}/bin/pmixcc"
   register: __hpc_pmix_path_stat
 
 - name: Download and build PMIx
@@ -290,7 +297,7 @@
       vars:
         __hpc_pkg_info: "{{ __hpc_pmix_info }}"
 
-    - name: Build {{ __hpc_openmpi_info.name }}
+    - name: Build PMIx
       command:
         cmd: "{{ item }}"
         chdir: "{{ __hpc_pkg_extracted.path }}"
@@ -319,13 +326,6 @@
     owner: root
     group: root
     mode: '0644'
-
-- name: Install pmix packages
-  package:
-    name: "{{ __hpc_pmix_packages }}"
-    state: present
-    use: "{{ (__hpc_server_is_ostree | d(false)) |
-      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
 - name: Install gdrcopy packages
   vars:
@@ -382,13 +382,15 @@
 
     # Packages are installed in /opt, not "/build-result", so pkgconfig
     # files used by openmpi's cmake configure scripts need to be updated.
-    - name: Update pkgconfig files to use {{ __hpc_install_prefix }}
+    - name: Ensure that pkgconfig files use hpcx_home={{ __hpc_hpcx_path }}
       replace:
         path: "{{ item }}"
         regexp: "/build-result/"
         replace: "{{ __hpc_install_prefix }}/"
+        backup: true
       loop:
         - "{{ __hpc_pkg_extracted.path }}/hcoll/lib/pkgconfig/hcoll.pc"
+        - "{{ __hpc_pkg_extracted.path }}/ucc/lib/pkgconfig/ucc.pc"
         - "{{ __hpc_pkg_extracted.path }}/ucx/lib/pkgconfig/ucx.pc"
 
     # the shipped pkgconfig for hcoll only includes -lhcoll. However, this
@@ -399,6 +401,7 @@
         path: "{{ __hpc_pkg_extracted.path }}/hcoll/lib/pkgconfig/hcoll.pc"
         regexp: "-lhcoll"
         replace: "-lhcoll -locoms"
+        backup: true
 
     - name: Copy hpcx to {{ __hpc_install_prefix }}
       copy:
@@ -436,13 +439,31 @@
         state: absent
       changed_when: false
 
-- name: Ensure that lmod modulespath file exsts
+- name: Ensure that /etc/lmod directory exsts
   file:
-    path: /etc/lmod/.modulespath
-    state: file
+    path: /etc/lmod
+    state: directory
     owner: root
     group: root
-    mode: '0644'
+    mode: '0755'
+
+- name: Ensure that /etc/lmod/.modulespath file exsts
+  file:
+    path: /etc/lmod/.modulespath
+    state: touch
+    owner: root
+    group: root
+    mode: '0755'
+
+# This requires a new login shell to become visible.
+- name: Set up hpcx module files for lmod
+  lineinfile:
+    path: /etc/lmod/.modulespath
+    line: "{{ __hpc_hpcx_rebuild_path }}/modulefiles"
+    state: present
+    owner: root
+    group: root
+    mode: '0755'
 
 - name: Get stat of openmpi path
   stat:
@@ -468,8 +489,8 @@
           --with-ucx={{ __hpc_ucx_path }}
           --with-ucc={{ __hpc_ucc_path }}
           --with-hcoll={{ __hpc_hcoll_path }}
-          --with-pmix={{ __hpc_pmix_path }} --enable-mpirun-prefix-by-default
-          --enable-mpirun-prefix-by-default
+          --with-pmix={{ __hpc_pmix_path }}
+          --enable-prte-prefix-by-default
           --with-platform=contrib/platform/mellanox/optimized
           --with-cuda={{ __hpc_cuda_path }}
         - make -j {{ ansible_processor_nproc }}

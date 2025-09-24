@@ -20,7 +20,7 @@
   register: __hpc_pkg_extracted
   changed_when: false
 
-- name: Download package and verify checksum
+- name: Download package and verify checksum for {{ __hpc_pkg_info.name }}
   get_url:
     url: "{{ __hpc_pkg_info.url }}"
     dest: "{{ __hpc_pkg_tarball.path }}"
@@ -28,7 +28,7 @@
     mode: "0644"
   changed_when: false
 
-- name: Extract package
+- name: Extract package for {{ __hpc_pkg_info.name }}
   unarchive:
     src: "{{ __hpc_pkg_tarball.path }}"
     dest: "{{ __hpc_pkg_extracted.path }}"
@@ -37,7 +37,7 @@
       - "--strip-components=1"
   changed_when: false
 
-- name: Remove downloaded tarball
+- name: Remove downloaded tarball for {{ __hpc_pkg_info.name }}
   file:
     path: "{{ __hpc_pkg_tarball.path }}"
     state: absent

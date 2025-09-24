@@ -32,7 +32,6 @@ __hpc_rdma_packages:
   - ucx
   - ucx-ib
   - ucx-rdmacm
-  - mpitests-openmpi
   - WALinuxAgent
   - infiniband-diags
   - pciutils-devel
@@ -68,8 +67,8 @@ __hpc_versionlock_rpms:
   - gdrcopy-devel
   # PMIx packages
   - pmix
-
 __hpc_install_prefix: /opt
+
 __hpc_module_dir: /usr/share/modulefiles
 
 # A variable for testing purposes to force a specific kernel version to be installed
