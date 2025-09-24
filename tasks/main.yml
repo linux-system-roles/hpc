@@ -122,7 +122,7 @@
 - name: Update kernel
   package:
     name: kernel
-    state: latest
+    state: latest  # noqa package-latest
   when: __hpc_force_kernel_version is none
   notify: Reboot system
 
@@ -168,7 +168,7 @@
     or __hpc_versionlock_content.stdout is not search(item  + "-[0-9]")
   loop: "{{ __hpc_versionlock_rpms }}"
 
-- name: Enable nvidia-driver
+- name: Install NVIDIA driver
   package:
     name: "{{ __hpc_nvidia_driver_module }}"
     state: present
@@ -403,7 +403,7 @@
         replace: "-lhcoll -locoms"
         backup: true
 
-    - name: Copy hpcx to {{ __hpc_install_prefix }}
+    - name: Copy hpcx to {{ __hpc_hpcx_path }}
       copy:
         src: "{{ __hpc_pkg_extracted.path }}/"
         dest: "{{ __hpc_hpcx_path }}"
@@ -439,7 +439,7 @@
         state: absent
       changed_when: false
 
-- name: Ensure that /etc/lmod directory exsts
+- name: Ensure that /etc/lmod directory exists
   file:
     path: /etc/lmod
     state: directory
@@ -447,7 +447,7 @@
     group: root
     mode: '0755'
 
-- name: Ensure that /etc/lmod/.modulespath file exsts
+- name: Ensure that /etc/lmod/.modulespath file exists
   file:
     path: /etc/lmod/.modulespath
     state: touch
