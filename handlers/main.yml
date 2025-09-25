@@ -7,3 +7,7 @@
   service:
     name: waagent
     state: restarted
+
+- name: Reload udev rules
+  command: udevadm control --reload
+  changed_when: true
