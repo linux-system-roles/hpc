@@ -3,16 +3,6 @@
 # It takes __hpc_pkg_info dict with name, url, sha256 keys.
 # It sets __hpc_pkg_extracted variable with the path of the extracted tarball.
 ---
-- name: Create temp file for downloading tarball {{ __hpc_pkg_info.name }}
-  tempfile:
-    state: file
-    prefix: "{{ __hpc_pkg_info.name }}_"
-    suffix: "{{ __hpc_pkg_info.url | basename
-      | regex_search('\\.(tar\\.gz|tbz|tar\\.bz2|zip|tar)$')
-      | default('') }}"
-  register: __hpc_pkg_tarball
-  changed_when: false
-
 - name: Create temp directory for extracting tarball {{ __hpc_pkg_info.name }}
   tempfile:
     state: directory
@@ -23,22 +13,16 @@
 - name: Download package and verify checksum for {{ __hpc_pkg_info.name }}
   get_url:
     url: "{{ __hpc_pkg_info.url }}"
-    dest: "{{ __hpc_pkg_tarball.path }}"
+    dest: "{{ __hpc_pkg_extracted.path }}/temp_tarball"
     checksum: sha256:{{ __hpc_pkg_info.sha256 }}
     mode: "0644"
   changed_when: false
 
-- name: Extract package for {{ __hpc_pkg_info.name }}
+- name: Extract tarball for {{ __hpc_pkg_info.name }}
   unarchive:
-    src: "{{ __hpc_pkg_tarball.path }}"
+    src: "{{ __hpc_pkg_extracted.path }}/temp_tarball"
     dest: "{{ __hpc_pkg_extracted.path }}"
     remote_src: true
     extra_opts:
       - "--strip-components=1"
-  changed_when: false
-
-- name: Remove downloaded tarball for {{ __hpc_pkg_info.name }}
-  file:
-    path: "{{ __hpc_pkg_tarball.path }}"
-    state: absent
   changed_when: false

@@ -15,17 +15,14 @@
     - not hpc_install_cuda_toolkit
     - not hpc_install_nvidia_nccl
 
-- name: Deploy the GPG key for repositories
+- name: Deploy the GPG key for {{ item.description }}
   rpm_key:
     key: "{{ item.key }}"
     state: present
   loop:
-    - repo_name: RHEL EPEL repository
-      key: "{{ __hpc_rhel_epel_rpm_key }}"
-    - repo_name: NVIDIA repository
-      key: "{{ __hpc_nvidia_rpm_key }}"
-    - repo_name: Microsoft Production repository
-      key: "{{ __hpc_microsoft_prod_rpm_key }}"
+    - "{{ __hpc_rhel_epel_repo }}"
+    - "{{ __hpc_nvidia_cuda_repo }}"
+    - "{{ __hpc_microsoft_prod_repo }}"
 
 # package dkms is required from this repo
 - name: Install EPEL release package
@@ -35,19 +32,15 @@
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
-- name: Configure repositories
+- name: Configure repository {{ item.description }}
   yum_repository:
     name: "{{ item.name }}"
     description: "{{ item.description }}"
     baseurl: "{{ item.baseurl }}"
     gpgcheck: true
   loop:
-    - name: nvidia-cuda
-      description: NVIDIA CUDA repository
-      baseurl: "{{ __hpc_nvidia_cuda_rpm }}"
-    - name: microsoft-prod
-      description: Microsoft Production Repository
-      baseurl: "{{ __hpc_microsoft_prod_rpm }}"
+    - "{{ __hpc_nvidia_cuda_repo }}"
+    - "{{ __hpc_microsoft_prod_repo }}"
 
 - name: Configure storage
   when: hpc_manage_storage
@@ -254,7 +247,6 @@
           {{ __hpc_pmix_build_dependencies
           + __hpc_gdrcopy_build_dependencies
           + __hpc_openmpi_build_dependencies }}
-
         state: present
         use: "{{ (__hpc_server_is_ostree | d(false)) |
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
@@ -340,10 +332,11 @@
           vars:
             __hpc_pkg_info: "{{ __hpc_gdrcopy_info }}"
 
-        # Using shell instead of command to support the use of environment variables
         - name: Build GDRCopy RPM packages
-          shell:  # noqa command-instead-of-shell
-            cmd: CUDA={{ __hpc_cuda_path }} packages/build-rpm-packages.sh
+          environment:
+            CUDA: "{{ __hpc_cuda_path }}"
+          command:
+            cmd: packages/build-rpm-packages.sh
             chdir: "{{ __hpc_pkg_extracted.path }}"
           changed_when: true
 
@@ -409,11 +402,10 @@
             group: root
             remote_src: true
 
-        # Using shell instead of command to support the use of env vars
         - name: Rebuild hpcx with PMIx
-          # noqa command-instead-of-shell
-          shell: >-
-            CUDA_HOME={{ __hpc_cuda_path }}
+          environment:
+            CUDA_HOME: "{{ __hpc_cuda_path }}"
+          command: >-
             {{ __hpc_hpcx_path }}/utils/hpcx_rebuild.sh
             --with-hcoll
             --cuda
@@ -520,24 +512,17 @@
   when: hpc_tuning
   block:
     - name: Remove user memory limits to ensure applications aren't restricted
-      lineinfile:
-        path: /etc/security/limits.conf
-        line: "{{ item }}"
-        create: true
-        backup: true
+      template:
+        src: hpc-limits.conf.j2
+        dest: /etc/security/limits.d/90-hpc-limits.conf
+        owner: root
+        group: root
         mode: "0644"
-      loop:
-        - "*               hard    memlock         unlimited"
-        - "*               soft    memlock         unlimited"
-        - "*               hard    nofile          65535"
-        - "*               soft    nofile          65535"
-        - "*               hard    stack           unlimited"
-        - "*               soft    stack           unlimited"
 
     - name: Add tuning configuration into /etc/sysctl.conf
       lineinfile:
         path: /etc/sysctl.conf
-        line: vm.zone_reclaim_mode = 1
+        line: "{{ item}}"
         create: true
         backup: true
         mode: "0644"
@@ -580,6 +565,7 @@
       notify: Reload udev rules
 
 - name: Remove build dependencies
+  when: hpc_remove_build_dependencies
   vars:
     __hpc_dependencies: >-
       {{ __hpc_gdrcopy_build_dependencies
