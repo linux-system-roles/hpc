@@ -5,7 +5,7 @@ __hpc_rhel_epel_repo:
   name: RHEL EPEL repository
   description: RHEL EPEL repository
   key: https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-9
-  baseurl: https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+  rpm: https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
 __hpc_nvidia_cuda_repo:
   name: nvidia-cuda
   description: NVIDIA CUDA repository

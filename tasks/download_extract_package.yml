@@ -26,3 +26,9 @@
     extra_opts:
       - "--strip-components=1"
   changed_when: false
+
+- name: Remove temp tarball for {{ __hpc_pkg_info.name }}
+  file:
+    path: "{{ __hpc_pkg_extracted.path }}/temp_tarball"
+    state: absent
+  changed_when: false

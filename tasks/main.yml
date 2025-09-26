@@ -15,7 +15,7 @@
     - not hpc_install_cuda_toolkit
     - not hpc_install_nvidia_nccl
 
-- name: Deploy the GPG key for {{ item.description }}
+- name: Deploy GPG keys for repositories
   rpm_key:
     key: "{{ item.key }}"
     state: present
@@ -27,12 +27,12 @@
 # package dkms is required from this repo
 - name: Install EPEL release package
   package:
-    name: "{{ __hpc_rhel_epel_rpm }}"
+    name: "{{ __hpc_rhel_epel_repo.rpm }}"
     state: present
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
-- name: Configure repository {{ item.description }}
+- name: Configure repositories
   yum_repository:
     name: "{{ item.name }}"
     description: "{{ item.description }}"
@@ -536,24 +536,26 @@
         # increase the number of NFS RPCs per transport to have in flight at once
         - sunrpc.tcp_max_slot_table_entries = 128
 
-    - name: Copy sunrpc setting service files
-      copy:
-        src: "{{ item.src }}"
-        dest: "{{ item.dest }}"
-        owner: root
-        group: root
-        mode: '0755'
-      loop:
-        - src: sunrpc_tcp_settings.sh
-          dest: /usr/sbin/
-        - src: sunrpc_tcp_settings.service
-          dest: /etc/systemd/system/
+    - name: Check if sunrpc module is loaded
+      command: lsmod
+      register: __hpc_loaded_modules
+      changed_when: false
 
-    - name: Enable and start sunrpc setting service
-      service:
-        name: sunrpc_tcp_settings
-        enabled: true
-        state: started
+    - name: Load sunrpc module
+      when: "'sunrpc' not in __hpc_loaded_modules.stdout"
+      command: modprobe sunrpc
+      changed_when: true
+
+    - name: Check current sunrpc sysctl setting
+      command: sysctl -n sunrpc.tcp_max_slot_table_entries
+      register: __hpc_sunrpc_val
+      changed_when: false
+      failed_when: false
+
+    - name: Apply sunrpc sysctl settings
+      when: __hpc_sunrpc_val.stdout != "128"
+      command: sysctl -w sunrpc.tcp_max_slot_table_entries=128
+      changed_when: true
 
     - name: Copy NFS readahead udev rules for Azure infrastructure
       copy:
@@ -565,7 +567,6 @@
       notify: Reload udev rules
 
 - name: Remove build dependencies
-  when: hpc_remove_build_dependencies
   vars:
     __hpc_dependencies: >-
       {{ __hpc_gdrcopy_build_dependencies
