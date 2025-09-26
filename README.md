@@ -39,7 +39,7 @@ Type: `bool`
 
 Whether to install the CUDA Toolkit package.
 
-Note that This package is required for installing OpenMPI.
+Note that this package is required for installing OpenMPI.
 
 Default: `true`
 
@@ -48,6 +48,8 @@ Type: `bool`
 ### hpc_install_hpc_nvidia_nccl
 
 Whether to install the NVIDIA Collective Communications Library (NCCL) package.
+
+Note that this package is required for installing OpenMPI.
 
 Default: `true`
 

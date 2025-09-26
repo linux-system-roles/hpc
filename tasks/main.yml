@@ -560,7 +560,7 @@
         mode: '0755'
       loop:
         - src: sunrpc_tcp_settings.sh
-          dest: /usr/local/bin/
+          dest: /usr/sbin/
         - src: sunrpc_tcp_settings.service
           dest: /etc/systemd/system/
 
