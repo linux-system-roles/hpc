@@ -283,7 +283,7 @@
     __hpc_hcoll_path: "{{ __hpc_hpcx_path }}/hcoll"
     __hpc_ucx_path: "{{ __hpc_hpcx_path }}/ucx"
     __hpc_ucc_path: "{{ __hpc_hpcx_path }}/ucc"
-    __hpc_pmix_path: "{{ __hpc_install_prefix }}/{{__hpc_pmix_info.name }}/{{ __hpc_pmix_info.version }}"
+    __hpc_pmix_path: "{{ __hpc_install_prefix }}/{{ __hpc_pmix_info.name }}/{{ __hpc_pmix_info.version }}"
     __hpc_openmpi_path: "{{ __hpc_install_prefix }}/{{ __hpc_openmpi_info.name }}-{{ __hpc_openmpi_info.version }}"
     __hpc_cuda_path: /usr/local/cuda
 
@@ -537,7 +537,7 @@
     - "*               soft    stack           unlimited"
 
 - name: Add tuning configuration into /etc/sysctl.conf
-  lineinfile::
+  lineinfile:
     path: /etc/sysctl.conf
     line: vm.zone_reclaim_mode = 1
     create: true
