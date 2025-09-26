@@ -13,6 +13,7 @@
     hpc_usrlv_mount: /hpc-test2
     # Toolkit is about 6GB, let's skip it to save bandwidth
     hpc_install_cuda_toolkit: false
+    hpc_install_openmpi: false
   tasks:
     - name: Run test in block to clean up afterwards
       block:
