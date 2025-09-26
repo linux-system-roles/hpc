@@ -41,7 +41,6 @@ __hpc_rpmbuild_packages:
 __hpc_pmix_build_dependencies:
   - hwloc-devel
   - libevent-devel
-  - munge-devel
 __hpc_openmpi_build_dependencies:
   - binutils-devel
   - autoconf

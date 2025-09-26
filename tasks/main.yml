@@ -591,13 +591,17 @@
     group: root
     mode: '0755'
 
-
-# - name: Remove build dependencies
-#   package:
-#     name: "{{ __hpc_rpmbuild_packages }}"
-#     state: absent
-#     use: "{{ (__hpc_server_is_ostree | d(false)) |
-#       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+- name: Remove build dependencies
+  vars:
+    __hpc_dependencies: >-
+      {{ __hpc_rpmbuild_packages
+      + __hpc_pmix_build_dependencies
+      + __hpc_openmpi_build_dependencies }}
+  package:
+    name: "{{ __hpc_dependencies }}"
+    state: absent
+    use: "{{ (__hpc_server_is_ostree | d(false)) |
+      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
 - name: Clean dnf cache
   command: dnf clean all
