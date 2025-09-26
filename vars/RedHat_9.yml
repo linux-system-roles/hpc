@@ -6,9 +6,6 @@ __hpc_rhel_epel_rpm: https://dl.fedoraproject.org/pub/epel/epel-release-latest-9
 __hpc_nvidia_rpm_key: https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/D42D0685.pub
 __hpc_nvidia_cuda_rpm: https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64
 __hpc_microsoft_prod_rpm: https://packages.microsoft.com/rhel/9/prod/
-# Slurm repo is to install pmix-4.2.9-1
-__hpc_microsoft_slurm_rpm: https://packages.microsoft.com/yumrepos/slurm-el9-insiders
-__hpc_microsoft_slurm_key: https://packages.microsoft.com/yumrepos/slurm-el9-insiders/repodata/repomd.xml.key
 
 # Vars related to RPMs
 __hpc_nvidia_driver_module: "@nvidia-driver:575-dkms"

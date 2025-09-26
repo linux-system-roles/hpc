@@ -17,3 +17,7 @@ hpc_install_hpc_nvidia_nccl: true
 hpc_install_nvidia_fabric_manager: true
 hpc_install_rdma: true
 hpc_install_openmpi: true
+
+hpc_tuning: true
+
+hpc_update_kernel: true

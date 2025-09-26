@@ -35,7 +35,7 @@ __hpc_rdma_packages:
   - WALinuxAgent
   - infiniband-diags
   - pciutils-devel
-__hpc_rpmbuild_packages:
+__hpc_gdrcopy_build_dependencies:
   - rpm-build
   - rpmdevtools
 __hpc_pmix_build_dependencies:

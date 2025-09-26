@@ -73,6 +73,33 @@ Type: `bool`
 
 Whether to install the Open MPI package.
 
+Note that building OpenMPI requires the following variables to be set to `true`, which is the default value:
+
+```yaml
+hpc_install_cuda_toolkit: true
+hpc_install_hpc_nvidia_nccl: true
+```
+
+Default: `true`
+
+Type: `bool`
+
+## Variables for Configuring Tuning for HPC Workloads
+
+### hpc_tuning
+
+Whether to configure tuning for HPC workloads.
+
+Default: `true`
+
+Type: `bool`
+
+## Variables for Managing Kernel
+
+### hpc_update_kernel
+
+Whether to update kernel to the latest version.
+
 Default: `true`
 
 Type: `bool`
