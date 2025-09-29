@@ -39,6 +39,8 @@ Type: `bool`
 
 Whether to install the CUDA Toolkit package.
 
+Note that this package is required for installing OpenMPI.
+
 Default: `true`
 
 Type: `bool`
@@ -46,6 +48,8 @@ Type: `bool`
 ### hpc_install_hpc_nvidia_nccl
 
 Whether to install the NVIDIA Collective Communications Library (NCCL) package.
+
+Note that this package is required for installing OpenMPI.
 
 Default: `true`
 
@@ -59,7 +63,7 @@ Default: `true`
 
 Type: `bool`
 
-### hpc_install_nvidia_rdma
+### hpc_install_rdma
 
 Whether to install the NVIDIA RDMA package.
 
@@ -70,6 +74,61 @@ Type: `bool`
 ### hpc_install_openmpi
 
 Whether to install the Open MPI package.
+
+Currently, the role builds OpenMPI from source.
+Prior to building OpenMPI, it builds its requirements - GDRCopy, HPCX, and PMIx.
+
+Microsoft-supplied PMIx library RPM is built with versioning that replaces the system (appstream) PMIx package (i.e. v4.2.9 vs v3.2.3).
+However, the library it installs as libpmix.so.2 is incorrectly versioned - v4.2.9 implements a newer PMIX API that is not backwards compatible with applications linked against older versions of libpmix.so.2.
+
+As OpenMPI v5.x requires PMIx >= 4.2.0, we have no choice but to build PMIx from source so that we can have both versions installed on the system at the same time. This also requires a pmix-4.2.9 environment module to put the pmix install into various paths.
+
+**Prior to using OpenMPI CLIs, you must run `module load mpi/openmpi-5.0.8`**
+
+The role also installs `mpitests-openmpi` for basic HPC validation, which pulls openmpi from AppStream repository of the latest version installed alongside the built version.
+You must use the built version by running the above `module load` command.
+
+Note that building OpenMPI requires the following variables to be set to `true`, which is the default value:
+
+```yaml
+hpc_install_cuda_toolkit: true
+hpc_install_hpc_nvidia_nccl: true
+```
+
+Default: `true`
+
+Type: `bool`
+
+## Variables for Configuring Tuning for HPC Workloads
+
+### hpc_tuning
+
+Whether to apply tuning for HPC workloads.
+
+The role applies the following tuning configurations:
+
+* Remove user memory limits to ensure applications aren't restricted by creating a file `/etc/security/limits.d/90-hpc-limits.conf` with memlock, nofile, and stack configuration.
+* Configure system by creating a file `/etc/sysctl.d/90-hpc-sysctl.conf`.
+This file applies the following configuration:
+
+  * Enable zone reclaim mode
+  * Increase the size of the IP neighbour cache
+  * Increase the number of NFS RPCs per transport to have in flight at once
+
+* Load a `sunrpc` kernel module with `sunrpc.tcp_max_slot_table_entries=128`.
+
+* Boost read performance for newly mounted NFS network shares by adding a file `/etc/udev/rules.d/90-nfs-readahead.rules`.
+This configuration increases the data pre-fetching buffer to 15,380 KB to help overcome network latency.
+
+Default: `true`
+
+Type: `bool`
+
+## Variables for Managing Kernel
+
+### hpc_update_kernel
+
+Whether to update kernel to the latest version.
 
 Default: `true`
 
@@ -99,7 +158,7 @@ Type: `bool`
     hpc_install_cuda_toolkit: true
     hpc_install_hpc_nvidia_nccl: true
     hpc_install_nvidia_fabric_manager: true
-    hpc_install_nvidia_rdma: true
+    hpc_install_rdma: true
     hpc_install_openmpi: true
   roles:
     - linux-system-roles.hpc
@@ -226,7 +285,7 @@ Run the role to configure storage, install all packages, and reboot if needed.
     hpc_install_cuda_toolkit: true
     hpc_install_hpc_nvidia_nccl: true
     hpc_install_nvidia_fabric_manager: true
-    hpc_install_nvidia_rdma: true
+    hpc_install_rdma: true
     hpc_install_openmpi: true
 
     hpc_reboot_ok: true

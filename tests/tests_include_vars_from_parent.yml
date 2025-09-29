@@ -53,7 +53,7 @@
             hpc_install_cuda_toolkit: false
             hpc_install_hpc_nvidia_nccl: false
             hpc_install_nvidia_fabric_manager: false
-            hpc_install_nvidia_rdma: false
+            hpc_install_rdma: false
             hpc_install_openmpi: false
 
         - name: Cleanup

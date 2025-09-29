@@ -3,30 +3,44 @@
 - name: Set platform/version specific variables
   include_tasks: tasks/set_vars.yml
 
-- name: Deploy the GPG key for RHEL EPEL repository
+- name: Fail if role installs openmpi without cuda toolkit
+  fail:
+    msg:
+      - OpenMPI requires multiple packages to be installed
+      - You must set the following variables true to install OpenMPI
+      - "hpc_install_cuda_toolkit: true"
+      - "hpc_install_nvidia_nccl: true"
+  when:
+    - hpc_install_openmpi
+    - not hpc_install_cuda_toolkit
+    - not hpc_install_nvidia_nccl
+
+- name: Deploy GPG keys for repositories
   rpm_key:
-    key: "{{ hpc_rhel_epel_rpm_key }}"
+    key: "{{ item.key }}"
     state: present
+  loop:
+    - "{{ __hpc_rhel_epel_repo }}"
+    - "{{ __hpc_nvidia_cuda_repo }}"
+    - "{{ __hpc_microsoft_prod_repo }}"
 
 # package dkms is required from this repo
 - name: Install EPEL release package
   package:
-    name: "{{ hpc_rhel_epel_rpm }}"
+    name: "{{ __hpc_rhel_epel_repo.rpm }}"
     state: present
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
-- name: Deploy the GPG key for NVIDIA repositories
-  rpm_key:
-    key: "{{ hpc_nvidia_rpm_key }}"
-    state: present
-
-- name: Configure the NVIDIA CUDA repository
+- name: Configure repositories
   yum_repository:
-    name: nvidia-cuda
-    description: NVIDIA CUDA repository
-    baseurl: "{{ hpc_nvidia_cuda_repository }}"
+    name: "{{ item.name }}"
+    description: "{{ item.description }}"
+    baseurl: "{{ item.baseurl }}"
     gpgcheck: true
+  loop:
+    - "{{ __hpc_nvidia_cuda_repo }}"
+    - "{{ __hpc_microsoft_prod_repo }}"
 
 - name: Configure storage
   when: hpc_manage_storage
@@ -79,20 +93,20 @@
                 size: "{{ __hpc_usrlv_size }}"
                 mount_point: "{{ hpc_usrlv_mount }}"
 
-# This is only needed for MicrosoftAzure VMs
-- name: Update RHUI packages from Microsoft repositories
-  package:
-    name: "rhui*"
-    state: latest  # noqa package-latest
-    disablerepo: "*"
-    enablerepo: "rhui-microsoft-*"
-  when: ansible_system_vendor == "Microsoft Corporation"
-
-- name: Force install kernel
+- name: Force install kernel version
   package:
     name: kernel-{{ __hpc_force_kernel_version }}
     state: present
   when: __hpc_force_kernel_version is not none
+  notify: Reboot system
+
+- name: Update kernel
+  when:
+    - hpc_update_kernel
+    - __hpc_force_kernel_version is none
+  package:
+    name: kernel
+    state: latest  # noqa package-latest
   notify: Reboot system
 
 - name: >-
@@ -137,13 +151,16 @@
     or __hpc_versionlock_content.stdout is not search(item  + "-[0-9]")
   loop: "{{ __hpc_versionlock_rpms }}"
 
-- name: Enable nvidia-driver
+- name: Install NVIDIA driver
   package:
-    name: "{{ hpc_nvidia_driver_module }}"
+    name: "{{ __hpc_nvidia_driver_module }}"
     state: present
+    allow_downgrade: true
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
   notify: Reboot system
+  # Note that currently the role supports only Microsoft Azure
+  # When we add more cloud providers, we need to update this condition
   when: ansible_system_vendor == "Microsoft Corporation"
 
 - name: Install CUDA driver and enable nvidia-persistenced.service
@@ -153,7 +170,7 @@
   block:
     - name: Install CUDA driver
       package:
-        name: "{{ hpc_cuda_driver_packages }}"
+        name: "{{ __hpc_cuda_driver_packages }}"
         state: present
         use: "{{ (__hpc_server_is_ostree | d(false)) |
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
@@ -168,8 +185,9 @@
     - hpc_install_cuda_toolkit
     - ansible_system_vendor == "Microsoft Corporation"
   package:
-    name: "{{ hpc_cuda_toolkit_packages }}"
+    name: "{{ __hpc_cuda_toolkit_packages }}"
     state: present
+    allow_downgrade: true
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
   register: __hpc_install_cuda_toolkit
@@ -178,8 +196,9 @@
 - name: Install NVIDIA NCCL
   when: hpc_install_hpc_nvidia_nccl
   package:
-    name: "{{ hpc_nvidia_nccl_packages }}"
+    name: "{{ __hpc_nvidia_nccl_packages }}"
     state: present
+    allow_downgrade: true
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
@@ -188,7 +207,7 @@
   block:
     - name: Install NVIDIA Fabric Manager
       package:
-        name: "{{ hpc_nvidia_fabric_manager_packages }}"
+        name: "{{ __hpc_nvidia_fabric_manager_packages }}"
         state: present
         use: "{{ (__hpc_server_is_ostree | d(false)) |
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
@@ -198,41 +217,358 @@
         name: nvidia-fabricmanager
         enabled: true
 
-- name: Install NVIDIA RDMA packages
-  when: hpc_install_nvidia_rdma
-  package:
-    name: "{{ hpc_nvidia_rdma_packages }}"
-    state: present
-    use: "{{ (__hpc_server_is_ostree | d(false)) |
-      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+- name: Install RDMA packages
+  when: hpc_install_rdma
+  block:
+    - name: Install RDMA packages
+      package:
+        name: "{{ __hpc_rdma_packages }}"
+        state: present
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
-# azhpc-images build scripts do the same thing here:
-# https://github.com/Azure/azhpc-images/blob/a3f92d283af6c9d11bf08eb0f8763ab67f7c8713/common/install_waagent.sh#L53
-- name: Enable RDMA in waagent configuration
-  when: hpc_install_nvidia_rdma
-  lineinfile:
-    path: /etc/waagent.conf
-    line: "OS.EnableRDMA=y"
-    create: true
-    backup: true
-    mode: "0644"
-  notify: Restart waagent
+    # azhpc-images build scripts do the same thing here:
+    # https://github.com/Azure/azhpc-images/blob/a3f92d283af6c9d11bf08eb0f8763ab67f7c8713/common/install_waagent.sh#L53
+    - name: Enable RDMA in waagent configuration
+      lineinfile:
+        path: /etc/waagent.conf
+        line: "OS.EnableRDMA=y"
+        create: true
+        backup: true
+        mode: "0644"
+      notify: Restart waagent
 
-- name: Let user's applications lock as much memory as they need
-  lineinfile:
-    path: /etc/security/limits.conf
-    line: "{{ item }}"
-    create: true
-    backup: true
-    mode: "0644"
-  loop:
-    - "* soft memlock unlimited"
-    - "* hard memlock unlimited"
-
-- name: Install openmpi
+- name: Download, build, and configure OpenMPI and all required packages
   when: hpc_install_openmpi
+  block:
+    - name: Install build dependencies
+      package:
+        name: >-
+          {{ __hpc_pmix_build_dependencies
+          + __hpc_gdrcopy_build_dependencies
+          + __hpc_openmpi_build_dependencies }}
+        state: present
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
+    # Must keep the original tarball name because it's hardcoded in hpcx
+    - name: Set __hpc_hpcx_path fact
+      vars:
+        hpcx_tarball_basename: "{{ __hpc_hpcx_info.url | basename
+          | regex_replace('\\.[^.]*$', '') }}"
+      set_fact:
+        __hpc_hpcx_path: "{{ __hpc_install_prefix }}/{{ hpcx_tarball_basename }}"
+
+    - name: Set facts for building hpcx and openmpi
+      set_fact:
+        __hpc_hpcx_rebuild_path: "{{ __hpc_hpcx_path }}/hpcx-rebuild"
+        __hpc_hcoll_path: "{{ __hpc_hpcx_path }}/hcoll"
+        __hpc_ucx_path: "{{ __hpc_hpcx_path }}/ucx"
+        __hpc_ucc_path: "{{ __hpc_hpcx_path }}/ucc"
+        __hpc_pmix_path: "{{ __hpc_install_prefix }}/{{ __hpc_pmix_info.name }}/{{ __hpc_pmix_info.version }}"
+        __hpc_openmpi_path: "{{ __hpc_install_prefix }}/{{ __hpc_openmpi_info.name }}-{{ __hpc_openmpi_info.version }}"
+        __hpc_cuda_path: /usr/local/cuda
+
+    - name: Get package facts
+      package_facts:
+      no_log: true
+
+    - name: Get stat of pmix path
+      stat:
+        path: "{{ __hpc_pmix_path }}/bin/pmixcc"
+      register: __hpc_pmix_path_stat
+
+    - name: Download and build PMIx
+      when: not __hpc_pmix_path_stat.stat.exists
+      block:
+        - name: Download PMIx
+          include_tasks: tasks/download_extract_package.yml
+          vars:
+            __hpc_pkg_info: "{{ __hpc_pmix_info }}"
+
+        - name: Build PMIx
+          command:
+            cmd: "{{ item }}"
+            chdir: "{{ __hpc_pkg_extracted.path }}"
+          changed_when: true
+          loop:
+            - >-
+              ./configure --prefix={{ __hpc_pmix_path }}
+              --enable-pmix-binaries
+              --disable-dependency-tracking
+            - make -j {{ ansible_processor_nproc }}
+            - make install
+
+    - name: Ensure PMIx modulefile directory exists
+      file:
+        path: "{{ __hpc_module_dir }}/pmix"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    # The openmpi-{{ __hpc_openmpi_info.version }} env module depends on this
+    - name: Install PMIx modulefile
+      template:
+        src: pmix-ver.lua
+        dest: "{{ __hpc_module_dir }}/pmix/pmix-{{ __hpc_pmix_info.version }}.lua"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Install GDRCopy packages
+      vars:
+        gdrcopy_version: "{{ __hpc_gdrcopy_info.version | split('-') | first }}"
+      when: >-
+        (ansible_facts.packages.gdrcopy is not defined
+        or ansible_facts.packages.gdrcopy[0].version != gdrcopy_version )
+        or (ansible_facts.packages["gdrcopy-kmod"] is not defined
+        or ansible_facts.packages["gdrcopy-kmod"][0].version != gdrcopy_version)
+        or (ansible_facts.packages["gdrcopy-devel"] is not defined
+        or ansible_facts.packages["gdrcopy-devel"][0].version != gdrcopy_version)
+      block:
+        - name: Download GDRCopy
+          include_tasks: tasks/download_extract_package.yml
+          vars:
+            __hpc_pkg_info: "{{ __hpc_gdrcopy_info }}"
+
+        - name: Build GDRCopy RPM packages
+          environment:
+            CUDA: "{{ __hpc_cuda_path }}"
+          command:
+            cmd: packages/build-rpm-packages.sh
+            chdir: "{{ __hpc_pkg_extracted.path }}"
+          changed_when: true
+
+        - name: Install GDRCopy packages from built RPMs
+          package:
+            name:
+              - "{{ __hpc_pkg_extracted.path }}/gdrcopy-kmod-{{ __hpc_gdrcopy_info.version }}dkms.{{ __hpc_gdrcopy_info.distribution }}.noarch.rpm"
+              - "{{ __hpc_pkg_extracted.path }}/gdrcopy-{{ __hpc_gdrcopy_info.version }}.{{ __hpc_gdrcopy_info.distribution }}.x86_64.rpm"
+              - "{{ __hpc_pkg_extracted.path }}/gdrcopy-devel-{{ __hpc_gdrcopy_info.version }}.{{ __hpc_gdrcopy_info.distribution }}.noarch.rpm"
+            disable_gpg_check: true
+            state: present
+            use: "{{ (__hpc_server_is_ostree | d(false)) |
+              ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
+        - name: Remove extracted tarball
+          file:
+            path: "{{ __hpc_pkg_extracted.path }}"
+            state: absent
+          changed_when: false
+
+    - name: Get stat of hpcx-rebuild path
+      stat:
+        path: "{{ __hpc_hpcx_rebuild_path }}"
+      register: __hpc_hpcx_rebuild_path_stat
+
+    - name: Download and build HPCx
+      when: not __hpc_hpcx_rebuild_path_stat.stat.exists
+      block:
+        - name: Download hpcx
+          include_tasks: tasks/download_extract_package.yml
+          vars:
+            __hpc_pkg_info: "{{ __hpc_hpcx_info }}"
+
+        # Packages are installed in /opt, not "/build-result", so pkgconfig
+        # files used by openmpi's cmake configure scripts need to be updated.
+        - name: Ensure that pkgconfig files use hpcx_home={{ __hpc_hpcx_path }}
+          replace:
+            path: "{{ item }}"
+            regexp: "/build-result/"
+            replace: "{{ __hpc_install_prefix }}/"
+            backup: true
+          loop:
+            - "{{ __hpc_pkg_extracted.path }}/hcoll/lib/pkgconfig/hcoll.pc"
+            - "{{ __hpc_pkg_extracted.path }}/ucc/lib/pkgconfig/ucc.pc"
+            - "{{ __hpc_pkg_extracted.path }}/ucx/lib/pkgconfig/ucx.pc"
+
+        # the shipped pkgconfig for hcoll only includes -lhcoll. However, this
+        # library depends on -locoms, so we have to add that to prevent openmpi
+        # from failing to link against libhcoll.
+        - name: Update hcoll pkgconfig file to add -locoms parameter
+          replace:
+            path: "{{ __hpc_pkg_extracted.path }}/hcoll/lib/pkgconfig/hcoll.pc"
+            regexp: "-lhcoll"
+            replace: "-lhcoll -locoms"
+            backup: true
+
+        - name: Copy hpcx to {{ __hpc_hpcx_path }}
+          copy:
+            src: "{{ __hpc_pkg_extracted.path }}/"
+            remote_src: true
+            dest: "{{ __hpc_hpcx_path }}"
+            mode: "0755"
+            owner: root
+            group: root
+
+        - name: Rebuild hpcx with PMIx
+          environment:
+            CUDA_HOME: "{{ __hpc_cuda_path }}"
+          command: >-
+            {{ __hpc_hpcx_path }}/utils/hpcx_rebuild.sh
+            --with-hcoll
+            --cuda
+            --rebuild-ucx
+            --ompi-extra-config
+            '--with-pmix={{ __hpc_pmix_path }}
+            --enable-orterun-prefix-by-default'
+          changed_when: true
+
+        - name: Copy ompi/tests to hpcx-rebuild in {{ __hpc_hpcx_path }}
+          copy:
+            src: "{{ __hpc_hpcx_path }}/ompi/tests/"
+            remote_src: true
+            dest: "{{ __hpc_hpcx_rebuild_path }}"
+            mode: "0755"
+            owner: root
+            group: root
+
+        - name: Remove extracted tarball
+          file:
+            path: "{{ __hpc_pkg_extracted.path }}"
+            state: absent
+          changed_when: false
+
+    - name: Ensure that /etc/lmod directory exists
+      file:
+        path: /etc/lmod
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    # This requires a new login shell to become visible.
+    - name: Set up hpcx module files for lmod
+      lineinfile:
+        path: /etc/lmod/.modulespath
+        line: "{{ __hpc_hpcx_path }}/modulefiles"
+        state: present
+        create: true
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Get stat of openmpi path
+      stat:
+        path: "{{ __hpc_openmpi_path }}"
+      register: __hpc_openmpi_path_stat
+
+    - name: Download and build OpenMPI
+      when: not __hpc_openmpi_path_stat.stat.exists
+      block:
+        - name: Download {{ __hpc_openmpi_info.name }}
+          include_tasks: tasks/download_extract_package.yml
+          vars:
+            __hpc_pkg_info: "{{ __hpc_openmpi_info }}"
+
+        - name: Build {{ __hpc_openmpi_info.name }}
+          command:
+            cmd: "{{ item }}"
+            chdir: "{{ __hpc_pkg_extracted.path }}"
+          changed_when: true
+          loop:
+            - >-
+              ./configure --prefix={{ __hpc_openmpi_path }}
+              --with-ucx={{ __hpc_ucx_path }}
+              --with-ucc={{ __hpc_ucc_path }}
+              --with-hcoll={{ __hpc_hcoll_path }}
+              --with-pmix={{ __hpc_pmix_path }}
+              --enable-prte-prefix-by-default
+              --with-platform=contrib/platform/mellanox/optimized
+              --with-cuda={{ __hpc_cuda_path }}
+            - make -j {{ ansible_processor_nproc }}
+            - make install
+
+        - name: Remove extracted tarball
+          file:
+            path: "{{ __hpc_pkg_extracted.path }}"
+            state: absent
+          changed_when: false
+
+    - name: Ensure MPI modulefile directory exists
+      file:
+        path: "{{ __hpc_module_dir }}/mpi"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Install OpenMPI modulefile
+      template:
+        src: openmpi-ver.lua
+        dest: "{{ __hpc_module_dir }}/mpi/openmpi-{{ __hpc_openmpi_info.version }}.lua"
+        owner: root
+        group: root
+        mode: '0644'
+
+- name: Tune system for HPC
+  when: hpc_tuning
+  block:
+    - name: Remove user memory limits to ensure applications aren't restricted
+      template:
+        src: 90-hpc-limits.conf
+        dest: /etc/security/limits.d/
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Add sysctl tuning configuration for HPC
+      template:
+        src: 90-hpc-sysctl.conf
+        dest: /etc/sysctl.d/
+        owner: root
+        group: root
+        mode: '0755'
+      notify: Reload sysctl
+
+    - name: Increase the number of NFS RPCs per transport
+      lineinfile:
+        path: /etc/modprobe.d/90-sunrpc.conf
+        line: options sunrpc tcp_max_slot_table_entries=128
+        create: true
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload sysctl
+
+    - name: Load sunrpc kernel module
+      lineinfile:
+        path: /etc/modules-load.d/sunrpc.conf
+        line: sunrpc
+        create: true
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart systemd-modules-load
+
+    - name: Copy NFS readahead udev rules for Azure infrastructure
+      template:
+        src: 90-nfs-readahead.rules
+        dest: /etc/udev/rules.d/
+        owner: root
+        group: root
+        mode: '0755'
+      notify: Reload udev
+
+- name: Remove build dependencies
+  vars:
+    __hpc_dependencies: >-
+      {{ __hpc_gdrcopy_build_dependencies
+      + __hpc_pmix_build_dependencies
+      + __hpc_openmpi_build_dependencies }}
   package:
-    name: "{{ hpc_openmpi_packages }}"
-    state: present
+    name: "{{ __hpc_dependencies }}"
+    state: absent
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
+- name: Clean dnf cache
+  command: dnf clean all
+  changed_when: false
+
+- name: Notify about OpenMPI module loading
+  debug:
+    msg: >-
+      Prior to using OpenMPI CLIs, you must run
+      `module load mpi/openmpi-{{ __hpc_openmpi_info.version }}`
