@@ -396,11 +396,11 @@
         - name: Copy hpcx to {{ __hpc_hpcx_path }}
           copy:
             src: "{{ __hpc_pkg_extracted.path }}/"
+            remote_src: true
             dest: "{{ __hpc_hpcx_path }}"
             mode: "0755"
             owner: root
             group: root
-            remote_src: true
 
         - name: Rebuild hpcx with PMIx
           environment:
@@ -415,9 +415,10 @@
             --enable-orterun-prefix-by-default'
           changed_when: true
 
-        - name: Copy ompi/tests to hpcx-rebuild
+        - name: Copy ompi/tests to hpcx-rebuild in {{ __hpc_hpcx_path }}
           copy:
             src: "{{ __hpc_hpcx_path }}/ompi/tests/"
+            remote_src: true
             dest: "{{ __hpc_hpcx_rebuild_path }}"
             mode: "0755"
             owner: root
@@ -444,12 +445,15 @@
         owner: root
         group: root
         mode: '0755'
+        # access_time and modification_time are required for idempotency
+        access_time: preserve
+        modification_time: preserve
 
     # This requires a new login shell to become visible.
     - name: Set up hpcx module files for lmod
       lineinfile:
         path: /etc/lmod/.modulespath
-        line: "{{ __hpc_hpcx_rebuild_path }}/modulefiles"
+        line: "{{ __hpc_hpcx_path }}/modulefiles"
         state: present
         owner: root
         group: root
