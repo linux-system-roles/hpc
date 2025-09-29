@@ -513,28 +513,20 @@
   block:
     - name: Remove user memory limits to ensure applications aren't restricted
       template:
-        src: hpc-limits.conf.j2
-        dest: /etc/security/limits.d/90-hpc-limits.conf
+        src: 90-hpc-limits.conf.j2
+        dest: /etc/security/limits.d/
         owner: root
         group: root
         mode: "0644"
 
-    - name: Add tuning configuration into /etc/sysctl.conf
-      lineinfile:
-        path: /etc/sysctl.conf
-        line: "{{ item}}"
-        create: true
-        backup: true
-        mode: "0644"
-      loop:
-        # Enable zone reclaim mode
-        - vm.zone_reclaim_mode = 1
-        # increase the size of the IP neighbour cache
-        - net.ipv4.neigh.default.gc_thresh1 = 4096
-        - net.ipv4.neigh.default.gc_thresh2 = 8192
-        - net.ipv4.neigh.default.gc_thresh3 = 16384
-        # increase the number of NFS RPCs per transport to have in flight at once
-        - sunrpc.tcp_max_slot_table_entries = 128
+    - name: Add sysctl tuning configuration for HPC
+      template:
+        src: 90-hpc-sysctl.conf.j2
+        dest: /etc/sysctl.d/
+        owner: root
+        group: root
+        mode: '0755'
+      notify: Reload sysctl
 
     - name: Check if sunrpc module is loaded
       command: lsmod
@@ -558,13 +550,13 @@
       changed_when: true
 
     - name: Copy NFS readahead udev rules for Azure infrastructure
-      copy:
-        src: 90-nfs-readahead.rules
+      template:
+        src: 90-nfs-readahead.rules.j2
         dest: /etc/udev/rules.d/
         owner: root
         group: root
         mode: '0755'
-      notify: Reload udev rules
+      notify: Reload udev
 
 - name: Remove build dependencies
   vars:
