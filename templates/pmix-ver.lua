@@ -1,5 +1,5 @@
-{{ ansible_managed | comment }}
-{{ "system_role:hpc" | comment(prefix="", postfix="") }}
+{{ ansible_managed | comment(decoration="-- ") }}
+{{ "system_role:hpc" | comment(decoration="-- ", prefix="", postfix="") }}
 -- This file should be installed in the same directory as the system as:
 -- /usr/share/modulefiles/pmix/pmix-{{ __hpc_pmix_info.version }}.lua
 --

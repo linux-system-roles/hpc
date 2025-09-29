@@ -577,3 +577,9 @@
 - name: Clean dnf cache
   command: dnf clean all
   changed_when: false
+
+- name: Notify about OpenMPI module loading
+  debug:
+    msg: >-
+      Prior to using OpenMPI CLIs, you must run
+      `module load mpi/openmpi-{{ __hpc_openmpi_info.version }}`

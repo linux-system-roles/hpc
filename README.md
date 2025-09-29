@@ -75,6 +75,16 @@ Type: `bool`
 
 Whether to install the Open MPI package.
 
+Currently, the role builds OpenMPI from source.
+Prior to building OpenMPI, it builds its requirements - GDRCopy, HPCX, and PMIx.
+
+Microsoft-supplied PMIx library RPM is built with versioning that replaces the system (appstream) PMIx package (i.e. v4.2.9 vs v3.2.3).
+However, the library it installs as libpmix.so.2 is incorrectly versioned - v4.2.9 implements a newer PMIX API that is not backwards compatible with applications linked against older versions of libpmix.so.2.
+
+As OpenMPI v5.x requires PMIx >= 4.2.0, we have no choice but to build PMIx from source so that we can have both versions installed on the system at the same time. This also requires a pmix-4.2.9 environment module to put the pmix install into various paths.
+
+**Prior to using OpenMPI CLIs, you must run `module load mpi/openmpi-5.0.8`**
+
 Note that building OpenMPI requires the following variables to be set to `true`, which is the default value:
 
 ```yaml

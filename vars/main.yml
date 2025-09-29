@@ -46,6 +46,10 @@ __hpc_openmpi_build_dependencies:
   - autoconf
   - automake
   - libtool
+  # Lmod is required to enable openmpi module with pmix
+  - Lmod
+  # This is required to run openmpi tests, useful both for QE and end users
+  - mpitests-openmpi
 
 __hpc_versionlock_path: /etc/dnf/plugins/versionlock.list
 __hpc_versionlock_rpms:

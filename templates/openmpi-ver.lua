@@ -1,5 +1,5 @@
-{{ ansible_managed | comment }}
-{{ "system_role:hpc" | comment(prefix="", postfix="") }}
+{{ ansible_managed | comment(decoration="-- ") }}
+{{ "system_role:hpc" | comment(decoration="-- ", prefix="", postfix="") }}
 -- This is laregly derived from the system openmpi module file that can be
 -- found at /usr/share/modulefiles/mpi/openmpi-x86-64
 --
@@ -35,4 +35,4 @@ setenv("MPI_COMPILER", "{{ __hpc_openmpi_info.name }}-{{ __hpc_openmpi_info.vers
 setenv("MPI_SUFFIX", "_{{ __hpc_openmpi_info.name }}-{{ __hpc_openmpi_info.version }}")
 
 -- dependent on PMIx {{ __hpc_pmix_info.version }} installed in /opt
-load("{{ __hpc_pmix_path }}")
+load("{{ __hpc_pmix_info.name }}/{{ __hpc_pmix_info.name }}-{{ __hpc_pmix_info.version }}")
