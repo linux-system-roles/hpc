@@ -85,6 +85,9 @@ As OpenMPI v5.x requires PMIx >= 4.2.0, we have no choice but to build PMIx from
 
 **Prior to using OpenMPI CLIs, you must run `module load mpi/openmpi-5.0.8`**
 
+The role also installs `mpitests-openmpi` for basic HPC validation, which pulls openmpi from AppStream repository of the latest version installed alongside the built version.
+You must use the built version by running the above `module load` command.
+
 Note that building OpenMPI requires the following variables to be set to `true`, which is the default value:
 
 ```yaml
