@@ -310,7 +310,7 @@
     # The openmpi-{{ __hpc_openmpi_info.version }} env module depends on this
     - name: Install PMIx modulefile
       template:
-        src: pmix-ver.lua.j2
+        src: pmix-ver.lua
         dest: "{{ __hpc_module_dir }}/pmix/pmix-{{ __hpc_pmix_info.version }}.lua"
         owner: root
         group: root
@@ -502,7 +502,7 @@
 
     - name: Install OpenMPI modulefile
       template:
-        src: openmpi-ver.lua.j2
+        src: openmpi-ver.lua
         dest: "{{ __hpc_module_dir }}/mpi/openmpi-{{ __hpc_openmpi_info.version }}.lua"
         owner: root
         group: root
@@ -513,7 +513,7 @@
   block:
     - name: Remove user memory limits to ensure applications aren't restricted
       template:
-        src: 90-hpc-limits.conf.j2
+        src: 90-hpc-limits.conf
         dest: /etc/security/limits.d/
         owner: root
         group: root
@@ -521,7 +521,7 @@
 
     - name: Add sysctl tuning configuration for HPC
       template:
-        src: 90-hpc-sysctl.conf.j2
+        src: 90-hpc-sysctl.conf
         dest: /etc/sysctl.d/
         owner: root
         group: root
@@ -551,7 +551,7 @@
 
     - name: Copy NFS readahead udev rules for Azure infrastructure
       template:
-        src: 90-nfs-readahead.rules.j2
+        src: 90-nfs-readahead.rules
         dest: /etc/udev/rules.d/
         owner: root
         group: root
