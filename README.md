@@ -90,7 +90,22 @@ Type: `bool`
 
 ### hpc_tuning
 
-Whether to configure tuning for HPC workloads.
+Whether to apply tuning for HPC workloads.
+
+The role applies the following tuning configurations:
+
+* Remove user memory limits to ensure applications aren't restricted by creating a file `/etc/security/limits.d/90-hpc-limits.conf` with memlock, nofile, and stack configuration.
+* Configure system by creating a file `/etc/sysctl.d/90-hpc-sysctl.conf`.
+This file applies the following configuration:
+
+  * Enable zone reclaim mode
+  * Increase the size of the IP neighbour cache
+  * Increase the number of NFS RPCs per transport to have in flight at once
+
+* Load a `sunrpm` kernel module with `sunrpc.tcp_max_slot_table_entries=128`.
+
+* Boost read performance for newly mounted NFS network shares by adding a file `/etc/udev/rules.d/90-nfs-readahead.rules`.
+This configuration increases the data pre-fetching buffer to 15,380 KB to help overcome network latency.
 
 Default: `true`
 
