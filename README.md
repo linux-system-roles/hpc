@@ -115,7 +115,7 @@ This file applies the following configuration:
   * Increase the size of the IP neighbour cache
   * Increase the number of NFS RPCs per transport to have in flight at once
 
-* Load a `sunrpm` kernel module with `sunrpc.tcp_max_slot_table_entries=128`.
+* Load a `sunrpc` kernel module with `sunrpc.tcp_max_slot_table_entries=128`.
 
 * Boost read performance for newly mounted NFS network shares by adding a file `/etc/udev/rules.d/90-nfs-readahead.rules`.
 This configuration increases the data pre-fetching buffer to 15,380 KB to help overcome network latency.

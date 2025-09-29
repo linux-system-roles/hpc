@@ -438,23 +438,13 @@
         group: root
         mode: '0755'
 
-    - name: Ensure that /etc/lmod/.modulespath file exists
-      file:
-        path: /etc/lmod/.modulespath
-        state: touch
-        owner: root
-        group: root
-        mode: '0755'
-        # access_time and modification_time are required for idempotency
-        access_time: preserve
-        modification_time: preserve
-
     # This requires a new login shell to become visible.
     - name: Set up hpcx module files for lmod
       lineinfile:
         path: /etc/lmod/.modulespath
         line: "{{ __hpc_hpcx_path }}/modulefiles"
         state: present
+        create: true
         owner: root
         group: root
         mode: '0755'
@@ -532,26 +522,25 @@
         mode: '0755'
       notify: Reload sysctl
 
-    - name: Check if sunrpc module is loaded
-      command: lsmod
-      register: __hpc_loaded_modules
-      changed_when: false
+    - name: Increase the number of NFS RPCs per transport
+      lineinfile:
+        path: /etc/modprobe.d/90-sunrpc.conf
+        line: options sunrpc tcp_max_slot_table_entries=128
+        create: true
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload sysctl
 
-    - name: Load sunrpc module
-      when: "'sunrpc' not in __hpc_loaded_modules.stdout"
-      command: modprobe sunrpc
-      changed_when: true
-
-    - name: Check current sunrpc sysctl setting
-      command: sysctl -n sunrpc.tcp_max_slot_table_entries
-      register: __hpc_sunrpc_val
-      changed_when: false
-      failed_when: false
-
-    - name: Apply sunrpc sysctl settings
-      when: __hpc_sunrpc_val.stdout != "128"
-      command: sysctl -w sunrpc.tcp_max_slot_table_entries=128
-      changed_when: true
+    - name: Load sunrpc kernel module
+      lineinfile:
+        path: /etc/modules-load.d/sunrpc.conf
+        line: sunrpc
+        create: true
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart systemd-modules-load
 
     - name: Copy NFS readahead udev rules for Azure infrastructure
       template:
