@@ -42,6 +42,15 @@
     - "{{ __hpc_nvidia_cuda_repo }}"
     - "{{ __hpc_microsoft_prod_repo }}"
 
+- name: Configure firewll to use trusted zone as default
+  when: hpc_manage_firewall
+  include_role:
+    name: fedora.linux_system_roles.storage
+  vars:
+    firewall:
+      - set_default_zone: trusted
+        state: enabled
+
 - name: Configure storage
   when: hpc_manage_storage
   block:

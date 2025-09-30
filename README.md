@@ -185,6 +185,18 @@ Type: `bool`
 By default, the role ensures that `rootlv` and `usrlv` in Azure has enough storage for packages to be installed.
 You can use variables described in this section to control the exact sizes and paths.
 
+### hpc_manage_firewall
+
+Whether to configure the default firewall zone to be trusted.
+This basically allows all connections.
+This is a common practice with HPC workloads because connections are filtered by cloud providers.
+
+This is a security measure and we want users to explicitly approve this action by setting this variable to `true`.
+
+Default: `false`
+
+Type: bool
+
 ### hpc_manage_storage
 
 Whether to configure the VG from [hpc_rootvg_name](#hpc_rootvg_name) to have logical volumes [hpc_rootlv_name](#hpc_rootlv_name) and [hpc_usrlv_name](#hpc_usrlv_name) with indicated sizes and mounted to indicated mount points.

@@ -2,6 +2,8 @@
 ---
 hpc_reboot_ok: false
 
+hpc_manage_firewall: false
+
 hpc_manage_storage: true
 hpc_rootvg_name: rootvg
 hpc_rootlv_name: rootlv
