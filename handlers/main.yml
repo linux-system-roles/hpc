@@ -1,8 +1,5 @@
 # SPDX-License-Identifier: MIT
 ---
-- name: Reboot system
-  include_tasks: tasks/reboot.yml
-
 - name: Restart waagent
   service:
     name: waagent
@@ -20,3 +17,6 @@
   service:
     name: systemd-modules-load
     state: restarted
+
+- name: Reboot system
+  include_tasks: tasks/reboot.yml

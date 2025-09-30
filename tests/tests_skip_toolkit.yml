@@ -95,6 +95,41 @@
           loop:
             - "{{ hpc_rootlv_name }}"
             - "{{ hpc_usrlv_name }}"
+
+        - name: Flush handlers
+          meta: flush_handlers
+
+        - name: Get all ulimits
+          command: ulimit -a
+          changed_when: false
+          register: __hpc_ulimits_cmd
+
+        - name: Verify ulimits set from templates/90-hpc-limits.conf
+          assert:
+            that:
+              - __hpc_ulimits_cmd.stdout | regex_search('open files .* 65535')
+              - __hpc_ulimits_cmd.stdout | regex_search('max memory size .* unlimited')
+              - __hpc_ulimits_cmd.stdout | regex_search('stack size .* unlimited')
+
+        - name: Verify sysctl settings set from templates
+          command: sysctl -n {{ item.setting}}
+          loop:
+            # From templates/90-hpc-sysctl.conf
+            - setting: vm.zone_reclaim_mode
+              value: 1
+            - setting: net.ipv4.neigh.default.gc_thresh1
+              value: 4096
+            - setting: net.ipv4.neigh.default.gc_thresh2
+              value: 8192
+            - setting: net.ipv4.neigh.default.gc_thresh3
+              value: 16384
+            # From templates/90-hpc-sysctl.conf
+            - setting: sunrpc.tcp_max_slot_table_entries
+              value: 128
+          changed_when: false
+          register: __hpc_sysctl_cmd
+          failed_when: __hpc_sysctl_cmd.stdout | int != item.value
+
       always:
         - name: Remove both of the LVM logical volumes in 'foo' created above
           include_role:

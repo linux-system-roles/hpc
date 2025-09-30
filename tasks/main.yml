@@ -238,8 +238,24 @@
         mode: "0644"
       notify: Restart waagent
 
+- name: Install common OpenMPI packages
+  when: hpc_install_system_openmpi or hpc_build_nvidia_openmpi
+  package:
+    name: "{{ __hpc_openmpi_common_packages }}"
+    state: present
+    use: "{{ (__hpc_server_is_ostree | d(false)) |
+      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
+- name: Install system OpenMPI
+  when: hpc_install_system_openmpi
+  package:
+    name: "{{ __hpc_openmpi_packages }}"
+    state: present
+    use: "{{ (__hpc_server_is_ostree | d(false)) |
+      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
 - name: Download, build, and configure OpenMPI and all required packages
-  when: hpc_install_openmpi
+  when: hpc_build_nvidia_openmpi
   block:
     - name: Install build dependencies
       package:
@@ -259,7 +275,7 @@
       set_fact:
         __hpc_hpcx_path: "{{ __hpc_install_prefix }}/{{ hpcx_tarball_basename }}"
 
-    - name: Set facts for building hpcx and openmpi
+    - name: Set facts for building HPC-X and OpenMPI
       set_fact:
         __hpc_hpcx_rebuild_path: "{{ __hpc_hpcx_path }}/hpcx-rebuild"
         __hpc_hcoll_path: "{{ __hpc_hpcx_path }}/hcoll"
@@ -314,7 +330,7 @@
         dest: "{{ __hpc_module_dir }}/pmix/pmix-{{ __hpc_pmix_info.version }}.lua"
         owner: root
         group: root
-        mode: '0644'
+        mode: '0755'
 
     - name: Install GDRCopy packages
       vars:
@@ -362,10 +378,10 @@
         path: "{{ __hpc_hpcx_rebuild_path }}"
       register: __hpc_hpcx_rebuild_path_stat
 
-    - name: Download and build HPCx
+    - name: Download and build HPC-X
       when: not __hpc_hpcx_rebuild_path_stat.stat.exists
       block:
-        - name: Download hpcx
+        - name: Download HPC-X
           include_tasks: tasks/download_extract_package.yml
           vars:
             __hpc_pkg_info: "{{ __hpc_hpcx_info }}"
@@ -393,7 +409,7 @@
             replace: "-lhcoll -locoms"
             backup: true
 
-        - name: Copy hpcx to {{ __hpc_hpcx_path }}
+        - name: Copy HPC-X files to {{ __hpc_hpcx_path }}
           copy:
             src: "{{ __hpc_pkg_extracted.path }}/"
             remote_src: true
@@ -402,7 +418,7 @@
             owner: root
             group: root
 
-        - name: Rebuild hpcx with PMIx
+        - name: Rebuild HPC-X with PMIx
           environment:
             CUDA_HOME: "{{ __hpc_cuda_path }}"
           command: >-
@@ -439,7 +455,7 @@
         mode: '0755'
 
     # This requires a new login shell to become visible.
-    - name: Set up hpcx module files for lmod
+    - name: Point Lmod to HPC-X module files
       lineinfile:
         path: /etc/lmod/.modulespath
         line: "{{ __hpc_hpcx_path }}/modulefiles"
@@ -447,7 +463,7 @@
         create: true
         owner: root
         group: root
-        mode: '0755'
+        mode: '0644'
 
     - name: Get stat of openmpi path
       stat:
@@ -500,7 +516,7 @@
         dest: "{{ __hpc_module_dir }}/mpi/openmpi-{{ __hpc_openmpi_info.version }}.lua"
         owner: root
         group: root
-        mode: '0644'
+        mode: '0755'
 
 - name: Tune system for HPC
   when: hpc_tuning
@@ -519,14 +535,13 @@
         dest: /etc/sysctl.d/
         owner: root
         group: root
-        mode: '0755'
+        mode: '0644'
       notify: Reload sysctl
 
-    - name: Increase the number of NFS RPCs per transport
-      lineinfile:
-        path: /etc/modprobe.d/90-sunrpc.conf
-        line: options sunrpc tcp_max_slot_table_entries=128
-        create: true
+    - name: Add sysctl tuning configuration for HPC
+      template:
+        src: 90-sunrpc.conf
+        dest: /etc/modprobe.d/
         owner: root
         group: root
         mode: '0644'
@@ -548,7 +563,7 @@
         dest: /etc/udev/rules.d/
         owner: root
         group: root
-        mode: '0755'
+        mode: '0644'
       notify: Reload udev
 
 - name: Remove build dependencies

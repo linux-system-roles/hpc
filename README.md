@@ -71,9 +71,24 @@ Default: `true`
 
 Type: `bool`
 
-### hpc_install_openmpi
+### hpc_install_system_openmpi
 
-Whether to install the Open MPI package.
+Whether to install OpenMPI that comes from AppStream repositories and does not have Nvidia GPU support.
+This is useful for applications requiring less parallel processing, tasks that benefit from sequential processing or high-speed core operations.
+
+You can run an `lmod` environmental module for this openmpi by entering the following command:
+
+```bash
+$ module load mpi/openmpi-x86_64
+```
+
+Default: `true`
+
+Type: `bool`
+
+### hpc_build_openmpi
+
+Whether to build OpenMPI with Nvidia GPU support.
 
 Currently, the role builds OpenMPI from source.
 Prior to building OpenMPI, it builds its requirements - GDRCopy, HPCX, and PMIx.
@@ -83,10 +98,11 @@ However, the library it installs as libpmix.so.2 is incorrectly versioned - v4.2
 
 As OpenMPI v5.x requires PMIx >= 4.2.0, we have no choice but to build PMIx from source so that we can have both versions installed on the system at the same time. This also requires a pmix-4.2.9 environment module to put the pmix install into various paths.
 
-**Prior to using OpenMPI CLIs, you must run `module load mpi/openmpi-5.0.8`**
+You can run an `lmod` environmental module for this openmpi by entering the following command:
 
-The role also installs `mpitests-openmpi` for basic HPC validation, which pulls openmpi from AppStream repository of the latest version installed alongside the built version.
-You must use the built version by running the above `module load` command.
+```bash
+$ module load mpi/openmpi-5.0.8
+```
 
 Note that building OpenMPI requires the following variables to be set to `true`, which is the default value:
 
