@@ -12,7 +12,8 @@
     hpc_install_hpc_nvidia_nccl: false
     hpc_install_nvidia_fabric_manager: false
     hpc_install_rdma: false
-    hpc_install_openmpi: false
+    hpc_install_system_openmpi: false
+    hpc_build_openmpi_w_nvidia_gpu_support: false
   tasks:
     - name: Run test in a block to clean up in always
       block:

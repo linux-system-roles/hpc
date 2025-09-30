@@ -11,7 +11,7 @@
       - "hpc_install_cuda_toolkit: true"
       - "hpc_install_nvidia_nccl: true"
   when:
-    - hpc_install_openmpi
+    - hpc_build_openmpi_w_nvidia_gpu_support
     - not hpc_install_cuda_toolkit
     - not hpc_install_nvidia_nccl
 
@@ -248,7 +248,7 @@
       notify: Restart waagent
 
 - name: Install common OpenMPI packages
-  when: hpc_install_system_openmpi or hpc_build_nvidia_openmpi
+  when: hpc_install_system_openmpi or hpc_build_openmpi_w_nvidia_gpu_support
   package:
     name: "{{ __hpc_openmpi_common_packages }}"
     state: present
@@ -258,13 +258,13 @@
 - name: Install system OpenMPI
   when: hpc_install_system_openmpi
   package:
-    name: "{{ __hpc_openmpi_packages }}"
+    name: "{{ __hpc_system_openmpi_packages }}"
     state: present
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
 - name: Download, build, and configure OpenMPI and all required packages
-  when: hpc_build_nvidia_openmpi
+  when: hpc_build_openmpi_w_nvidia_gpu_support
   block:
     - name: Install build dependencies
       package:

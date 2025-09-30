@@ -79,14 +79,14 @@ This is useful for applications requiring less parallel processing, tasks that b
 You can run an `lmod` environmental module for this openmpi by entering the following command:
 
 ```bash
-$ module load mpi/openmpi-x86_64
+module load mpi/openmpi-x86_64
 ```
 
 Default: `true`
 
 Type: `bool`
 
-### hpc_build_openmpi
+### hpc_build_openmpi_w_nvidia_gpu_support
 
 Whether to build OpenMPI with Nvidia GPU support.
 
@@ -101,7 +101,7 @@ As OpenMPI v5.x requires PMIx >= 4.2.0, we have no choice but to build PMIx from
 You can run an `lmod` environmental module for this openmpi by entering the following command:
 
 ```bash
-$ module load mpi/openmpi-5.0.8
+module load mpi/openmpi-5.0.8
 ```
 
 Note that building OpenMPI requires the following variables to be set to `true`, which is the default value:
@@ -175,15 +175,13 @@ Type: `bool`
     hpc_install_hpc_nvidia_nccl: true
     hpc_install_nvidia_fabric_manager: true
     hpc_install_rdma: true
-    hpc_install_openmpi: true
+    hpc_install_system_openmpi: true
+    hpc_build_openmpi_w_nvidia_gpu_support: true
   roles:
     - linux-system-roles.hpc
 ```
 
-## Variables for Configuring Storage
-
-By default, the role ensures that `rootlv` and `usrlv` in Azure has enough storage for packages to be installed.
-You can use variables described in this section to control the exact sizes and paths.
+## Variables for Configuring Firewall
 
 ### hpc_manage_firewall
 
@@ -196,6 +194,11 @@ This is a security measure and we want users to explicitly approve this action b
 Default: `false`
 
 Type: bool
+
+## Variables for Configuring Storage
+
+By default, the role ensures that `rootlv` and `usrlv` in Azure has enough storage for packages to be installed.
+You can use variables described in this section to control the exact sizes and paths.
 
 ### hpc_manage_storage
 
@@ -314,7 +317,8 @@ Run the role to configure storage, install all packages, and reboot if needed.
     hpc_install_hpc_nvidia_nccl: true
     hpc_install_nvidia_fabric_manager: true
     hpc_install_rdma: true
-    hpc_install_openmpi: true
+    hpc_install_system_openmpi: true
+    hpc_build_openmpi_w_nvidia_gpu_support: true
 
     hpc_reboot_ok: true
   roles:
