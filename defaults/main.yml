@@ -24,3 +24,4 @@ hpc_build_openmpi_w_nvidia_gpu_support: true
 hpc_tuning: true
 
 hpc_update_kernel: true
+hpc_update_all_packages: false

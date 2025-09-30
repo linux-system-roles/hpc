@@ -107,6 +107,7 @@
   package:
     name: kernel-{{ __hpc_force_kernel_version }}
     state: present
+    allow_downgrade: true
   when: __hpc_force_kernel_version is not none
   notify: Reboot system
 
@@ -119,7 +120,8 @@
     state: latest  # noqa package-latest
   notify: Reboot system
 
-- package_facts:
+- name: Get package facts
+  package_facts:
   no_log: true
 
 - name: >-
@@ -128,16 +130,20 @@
   vars:
     latest_kernel_by_ver: >-
       {{ ansible_facts.packages.kernel | max(attribute='version') }}
-    latest_kernel_by_release: >-
+    latest_kernel: >-
       {{ ansible_facts.packages.kernel
       | selectattr('version', 'equalto', latest_kernel_by_ver.version)
       | max(attribute='release') }}
     latest_kernel_ver_release: >-
-      {{ latest_kernel_by_release.version }}-{{ latest_kernel_by_release.release }}
+      {{ latest_kernel.version }}-{{ latest_kernel.release }}
+    kernel_version: "{{
+      latest_kernel_ver_release if __hpc_force_kernel_version is none
+      else __hpc_force_kernel_version
+      }}"
   package:
     name:
-      - kernel-devel-{{ latest_kernel_ver_release }}
-      - kernel-headers-{{ latest_kernel_ver_release }}
+      - kernel-devel-{{ kernel_version }}
+      - kernel-headers-{{ kernel_version }}
     state: present
   notify: Reboot system
 
@@ -169,6 +175,12 @@
     not __hpc_versionlock_stat.stat.exists
     or __hpc_versionlock_content.stdout is not search(item  + "-[0-9]")
   loop: "{{ __hpc_versionlock_rpms }}"
+
+- name: Update all packages to bring system to the latest state
+  when: hpc_update_all_packages
+  package:
+    name: "*"
+    state: latest  # noqa package-latest
 
 - name: Install NVIDIA driver
   package:
@@ -303,10 +315,6 @@
         __hpc_pmix_path: "{{ __hpc_install_prefix }}/{{ __hpc_pmix_info.name }}/{{ __hpc_pmix_info.version }}"
         __hpc_openmpi_path: "{{ __hpc_install_prefix }}/{{ __hpc_openmpi_info.name }}-{{ __hpc_openmpi_info.version }}"
         __hpc_cuda_path: /usr/local/cuda
-
-    - name: Get package facts
-      package_facts:
-      no_log: true
 
     - name: Get stat of pmix path
       stat:

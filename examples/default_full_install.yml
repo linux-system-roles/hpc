@@ -6,5 +6,6 @@
   vars:
     hpc_manage_firewall: true
     hpc_reboot_ok: true
+    hpc_update_all_packages: true
   roles:
     - linux-system-roles.hpc

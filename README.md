@@ -27,6 +27,25 @@ These variables control what packages the role installs.
 By default, the role installs all the packages.
 You can set some of the variables to `false` to make the role not install particular packages.
 
+### hpc_update_kernel
+
+Whether to update kernel to the latest version.
+
+Default: `true`
+
+Type: `bool`
+
+### hpc_update_all_packages
+
+Whether to update all packages on the system to the latest version.
+
+This is a good practice to have the system in the latest state.
+But because this is a serious invasion into users environment, this variable is set to `false` by default.
+
+Default: `false`
+
+Type: `bool`
+
 ### hpc_install_cuda_driver
 
 Whether to install the CUDA Driver package.
@@ -135,16 +154,6 @@ This file applies the following configuration:
 
 * Boost read performance for newly mounted NFS network shares by adding a file `/etc/udev/rules.d/90-nfs-readahead.rules`.
 This configuration increases the data pre-fetching buffer to 15,380 KB to help overcome network latency.
-
-Default: `true`
-
-Type: `bool`
-
-## Variables for Managing Kernel
-
-### hpc_update_kernel
-
-Whether to update kernel to the latest version.
 
 Default: `true`
 
