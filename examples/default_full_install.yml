@@ -3,5 +3,8 @@
 - name: Run with default vars - configure storage and install all packages
   hosts: localhost
   gather_facts: false
+  vars:
+    hpc_manage_firewall: true
+    hpc_reboot_ok: true
   roles:
     - linux-system-roles.hpc
