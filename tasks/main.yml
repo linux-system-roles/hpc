@@ -118,33 +118,26 @@
     name: kernel
     state: latest  # noqa package-latest
   notify: Reboot system
-  register: __hpc_update_kernel_pkg
 
-- name: Flush handlers to apply new kernel
-  meta: flush_handlers
-  when:
-    - __hpc_update_kernel_pkg is changed
-    - hpc_reboot_ok
-
-- name: Notify about reboot when hpc_reboot_ok is false
-  when:
-    - __hpc_update_kernel_pkg is changed
-    - not hpc_reboot_ok
-  fail:
-    msg: A reboot is required in order to apply the changes.
-
-- name: Collect kernel facts
-  setup:
-    gather_subset:
-      - kernel
+- package_facts:
+  no_log: true
 
 - name: >-
     Explicitly install kernel-devel and kernel-headers packages matching the
-    currently running kernel
+    latest installed kernel
+  vars:
+    latest_kernel_by_ver: >-
+      {{ ansible_facts.packages.kernel | max(attribute='version') }}
+    latest_kernel_by_release: >-
+      {{ ansible_facts.packages.kernel
+      | selectattr('version', 'equalto', latest_kernel_by_ver.version)
+      | max(attribute='release') }}
+    latest_kernel_ver_release: >-
+      {{ latest_kernel_by_release.version }}-{{ latest_kernel_by_release.release }}
   package:
     name:
-      - kernel-devel-{{ ansible_kernel }}
-      - kernel-headers-{{ ansible_kernel }}
+      - kernel-devel-{{ latest_kernel_ver_release }}
+      - kernel-headers-{{ latest_kernel_ver_release }}
     state: present
   notify: Reboot system
 
