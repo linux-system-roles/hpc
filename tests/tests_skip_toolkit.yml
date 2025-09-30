@@ -15,6 +15,7 @@
     hpc_install_cuda_toolkit: false
     hpc_install_system_openmpi: false
     hpc_build_openmpi_w_nvidia_gpu_support: false
+    hpc_reboot_ok: true
   tasks:
     - name: Run test in block to clean up afterwards
       block:
@@ -115,7 +116,6 @@
         - name: Verify sysctl settings set from templates
           command: sysctl -n {{ item.setting}}
           loop:
-            # From templates/90-hpc-sysctl.conf
             - setting: vm.zone_reclaim_mode
               value: 1
             - setting: net.ipv4.neigh.default.gc_thresh1
@@ -124,7 +124,6 @@
               value: 8192
             - setting: net.ipv4.neigh.default.gc_thresh3
               value: 16384
-            # From templates/90-hpc-sysctl.conf
             - setting: sunrpc.tcp_max_slot_table_entries
               value: 128
           changed_when: false

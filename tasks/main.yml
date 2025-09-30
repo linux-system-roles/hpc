@@ -6,8 +6,9 @@
 - name: Fail if role installs openmpi without cuda toolkit
   fail:
     msg:
-      - OpenMPI requires multiple packages to be installed
-      - You must set the following variables true to install OpenMPI
+      - Building OpenMPI requires multiple packages to be installed
+      - You must set the following variables true to build OpenMPI with Nvidia
+      - GPU support
       - "hpc_install_cuda_toolkit: true"
       - "hpc_install_nvidia_nccl: true"
   when:
@@ -117,6 +118,25 @@
     name: kernel
     state: latest  # noqa package-latest
   notify: Reboot system
+  register: __hpc_update_kernel_pkg
+
+- name: Flush handlers to apply new kernel
+  meta: flush_handlers
+  when:
+    - __hpc_update_kernel_pkg is changed
+    - hpc_reboot_ok
+
+- name: Notify about reboot when hpc_reboot_ok is false
+  when:
+    - __hpc_update_kernel_pkg is changed
+    - not hpc_reboot_ok
+  fail:
+    msg: A reboot is required in order to apply the changes.
+
+- name: Collect kernel facts
+  setup:
+    gather_subset:
+      - kernel
 
 - name: >-
     Explicitly install kernel-devel and kernel-headers packages matching the
@@ -127,9 +147,6 @@
       - kernel-headers-{{ ansible_kernel }}
     state: present
   notify: Reboot system
-
-- name: Flush handlers to apply new kernel
-  meta: flush_handlers
 
 - name: Ensure that dnf-command(versionlock) is installed
   package:
@@ -547,15 +564,6 @@
         mode: '0644'
       notify: Reload sysctl
 
-    - name: Add sysctl tuning configuration for HPC
-      template:
-        src: 90-sunrpc.conf
-        dest: /etc/modprobe.d/
-        owner: root
-        group: root
-        mode: '0644'
-      notify: Reload sysctl
-
     - name: Load sunrpc kernel module
       lineinfile:
         path: /etc/modules-load.d/sunrpc.conf
@@ -565,6 +573,16 @@
         group: root
         mode: '0644'
       notify: Restart systemd-modules-load
+
+    - name: Check if sunrpc module is loaded
+      command: lsmod
+      register: __hpc_loaded_modules
+      changed_when: false
+
+    - name: Load sunrpc module if not loaded
+      when: "'sunrpc' not in __hpc_loaded_modules.stdout"
+      command: modprobe sunrpc
+      changed_when: true
 
     - name: Copy NFS readahead udev rules for Azure infrastructure
       template:
@@ -590,9 +608,3 @@
 - name: Clean dnf cache
   command: dnf clean all
   changed_when: false
-
-- name: Notify about OpenMPI module loading
-  debug:
-    msg: >-
-      Prior to using OpenMPI CLIs, you must run
-      `module load mpi/openmpi-{{ __hpc_openmpi_info.version }}`
