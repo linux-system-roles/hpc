@@ -206,10 +206,13 @@
         use: "{{ (__hpc_server_is_ostree | d(false)) |
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
-    - name: Enable dkms service so that it builds for all kernels next boot
+    # This makes the role not idempotent.
+    # We need to find a condition in which starting and enabling is not enough.
+    - name: Restart dkms service to make it build nvidia drivers for all kernels
       service:
         name: dkms.service
         enabled: true
+        state: restarted
 
     - name: Install NVIDIA driver
       package:
