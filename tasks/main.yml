@@ -206,11 +206,17 @@
       notify: Reboot system
       changed_when: true
 
+    - name: Install dkms
+      package:
+        name: "{{ __hpc_dkms_packages }}"
+        state: present
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
     - name: Install NVIDIA driver
       package:
-        name: "@{{ __hpc_nvidia_driver_module }}"
+        name: "{{ __hpc_nvidia_driver_packages }}"
         state: present
-        allow_downgrade: true
         use: "{{ (__hpc_server_is_ostree | d(false)) |
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 

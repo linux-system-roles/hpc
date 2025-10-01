@@ -17,6 +17,10 @@ __hpc_required_facts_subsets: "{{ ['!all', '!min'] +
   __hpc_required_facts }}"
 
 __hpc_microsoft_prod_rpm_key: https://packages.microsoft.com/keys/microsoft.asc
+__hpc_dkms_packages:
+  - dkms
+__hpc_nvidia_driver_packages:
+  - nvidia-driver
 __hpc_cuda_driver_packages:
   - cuda-drivers
 __hpc_nvidia_fabric_manager_packages:
@@ -65,8 +69,8 @@ __hpc_versionlock_rpms:
   # NVIDIA nccl packages
   - libnccl
   - libnccl-devel
-  # PMIx packages
-  - pmix
+  # CUDA toolkit
+  - cuda-toolkit
 __hpc_install_prefix: /opt
 
 __hpc_module_dir: /usr/share/modulefiles
