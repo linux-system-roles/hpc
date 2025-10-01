@@ -194,9 +194,15 @@ Type: `bool`
 
 ### hpc_manage_firewall
 
-Whether to configure the default firewall zone to be trusted.
-This basically allows all connections.
-This is a common practice with HPC workloads because connections are filtered by cloud providers.
+Whether to run the linux-system-roles.firewall role to manage Firewall.
+
+Setting this variable to `true` does the following:
+
+1. Enable and start the firewall service.
+2. Configure the default firewall zone to be trusted.
+
+This, basically, allows all connections.
+This is a common practice with HPC workloads because security is handled by cloud providers.
 
 This is a security measure and we want users to explicitly approve this action by setting this variable to `true`.
 

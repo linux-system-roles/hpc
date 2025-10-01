@@ -46,7 +46,7 @@
 - name: Configure firewall to use trusted zone as default
   when: hpc_manage_firewall
   include_role:
-    name: fedora.linux_system_roles.storage
+    name: fedora.linux_system_roles.firewall
   vars:
     firewall:
       - set_default_zone: trusted
