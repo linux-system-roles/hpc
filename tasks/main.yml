@@ -213,6 +213,11 @@
         use: "{{ (__hpc_server_is_ostree | d(false)) |
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
+    - name: Enable dkms service so that it builds for all kernels next boot
+      service:
+        name: dkms.service
+        enabled: true
+
     - name: Install NVIDIA driver
       package:
         name: "{{ __hpc_nvidia_driver_packages }}"
