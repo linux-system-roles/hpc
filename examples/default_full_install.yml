@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 ---
 - name: Run with default vars - configure storage and install all packages
-  hosts: localhost
+  hosts: all
   gather_facts: false
   vars:
     hpc_manage_firewall: true
