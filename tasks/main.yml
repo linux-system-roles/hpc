@@ -157,12 +157,6 @@
     path: "{{ __hpc_versionlock_path }}"
   register: __hpc_versionlock_stat
 
-- name: Get content of versionlock file
-  command: cat {{ __hpc_versionlock_path }}
-  register: __hpc_versionlock_content
-  changed_when: false
-  when: __hpc_versionlock_stat.stat.exists
-
 # once nvidia drivers are built for a specific kernel version, we need to
 # prevent installation of all kernel packages of a different version
 # MS unsuccessfully tries to do this in azhpc-images build scripts:
@@ -170,11 +164,10 @@
 - name: Prevent installation of all kernel packages of a different version
   command: dnf versionlock add {{ item }}
   register: __hpc_versionlock_check
-  changed_when: true
-  when: >-
-    not __hpc_versionlock_stat.stat.exists
-    or __hpc_versionlock_content.stdout is not search(item  + "-[0-9]")
-  loop: "{{ __hpc_versionlock_rpms }}"
+  changed_when: >-
+    'Package already locked in equivalent form'
+    not in __hpc_versionlock_check.stdout
+  loop: "{{ __hpc_kernel_versionlock_rpms }}"
 
 - name: Update all packages to bring system to the latest state
   when: hpc_update_all_packages
@@ -242,27 +235,45 @@
         name: nvidia-persistenced.service
         enabled: true
 
-- name: Install CUDA Toolkit
+- name: Install CUDA Toolkit and lock version of its packages
   when:
     - hpc_install_cuda_toolkit
     - ansible_system_vendor == "Microsoft Corporation"
-  package:
-    name: "{{ __hpc_cuda_toolkit_packages }}"
-    state: present
-    allow_downgrade: true
-    use: "{{ (__hpc_server_is_ostree | d(false)) |
-      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
-  register: __hpc_install_cuda_toolkit
-  until: __hpc_install_cuda_toolkit is success
+  block:
+    - name: Install CUDA Toolkit
+      package:
+        name: "{{ __hpc_cuda_toolkit_packages }}"
+        state: present
+        allow_downgrade: true
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
-- name: Install NVIDIA NCCL
+    - name: Prevent update of CUDA Toolkit packages
+      command: dnf versionlock add {{ item }}
+      register: __hpc_versionlock_check
+      changed_when: >-
+        'Package already locked in equivalent form'
+        not in __hpc_versionlock_check.stdout
+      loop: "{{ __hpc_kernel_versionlock_rpms }}"
+
+- name: Install NVIDIA NCCL and lock version of its packages
   when: hpc_install_hpc_nvidia_nccl
-  package:
-    name: "{{ __hpc_nvidia_nccl_packages }}"
-    state: present
-    allow_downgrade: true
-    use: "{{ (__hpc_server_is_ostree | d(false)) |
-      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+  block:
+    - name: Install NVIDIA NCCL
+      package:
+        name: "{{ __hpc_nvidia_nccl_packages }}"
+        state: present
+        allow_downgrade: true
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
+    - name: Prevent update of NVIDIA NCCL packages
+      command: dnf versionlock add {{ item }}
+      register: __hpc_versionlock_check
+      changed_when: >-
+        'Package already locked in equivalent form'
+        not in __hpc_versionlock_check.stdout
+      loop: "{{ __hpc_nvidia_nccl_packages }}"
 
 - name: Install NVIDIA Fabric Manager and enable service
   when: hpc_install_nvidia_fabric_manager

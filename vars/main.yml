@@ -58,19 +58,13 @@ __hpc_openmpi_build_dependencies:
   - automake
   - libtool
 __hpc_versionlock_path: /etc/dnf/plugins/versionlock.list
-__hpc_versionlock_rpms:
-  # Kernel packages
+__hpc_kernel_versionlock_rpms:
   - kernel
   - kernel-core
   - kernel-modules
   - kernel-modules-extra
   - kernel-devel
   - kernel-headers
-  # NVIDIA nccl packages
-  - libnccl
-  - libnccl-devel
-  # CUDA toolkit
-  - cuda-toolkit
 __hpc_install_prefix: /opt
 
 __hpc_module_dir: /usr/share/modulefiles
