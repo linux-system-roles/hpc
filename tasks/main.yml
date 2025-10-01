@@ -182,17 +182,28 @@
     name: "*"
     state: latest  # noqa package-latest
 
-- name: Install NVIDIA driver
-  package:
-    name: "{{ __hpc_nvidia_driver_module }}"
-    state: present
-    allow_downgrade: true
-    use: "{{ (__hpc_server_is_ostree | d(false)) |
-      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+- name: Get list of dnf modules
+  command: dnf module list
+  register: __hpc_dnf_modules
+  changed_when: false
+
+- name: Reset nvidia-driver module if it is enabled of different version
+  when: __hpc_dnf_modules.stdout | regex_search('nvidia-driver (?!575-dkms).* \[e\]')
+  command: dnf module reset nvidia-driver --assumeyes
+  changed_when: true
+
+- name: Enable NVIDIA driver module
+  vars:
+    nvidia_enabled_pattern: >-
+      {{ __hpc_nvidia_driver_module | regex_replace(':', ' ') + ' \[e\]' }}
+  when:
+    # Note that currently the role supports only Microsoft Azure
+    # When we add more cloud providers, we need to update this condition
+    - ansible_system_vendor == "Microsoft Corporation"
+    - __hpc_dnf_modules.stdout is not search(nvidia_enabled_pattern)
+  command: dnf module enable {{ __hpc_nvidia_driver_module }} --assumeyes
   notify: Reboot system
-  # Note that currently the role supports only Microsoft Azure
-  # When we add more cloud providers, we need to update this condition
-  when: ansible_system_vendor == "Microsoft Corporation"
+  changed_when: true
 
 - name: Install CUDA driver and enable nvidia-persistenced.service
   when:

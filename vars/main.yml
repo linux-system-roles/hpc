@@ -65,10 +65,6 @@ __hpc_versionlock_rpms:
   # NVIDIA nccl packages
   - libnccl
   - libnccl-devel
-  # GDRCopy packages
-  - gdrcopy-kmod
-  - gdrcopy
-  - gdrcopy-devel
   # PMIx packages
   - pmix
 __hpc_install_prefix: /opt

@@ -18,7 +18,7 @@ __hpc_microsoft_prod_repo:
   baseurl: https://packages.microsoft.com/rhel/9/prod/
 
 # Vars related to RPMs
-__hpc_nvidia_driver_module: "@nvidia-driver:575-dkms"
+__hpc_nvidia_driver_module: nvidia-driver:575-dkms
 __hpc_cuda_toolkit_packages:
   - cuda-toolkit-12-9
 __hpc_nvidia_nccl_packages:
