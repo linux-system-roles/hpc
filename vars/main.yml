@@ -17,6 +17,10 @@ __hpc_required_facts_subsets: "{{ ['!all', '!min'] +
   __hpc_required_facts }}"
 
 __hpc_microsoft_prod_rpm_key: https://packages.microsoft.com/keys/microsoft.asc
+__hpc_dkms_packages:
+  - dkms
+__hpc_nvidia_driver_packages:
+  - nvidia-driver
 __hpc_cuda_driver_packages:
   - cuda-drivers
 __hpc_nvidia_fabric_manager_packages:
@@ -35,6 +39,13 @@ __hpc_rdma_packages:
   - WALinuxAgent
   - infiniband-diags
   - pciutils-devel
+__hpc_system_openmpi_packages:
+  - openmpi
+__hpc_openmpi_common_packages:
+  # This is required to run openmpi tests, useful both for QE and end users
+  - mpitests-openmpi
+  # Lmod is required to enable openmpi module with pmix
+  - Lmod
 __hpc_gdrcopy_build_dependencies:
   - rpm-build
   - rpmdevtools
@@ -46,29 +57,14 @@ __hpc_openmpi_build_dependencies:
   - autoconf
   - automake
   - libtool
-  # Lmod is required to enable openmpi module with pmix
-  - Lmod
-  # This is required to run openmpi tests, useful both for QE and end users
-  - mpitests-openmpi
-
 __hpc_versionlock_path: /etc/dnf/plugins/versionlock.list
-__hpc_versionlock_rpms:
-  # Kernel packages
+__hpc_kernel_versionlock_rpms:
   - kernel
   - kernel-core
   - kernel-modules
   - kernel-modules-extra
   - kernel-devel
   - kernel-headers
-  # NVIDIA nccl packages
-  - libnccl
-  - libnccl-devel
-  # GDRCopy packages
-  - gdrcopy-kmod
-  - gdrcopy
-  - gdrcopy-devel
-  # PMIx packages
-  - pmix
 __hpc_install_prefix: /opt
 
 __hpc_module_dir: /usr/share/modulefiles

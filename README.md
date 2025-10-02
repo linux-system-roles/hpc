@@ -27,6 +27,25 @@ These variables control what packages the role installs.
 By default, the role installs all the packages.
 You can set some of the variables to `false` to make the role not install particular packages.
 
+### hpc_update_kernel
+
+Whether to update kernel to the latest version.
+
+Default: `true`
+
+Type: `bool`
+
+### hpc_update_all_packages
+
+Whether to update all packages on the system to the latest version.
+
+This is a good practice to have the system in the latest state.
+But because this is a serious invasion into users environment, this variable is set to `false` by default.
+
+Default: `false`
+
+Type: `bool`
+
 ### hpc_install_cuda_driver
 
 Whether to install the CUDA Driver package.
@@ -71,9 +90,24 @@ Default: `true`
 
 Type: `bool`
 
-### hpc_install_openmpi
+### hpc_install_system_openmpi
 
-Whether to install the Open MPI package.
+Whether to install OpenMPI that comes from AppStream repositories and does not have Nvidia GPU support.
+This is useful for applications requiring less parallel processing, tasks that benefit from sequential processing or high-speed core operations.
+
+You can run an `lmod` environmental module for this openmpi by entering the following command:
+
+```bash
+module load mpi/openmpi-x86_64
+```
+
+Default: `true`
+
+Type: `bool`
+
+### hpc_build_openmpi_w_nvidia_gpu_support
+
+Whether to build OpenMPI with Nvidia GPU support.
 
 Currently, the role builds OpenMPI from source.
 Prior to building OpenMPI, it builds its requirements - GDRCopy, HPCX, and PMIx.
@@ -83,10 +117,11 @@ However, the library it installs as libpmix.so.2 is incorrectly versioned - v4.2
 
 As OpenMPI v5.x requires PMIx >= 4.2.0, we have no choice but to build PMIx from source so that we can have both versions installed on the system at the same time. This also requires a pmix-4.2.9 environment module to put the pmix install into various paths.
 
-**Prior to using OpenMPI CLIs, you must run `module load mpi/openmpi-5.0.8`**
+You can run an `lmod` environmental module for this openmpi by entering the following command:
 
-The role also installs `mpitests-openmpi` for basic HPC validation, which pulls openmpi from AppStream repository of the latest version installed alongside the built version.
-You must use the built version by running the above `module load` command.
+```bash
+module load mpi/openmpi-5.0.8
+```
 
 Note that building OpenMPI requires the following variables to be set to `true`, which is the default value:
 
@@ -124,16 +159,6 @@ Default: `true`
 
 Type: `bool`
 
-## Variables for Managing Kernel
-
-### hpc_update_kernel
-
-Whether to update kernel to the latest version.
-
-Default: `true`
-
-Type: `bool`
-
 ## Variables for Configuring How Role Reboots Managed Nodes
 
 ### hpc_reboot_ok
@@ -159,10 +184,31 @@ Type: `bool`
     hpc_install_hpc_nvidia_nccl: true
     hpc_install_nvidia_fabric_manager: true
     hpc_install_rdma: true
-    hpc_install_openmpi: true
+    hpc_install_system_openmpi: true
+    hpc_build_openmpi_w_nvidia_gpu_support: true
   roles:
     - linux-system-roles.hpc
 ```
+
+## Variables for Configuring Firewall
+
+### hpc_manage_firewall
+
+Whether to run the linux-system-roles.firewall role to manage Firewall.
+
+Setting this variable to `true` does the following:
+
+1. Enable and start the firewall service.
+2. Configure the default firewall zone to be trusted.
+
+This, basically, allows all connections.
+This is a common practice with HPC workloads because security is handled by cloud providers.
+
+This is a security measure and we want users to explicitly approve this action by setting this variable to `true`.
+
+Default: `false`
+
+Type: bool
 
 ## Variables for Configuring Storage
 
@@ -286,7 +332,8 @@ Run the role to configure storage, install all packages, and reboot if needed.
     hpc_install_hpc_nvidia_nccl: true
     hpc_install_nvidia_fabric_manager: true
     hpc_install_rdma: true
-    hpc_install_openmpi: true
+    hpc_install_system_openmpi: true
+    hpc_build_openmpi_w_nvidia_gpu_support: true
 
     hpc_reboot_ok: true
   roles:

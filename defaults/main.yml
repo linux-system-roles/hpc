@@ -2,6 +2,8 @@
 ---
 hpc_reboot_ok: false
 
+hpc_manage_firewall: false
+
 hpc_manage_storage: true
 hpc_rootvg_name: rootvg
 hpc_rootlv_name: rootlv
@@ -16,8 +18,10 @@ hpc_install_cuda_toolkit: true
 hpc_install_hpc_nvidia_nccl: true
 hpc_install_nvidia_fabric_manager: true
 hpc_install_rdma: true
-hpc_install_openmpi: true
+hpc_install_system_openmpi: true
+hpc_build_openmpi_w_nvidia_gpu_support: true
 
 hpc_tuning: true
 
 hpc_update_kernel: true
+hpc_update_all_packages: false

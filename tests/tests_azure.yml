@@ -3,6 +3,10 @@
 - name: Verify if role configures a custom storage properly
   hosts: all
   gather_facts: true
+  vars:
+    hpc_manage_firewall: true
+    hpc_reboot_ok: true
+    hpc_update_all_packages: true
   tasks:
     - name: End if not running on Azure
       meta: end_play

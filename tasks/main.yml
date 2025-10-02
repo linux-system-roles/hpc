@@ -6,12 +6,13 @@
 - name: Fail if role installs openmpi without cuda toolkit
   fail:
     msg:
-      - OpenMPI requires multiple packages to be installed
-      - You must set the following variables true to install OpenMPI
+      - Building OpenMPI requires multiple packages to be installed
+      - You must set the following variables true to build OpenMPI with Nvidia
+      - GPU support
       - "hpc_install_cuda_toolkit: true"
       - "hpc_install_nvidia_nccl: true"
   when:
-    - hpc_install_openmpi
+    - hpc_build_openmpi_w_nvidia_gpu_support
     - not hpc_install_cuda_toolkit
     - not hpc_install_nvidia_nccl
 
@@ -41,6 +42,15 @@
   loop:
     - "{{ __hpc_nvidia_cuda_repo }}"
     - "{{ __hpc_microsoft_prod_repo }}"
+
+- name: Configure firewall to use trusted zone as default
+  when: hpc_manage_firewall
+  include_role:
+    name: fedora.linux_system_roles.firewall
+  vars:
+    firewall:
+      - set_default_zone: trusted
+        state: enabled
 
 - name: Configure storage
   when: hpc_manage_storage
@@ -97,6 +107,7 @@
   package:
     name: kernel-{{ __hpc_force_kernel_version }}
     state: present
+    allow_downgrade: true
   when: __hpc_force_kernel_version is not none
   notify: Reboot system
 
@@ -109,18 +120,32 @@
     state: latest  # noqa package-latest
   notify: Reboot system
 
+- name: Get package facts
+  package_facts:
+  no_log: true
+
 - name: >-
     Explicitly install kernel-devel and kernel-headers packages matching the
-    currently running kernel
+    latest installed kernel
+  vars:
+    latest_kernel_by_ver: >-
+      {{ ansible_facts.packages.kernel | max(attribute='version') }}
+    latest_kernel: >-
+      {{ ansible_facts.packages.kernel
+      | selectattr('version', 'equalto', latest_kernel_by_ver.version)
+      | max(attribute='release') }}
+    latest_kernel_ver_release: >-
+      {{ latest_kernel.version }}-{{ latest_kernel.release }}
+    kernel_version: "{{
+      latest_kernel_ver_release if __hpc_force_kernel_version is none
+      else __hpc_force_kernel_version
+      }}"
   package:
     name:
-      - kernel-devel-{{ ansible_kernel }}
-      - kernel-headers-{{ ansible_kernel }}
+      - kernel-devel-{{ kernel_version }}
+      - kernel-headers-{{ kernel_version }}
     state: present
   notify: Reboot system
-
-- name: Flush handlers to apply new kernel
-  meta: flush_handlers
 
 - name: Ensure that dnf-command(versionlock) is installed
   package:
@@ -132,12 +157,6 @@
     path: "{{ __hpc_versionlock_path }}"
   register: __hpc_versionlock_stat
 
-- name: Get content of versionlock file
-  command: cat {{ __hpc_versionlock_path }}
-  register: __hpc_versionlock_content
-  changed_when: false
-  when: __hpc_versionlock_stat.stat.exists
-
 # once nvidia drivers are built for a specific kernel version, we need to
 # prevent installation of all kernel packages of a different version
 # MS unsuccessfully tries to do this in azhpc-images build scripts:
@@ -145,23 +164,62 @@
 - name: Prevent installation of all kernel packages of a different version
   command: dnf versionlock add {{ item }}
   register: __hpc_versionlock_check
-  changed_when: true
-  when: >-
-    not __hpc_versionlock_stat.stat.exists
-    or __hpc_versionlock_content.stdout is not search(item  + "-[0-9]")
-  loop: "{{ __hpc_versionlock_rpms }}"
+  changed_when: >-
+    'Package already locked in equivalent form'
+    not in __hpc_versionlock_check.stdout
+  loop: "{{ __hpc_kernel_versionlock_rpms }}"
 
-- name: Install NVIDIA driver
+- name: Update all packages to bring system to the latest state
+  when: hpc_update_all_packages
   package:
-    name: "{{ __hpc_nvidia_driver_module }}"
-    state: present
-    allow_downgrade: true
-    use: "{{ (__hpc_server_is_ostree | d(false)) |
-      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
-  notify: Reboot system
+    name: "*"
+    state: latest  # noqa package-latest
+
+- name: Install NVidia driver
   # Note that currently the role supports only Microsoft Azure
   # When we add more cloud providers, we need to update this condition
   when: ansible_system_vendor == "Microsoft Corporation"
+  block:
+    - name: Get list of dnf modules
+      command: dnf module list
+      register: __hpc_dnf_modules
+      changed_when: false
+
+    - name: Reset nvidia-driver module if it is enabled of different version
+      when: __hpc_dnf_modules.stdout | regex_search('nvidia-driver (?!575-dkms).* \[e\]')
+      command: dnf module reset nvidia-driver --assumeyes
+      changed_when: true
+
+    - name: Enable NVIDIA driver module
+      vars:
+        nvidia_enabled_pattern: >-
+          {{ __hpc_nvidia_driver_module | regex_replace(':', ' ') + ' \[e\]' }}
+      when: __hpc_dnf_modules.stdout is not search(nvidia_enabled_pattern)
+      command: dnf module enable {{ __hpc_nvidia_driver_module }} --assumeyes
+      notify: Reboot system
+      changed_when: true
+
+    - name: Install dkms
+      package:
+        name: "{{ __hpc_dkms_packages }}"
+        state: present
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
+    # This makes the role not idempotent.
+    # We need to find a condition in which starting and enabling is not enough.
+    - name: Restart dkms service to make it build nvidia drivers for all kernels
+      service:
+        name: dkms.service
+        enabled: true
+        state: restarted
+
+    - name: Install NVIDIA driver
+      package:
+        name: "{{ __hpc_nvidia_driver_packages }}"
+        state: present
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
 - name: Install CUDA driver and enable nvidia-persistenced.service
   when:
@@ -180,27 +238,45 @@
         name: nvidia-persistenced.service
         enabled: true
 
-- name: Install CUDA Toolkit
+- name: Install CUDA Toolkit and lock version of its packages
   when:
     - hpc_install_cuda_toolkit
     - ansible_system_vendor == "Microsoft Corporation"
-  package:
-    name: "{{ __hpc_cuda_toolkit_packages }}"
-    state: present
-    allow_downgrade: true
-    use: "{{ (__hpc_server_is_ostree | d(false)) |
-      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
-  register: __hpc_install_cuda_toolkit
-  until: __hpc_install_cuda_toolkit is success
+  block:
+    - name: Install CUDA Toolkit
+      package:
+        name: "{{ __hpc_cuda_toolkit_packages }}"
+        state: present
+        allow_downgrade: true
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
-- name: Install NVIDIA NCCL
+    - name: Prevent update of CUDA Toolkit packages
+      command: dnf versionlock add {{ item }}
+      register: __hpc_versionlock_check
+      changed_when: >-
+        'Package already locked in equivalent form'
+        not in __hpc_versionlock_check.stdout
+      loop: "{{ __hpc_kernel_versionlock_rpms }}"
+
+- name: Install NVIDIA NCCL and lock version of its packages
   when: hpc_install_hpc_nvidia_nccl
-  package:
-    name: "{{ __hpc_nvidia_nccl_packages }}"
-    state: present
-    allow_downgrade: true
-    use: "{{ (__hpc_server_is_ostree | d(false)) |
-      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+  block:
+    - name: Install NVIDIA NCCL
+      package:
+        name: "{{ __hpc_nvidia_nccl_packages }}"
+        state: present
+        allow_downgrade: true
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
+    - name: Prevent update of NVIDIA NCCL packages
+      command: dnf versionlock add {{ item }}
+      register: __hpc_versionlock_check
+      changed_when: >-
+        'Package already locked in equivalent form'
+        not in __hpc_versionlock_check.stdout
+      loop: "{{ __hpc_nvidia_nccl_packages }}"
 
 - name: Install NVIDIA Fabric Manager and enable service
   when: hpc_install_nvidia_fabric_manager
@@ -238,8 +314,24 @@
         mode: "0644"
       notify: Restart waagent
 
+- name: Install common OpenMPI packages
+  when: hpc_install_system_openmpi or hpc_build_openmpi_w_nvidia_gpu_support
+  package:
+    name: "{{ __hpc_openmpi_common_packages }}"
+    state: present
+    use: "{{ (__hpc_server_is_ostree | d(false)) |
+      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
+- name: Install system OpenMPI
+  when: hpc_install_system_openmpi
+  package:
+    name: "{{ __hpc_system_openmpi_packages }}"
+    state: present
+    use: "{{ (__hpc_server_is_ostree | d(false)) |
+      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
 - name: Download, build, and configure OpenMPI and all required packages
-  when: hpc_install_openmpi
+  when: hpc_build_openmpi_w_nvidia_gpu_support
   block:
     - name: Install build dependencies
       package:
@@ -259,7 +351,7 @@
       set_fact:
         __hpc_hpcx_path: "{{ __hpc_install_prefix }}/{{ hpcx_tarball_basename }}"
 
-    - name: Set facts for building hpcx and openmpi
+    - name: Set facts for building HPC-X and OpenMPI
       set_fact:
         __hpc_hpcx_rebuild_path: "{{ __hpc_hpcx_path }}/hpcx-rebuild"
         __hpc_hcoll_path: "{{ __hpc_hpcx_path }}/hcoll"
@@ -268,10 +360,6 @@
         __hpc_pmix_path: "{{ __hpc_install_prefix }}/{{ __hpc_pmix_info.name }}/{{ __hpc_pmix_info.version }}"
         __hpc_openmpi_path: "{{ __hpc_install_prefix }}/{{ __hpc_openmpi_info.name }}-{{ __hpc_openmpi_info.version }}"
         __hpc_cuda_path: /usr/local/cuda
-
-    - name: Get package facts
-      package_facts:
-      no_log: true
 
     - name: Get stat of pmix path
       stat:
@@ -314,7 +402,7 @@
         dest: "{{ __hpc_module_dir }}/pmix/pmix-{{ __hpc_pmix_info.version }}.lua"
         owner: root
         group: root
-        mode: '0644'
+        mode: '0755'
 
     - name: Install GDRCopy packages
       vars:
@@ -362,10 +450,10 @@
         path: "{{ __hpc_hpcx_rebuild_path }}"
       register: __hpc_hpcx_rebuild_path_stat
 
-    - name: Download and build HPCx
+    - name: Download and build HPC-X
       when: not __hpc_hpcx_rebuild_path_stat.stat.exists
       block:
-        - name: Download hpcx
+        - name: Download HPC-X
           include_tasks: tasks/download_extract_package.yml
           vars:
             __hpc_pkg_info: "{{ __hpc_hpcx_info }}"
@@ -393,7 +481,7 @@
             replace: "-lhcoll -locoms"
             backup: true
 
-        - name: Copy hpcx to {{ __hpc_hpcx_path }}
+        - name: Copy HPC-X files to {{ __hpc_hpcx_path }}
           copy:
             src: "{{ __hpc_pkg_extracted.path }}/"
             remote_src: true
@@ -402,7 +490,7 @@
             owner: root
             group: root
 
-        - name: Rebuild hpcx with PMIx
+        - name: Rebuild HPC-X with PMIx
           environment:
             CUDA_HOME: "{{ __hpc_cuda_path }}"
           command: >-
@@ -439,7 +527,7 @@
         mode: '0755'
 
     # This requires a new login shell to become visible.
-    - name: Set up hpcx module files for lmod
+    - name: Point Lmod to HPC-X module files
       lineinfile:
         path: /etc/lmod/.modulespath
         line: "{{ __hpc_hpcx_path }}/modulefiles"
@@ -447,7 +535,7 @@
         create: true
         owner: root
         group: root
-        mode: '0755'
+        mode: '0644'
 
     - name: Get stat of openmpi path
       stat:
@@ -500,7 +588,7 @@
         dest: "{{ __hpc_module_dir }}/mpi/openmpi-{{ __hpc_openmpi_info.version }}.lua"
         owner: root
         group: root
-        mode: '0644'
+        mode: '0755'
 
 - name: Tune system for HPC
   when: hpc_tuning
@@ -519,16 +607,6 @@
         dest: /etc/sysctl.d/
         owner: root
         group: root
-        mode: '0755'
-      notify: Reload sysctl
-
-    - name: Increase the number of NFS RPCs per transport
-      lineinfile:
-        path: /etc/modprobe.d/90-sunrpc.conf
-        line: options sunrpc tcp_max_slot_table_entries=128
-        create: true
-        owner: root
-        group: root
         mode: '0644'
       notify: Reload sysctl
 
@@ -542,13 +620,23 @@
         mode: '0644'
       notify: Restart systemd-modules-load
 
+    - name: Check if sunrpc module is loaded
+      command: lsmod
+      register: __hpc_loaded_modules
+      changed_when: false
+
+    - name: Load sunrpc module if not loaded
+      when: "'sunrpc' not in __hpc_loaded_modules.stdout"
+      command: modprobe sunrpc
+      changed_when: true
+
     - name: Copy NFS readahead udev rules for Azure infrastructure
       template:
         src: 90-nfs-readahead.rules
         dest: /etc/udev/rules.d/
         owner: root
         group: root
-        mode: '0755'
+        mode: '0644'
       notify: Reload udev
 
 - name: Remove build dependencies
@@ -566,9 +654,3 @@
 - name: Clean dnf cache
   command: dnf clean all
   changed_when: false
-
-- name: Notify about OpenMPI module loading
-  debug:
-    msg: >-
-      Prior to using OpenMPI CLIs, you must run
-      `module load mpi/openmpi-{{ __hpc_openmpi_info.version }}`
