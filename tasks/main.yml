@@ -507,24 +507,32 @@
             state: absent
           changed_when: false
 
-    - name: Ensure that /etc/lmod directory exists
+    - name: Ensure MPI modulefile directory exists
       file:
-        path: /etc/lmod
+        path: "{{ __hpc_module_dir }}/mpi"
         state: directory
         owner: root
         group: root
         mode: '0755'
 
-    # This requires a new login shell to become visible.
-    - name: Point Lmod to HPC-X module files
-      lineinfile:
-        path: /etc/lmod/.modulespath
-        line: "{{ __hpc_hpcx_path }}/modulefiles"
-        state: present
-        create: true
+    - name: Install NVidia HPCX OpemMPI modulefile
+      template:
+        src: hpcx-ver.lua
+        dest: >-
+          {{ __hpc_module_dir }}/mpi/hpcx-{{ __hpc_hpcx_info.version }}.lua
         owner: root
         group: root
-        mode: '0644'
+        mode: '0755'
+
+    - name: Install NVidia HPCX OpemMPI with PMIx {{ __hpc_pmix_info.version }}
+      template:
+        src: hpcx-ver-pmix-ver.lua
+        dest: >-
+          {{ __hpc_module_dir }}/mpi/hpcx-{{
+          __hpc_hpcx_info.version }}-pmix-{{ __hpc_pmix_info.version }}.lua
+        owner: root
+        group: root
+        mode: '0755'
 
     - name: Get stat of openmpi path
       stat:
@@ -563,18 +571,10 @@
             state: absent
           changed_when: false
 
-    - name: Ensure MPI modulefile directory exists
-      file:
-        path: "{{ __hpc_module_dir }}/mpi"
-        state: directory
-        owner: root
-        group: root
-        mode: '0755'
-
     - name: Install OpenMPI modulefile
       template:
-        src: openmpi-ver.lua
-        dest: "{{ __hpc_module_dir }}/mpi/openmpi-{{ __hpc_openmpi_info.version }}.lua"
+        src: openmpi-ver-cuda12-gpu.lua
+        dest: "{{ __hpc_module_dir }}/mpi/openmpi-{{ __hpc_openmpi_info.version }}-cuda12-gpu.lua"
         owner: root
         group: root
         mode: '0755'

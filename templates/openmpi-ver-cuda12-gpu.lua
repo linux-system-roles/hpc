@@ -11,7 +11,9 @@
 --
 conflict("mpi")
 
-whatis("Description: OpenMPI {{ __hpc_openmpi_info.version }} with CUDA12 and PMIx {{ __hpc_pmix_info.version }} support.")
+whatis("Description: OpenMPI {{ __hpc_openmpi_info.version }} with NVidia GPU, CUDA 12 and PMIx {{ __hpc_pmix_info.version }} support.")
+whatis("This library only works on machines with NVidia GPUs installed.")
+whatis("If you don't have Infiniband, use '-mca coll ^hcoll' to silence startup warnings.")
 whatis("Version: {{ __hpc_openmpi_info.version }}-1")
 
 -- Set the base installation directory
