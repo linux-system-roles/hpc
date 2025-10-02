@@ -11,7 +11,9 @@
 --
 conflict("mpi")
 
-whatis("Description: OpenMPI {{ __hpc_openmpi_info.version }} with CUDA12 and PMIx {{ __hpc_pmix_info.version }} support.")
+whatis("Description: OpenMPI {{ __hpc_openmpi_info.version }} with NVidia GPU, CUDA 12 and PMIx {{ __hpc_pmix_info.version }} support.")
+whatis("This library only works on machines with NVidia GPUs installed.")
+whatis("If you don't have Infiniband, use '-mca coll ^hcoll' to silence startup warnings.")
 whatis("Version: {{ __hpc_openmpi_info.version }}-1")
 
 -- Set the base installation directory
@@ -20,6 +22,9 @@ local base_dir = "/opt/{{ __hpc_openmpi_info.name }}-{{ __hpc_openmpi_info.versi
 -- Set up important paths
 prepend_path("PATH", pathJoin(base_dir, "bin"))
 prepend_path("LD_LIBRARY_PATH", pathJoin(base_dir, "lib"))
+prepend_path("LD_LIBRARY_PATH", pathJoin("{{ __hpc_ucx_path }}", "lib"))
+prepend_path("LD_LIBRARY_PATH", pathJoin("{{ __hpc_ucc_path }}", "lib"))
+prepend_path("LD_LIBRARY_PATH", pathJoin("{{ __hpc_hcoll_path }}", "lib"))
 prepend_path("PKG_LIBRARY_PATH", pathJoin(base_dir, "lib/pkgconfig"))
 prepend_path("MANPATH", pathJoin(base_dir, "share/man"))
 

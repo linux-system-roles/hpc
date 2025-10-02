@@ -124,28 +124,17 @@
   package_facts:
   no_log: true
 
-- name: >-
-    Explicitly install kernel-devel and kernel-headers packages matching the
-    latest installed kernel
+# This is required for dkms to build NVidia drivers for all kernels
+- name: Install kernel-devel and kernel-headers packages for all kernels
   vars:
-    latest_kernel_by_ver: >-
-      {{ ansible_facts.packages.kernel | max(attribute='version') }}
-    latest_kernel: >-
-      {{ ansible_facts.packages.kernel
-      | selectattr('version', 'equalto', latest_kernel_by_ver.version)
-      | max(attribute='release') }}
-    latest_kernel_ver_release: >-
-      {{ latest_kernel.version }}-{{ latest_kernel.release }}
-    kernel_version: "{{
-      latest_kernel_ver_release if __hpc_force_kernel_version is none
-      else __hpc_force_kernel_version
-      }}"
+    kernel_version: "{{ item.version }}-{{ item.release }}"
   package:
     name:
       - kernel-devel-{{ kernel_version }}
       - kernel-headers-{{ kernel_version }}
     state: present
   notify: Reboot system
+  loop: "{{ ansible_facts.packages.kernel }}"
 
 - name: Ensure that dnf-command(versionlock) is installed
   package:
@@ -206,6 +195,13 @@
         use: "{{ (__hpc_server_is_ostree | d(false)) |
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
+    - name: Install NVIDIA driver
+      package:
+        name: "{{ __hpc_nvidia_driver_packages }}"
+        state: present
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
     # This makes the role not idempotent.
     # We need to find a condition in which starting and enabling is not enough.
     - name: Restart dkms service to make it build nvidia drivers for all kernels
@@ -213,13 +209,6 @@
         name: dkms.service
         enabled: true
         state: restarted
-
-    - name: Install NVIDIA driver
-      package:
-        name: "{{ __hpc_nvidia_driver_packages }}"
-        state: present
-        use: "{{ (__hpc_server_is_ostree | d(false)) |
-          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
 - name: Install CUDA driver and enable nvidia-persistenced.service
   when:
@@ -355,7 +344,7 @@
       set_fact:
         __hpc_hpcx_rebuild_path: "{{ __hpc_hpcx_path }}/hpcx-rebuild"
         __hpc_hcoll_path: "{{ __hpc_hpcx_path }}/hcoll"
-        __hpc_ucx_path: "{{ __hpc_hpcx_path }}/ucx"
+        __hpc_ucx_path: "{{ __hpc_hpcx_path }}/ucx/hpcx-rebuild"
         __hpc_ucc_path: "{{ __hpc_hpcx_path }}/ucc"
         __hpc_pmix_path: "{{ __hpc_install_prefix }}/{{ __hpc_pmix_info.name }}/{{ __hpc_pmix_info.version }}"
         __hpc_openmpi_path: "{{ __hpc_install_prefix }}/{{ __hpc_openmpi_info.name }}-{{ __hpc_openmpi_info.version }}"
@@ -518,24 +507,32 @@
             state: absent
           changed_when: false
 
-    - name: Ensure that /etc/lmod directory exists
+    - name: Ensure MPI modulefile directory exists
       file:
-        path: /etc/lmod
+        path: "{{ __hpc_module_dir }}/mpi"
         state: directory
         owner: root
         group: root
         mode: '0755'
 
-    # This requires a new login shell to become visible.
-    - name: Point Lmod to HPC-X module files
-      lineinfile:
-        path: /etc/lmod/.modulespath
-        line: "{{ __hpc_hpcx_path }}/modulefiles"
-        state: present
-        create: true
+    - name: Install NVidia HPCX OpemMPI modulefile
+      template:
+        src: hpcx-ver.lua
+        dest: >-
+          {{ __hpc_module_dir }}/mpi/hpcx-{{ __hpc_hpcx_info.version }}.lua
         owner: root
         group: root
-        mode: '0644'
+        mode: '0755'
+
+    - name: Install NVidia HPCX OpemMPI with PMIx {{ __hpc_pmix_info.version }}
+      template:
+        src: hpcx-ver-pmix-ver.lua
+        dest: >-
+          {{ __hpc_module_dir }}/mpi/hpcx-{{
+          __hpc_hpcx_info.version }}-pmix-{{ __hpc_pmix_info.version }}.lua
+        owner: root
+        group: root
+        mode: '0755'
 
     - name: Get stat of openmpi path
       stat:
@@ -574,18 +571,10 @@
             state: absent
           changed_when: false
 
-    - name: Ensure MPI modulefile directory exists
-      file:
-        path: "{{ __hpc_module_dir }}/mpi"
-        state: directory
-        owner: root
-        group: root
-        mode: '0755'
-
     - name: Install OpenMPI modulefile
       template:
-        src: openmpi-ver.lua
-        dest: "{{ __hpc_module_dir }}/mpi/openmpi-{{ __hpc_openmpi_info.version }}.lua"
+        src: openmpi-ver-cuda12-gpu.lua
+        dest: "{{ __hpc_module_dir }}/mpi/openmpi-{{ __hpc_openmpi_info.version }}-cuda12-gpu.lua"
         owner: root
         group: root
         mode: '0755'
