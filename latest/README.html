@@ -284,10 +284,12 @@ nvidia-fabricmanager service.</p>
 <p>Type: <code>bool</code></p>
 <h2 id="hpc_install_system_openmpi">hpc_install_system_openmpi</h2>
 <p>Whether to install OpenMPI that comes from AppStream repositories and
-does not have Nvidia GPU support. This is useful for applications
-requiring less parallel processing, tasks that benefit from sequential
-processing or high-speed core operations.</p>
-<p>You can run an <code>lmod</code> environmental module for this
+does not have Nvidia GPU support.</p>
+<p>The system openmpi package should be installed to support MPI
+applications that do not require CUDA support and/or GPU acceleration.
+It can co-exist alongside other installed OpenMPI packages safely, so if
+in doubt always install this package.</p>
+<p>You can run an <code>lmod</code> environmental module to select this
 openmpi by entering the following command:</p>
 <div class="sourceCode" id="cb2"><pre
 class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> load mpi/openmpi-x86_64</span></code></pre></div>
@@ -308,7 +310,7 @@ libpmix.so.2.</p>
 build PMIx from source so that we can have both versions installed on
 the system at the same time. This also requires a pmix-4.2.9 environment
 module to put the pmix install into various paths.</p>
-<p>You can run an <code>lmod</code> environmental module for this
+<p>You can run an <code>lmod</code> environmental module to select this
 openmpi by entering the following command:</p>
 <div class="sourceCode" id="cb3"><pre
 class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> load mpi/openmpi-5.0.8</span></code></pre></div>
