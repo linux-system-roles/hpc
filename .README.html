@@ -145,6 +145,10 @@ id="toc-collection-requirements">Collection requirements</a></li>
 id="toc-variables-for-controlling-packages-to-install">Variables for
 Controlling Packages to Install</a>
 <ul>
+<li><a href="#hpc_update_kernel"
+id="toc-hpc_update_kernel">hpc_update_kernel</a></li>
+<li><a href="#hpc_update_all_packages"
+id="toc-hpc_update_all_packages">hpc_update_all_packages</a></li>
 <li><a href="#hpc_install_cuda_driver"
 id="toc-hpc_install_cuda_driver">hpc_install_cuda_driver</a></li>
 <li><a href="#hpc_install_cuda_toolkit"
@@ -153,10 +157,18 @@ id="toc-hpc_install_cuda_toolkit">hpc_install_cuda_toolkit</a></li>
 id="toc-hpc_install_hpc_nvidia_nccl">hpc_install_hpc_nvidia_nccl</a></li>
 <li><a href="#hpc_install_nvidia_fabric_manager"
 id="toc-hpc_install_nvidia_fabric_manager">hpc_install_nvidia_fabric_manager</a></li>
-<li><a href="#hpc_install_nvidia_rdma"
-id="toc-hpc_install_nvidia_rdma">hpc_install_nvidia_rdma</a></li>
-<li><a href="#hpc_install_openmpi"
-id="toc-hpc_install_openmpi">hpc_install_openmpi</a></li>
+<li><a href="#hpc_install_rdma"
+id="toc-hpc_install_rdma">hpc_install_rdma</a></li>
+<li><a href="#hpc_install_system_openmpi"
+id="toc-hpc_install_system_openmpi">hpc_install_system_openmpi</a></li>
+<li><a href="#hpc_build_openmpi_w_nvidia_gpu_support"
+id="toc-hpc_build_openmpi_w_nvidia_gpu_support">hpc_build_openmpi_w_nvidia_gpu_support</a></li>
+</ul></li>
+<li><a href="#variables-for-configuring-tuning-for-hpc-workloads"
+id="toc-variables-for-configuring-tuning-for-hpc-workloads">Variables
+for Configuring Tuning for HPC Workloads</a>
+<ul>
+<li><a href="#hpc_tuning" id="toc-hpc_tuning">hpc_tuning</a></li>
 </ul></li>
 <li><a href="#variables-for-configuring-how-role-reboots-managed-nodes"
 id="toc-variables-for-configuring-how-role-reboots-managed-nodes">Variables
@@ -167,6 +179,13 @@ id="toc-hpc_reboot_ok">hpc_reboot_ok</a></li>
 <li><a href="#example-playbook-for-configuring-packages"
 id="toc-example-playbook-for-configuring-packages">Example Playbook for
 Configuring Packages</a></li>
+</ul></li>
+<li><a href="#variables-for-configuring-firewall"
+id="toc-variables-for-configuring-firewall">Variables for Configuring
+Firewall</a>
+<ul>
+<li><a href="#hpc_manage_firewall"
+id="toc-hpc_manage_firewall">hpc_manage_firewall</a></li>
 </ul></li>
 <li><a href="#variables-for-configuring-storage"
 id="toc-variables-for-configuring-storage">Variables for Configuring
@@ -226,30 +245,106 @@ Controlling Packages to Install</h1>
 <p>These variables control what packages the role installs. By default,
 the role installs all the packages. You can set some of the variables to
 <code>false</code> to make the role not install particular packages.</p>
+<h2 id="hpc_update_kernel">hpc_update_kernel</h2>
+<p>Whether to update kernel to the latest version.</p>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
+<h2 id="hpc_update_all_packages">hpc_update_all_packages</h2>
+<p>Whether to update all packages on the system to the latest
+version.</p>
+<p>This is a good practice to have the system in the latest state. But
+because this is a serious invasion into users environment, this variable
+is set to <code>false</code> by default.</p>
+<p>Default: <code>false</code></p>
+<p>Type: <code>bool</code></p>
 <h2 id="hpc_install_cuda_driver">hpc_install_cuda_driver</h2>
 <p>Whether to install the CUDA Driver package.</p>
 <p>Default: <code>true</code></p>
 <p>Type: <code>bool</code></p>
 <h2 id="hpc_install_cuda_toolkit">hpc_install_cuda_toolkit</h2>
 <p>Whether to install the CUDA Toolkit package.</p>
+<p>Note that this package is required for installing OpenMPI.</p>
 <p>Default: <code>true</code></p>
 <p>Type: <code>bool</code></p>
 <h2 id="hpc_install_hpc_nvidia_nccl">hpc_install_hpc_nvidia_nccl</h2>
 <p>Whether to install the NVIDIA Collective Communications Library
 (NCCL) package.</p>
+<p>Note that this package is required for installing OpenMPI.</p>
 <p>Default: <code>true</code></p>
 <p>Type: <code>bool</code></p>
 <h2
 id="hpc_install_nvidia_fabric_manager">hpc_install_nvidia_fabric_manager</h2>
-<p>Whether to install the NVIDIA Fabric Manager package.</p>
+<p>Whether to install the NVIDIA Fabric Manager package and enable the
+nvidia-fabricmanager service.</p>
 <p>Default: <code>true</code></p>
 <p>Type: <code>bool</code></p>
-<h2 id="hpc_install_nvidia_rdma">hpc_install_nvidia_rdma</h2>
+<h2 id="hpc_install_rdma">hpc_install_rdma</h2>
 <p>Whether to install the NVIDIA RDMA package.</p>
 <p>Default: <code>true</code></p>
 <p>Type: <code>bool</code></p>
-<h2 id="hpc_install_openmpi">hpc_install_openmpi</h2>
-<p>Whether to install the Open MPI package.</p>
+<h2 id="hpc_install_system_openmpi">hpc_install_system_openmpi</h2>
+<p>Whether to install OpenMPI that comes from AppStream repositories and
+does not have Nvidia GPU support. This is useful for applications
+requiring less parallel processing, tasks that benefit from sequential
+processing or high-speed core operations.</p>
+<p>You can run an <code>lmod</code> environmental module for this
+openmpi by entering the following command:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> load mpi/openmpi-x86_64</span></code></pre></div>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
+<h2
+id="hpc_build_openmpi_w_nvidia_gpu_support">hpc_build_openmpi_w_nvidia_gpu_support</h2>
+<p>Whether to build OpenMPI with Nvidia GPU support.</p>
+<p>Currently, the role builds OpenMPI from source. Prior to building
+OpenMPI, it builds its requirements - GDRCopy, HPCX, and PMIx.</p>
+<p>Microsoft-supplied PMIx library RPM is built with versioning that
+replaces the system (appstream) PMIx package (i.e. v4.2.9 vs v3.2.3).
+However, the library it installs as libpmix.so.2 is incorrectly
+versioned - v4.2.9 implements a newer PMIX API that is not backwards
+compatible with applications linked against older versions of
+libpmix.so.2.</p>
+<p>As OpenMPI v5.x requires PMIx &gt;= 4.2.0, we have no choice but to
+build PMIx from source so that we can have both versions installed on
+the system at the same time. This also requires a pmix-4.2.9 environment
+module to put the pmix install into various paths.</p>
+<p>You can run an <code>lmod</code> environmental module for this
+openmpi by entering the following command:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> load mpi/openmpi-5.0.8</span></code></pre></div>
+<p>Note that building OpenMPI requires the following variables to be set
+to <code>true</code>, which is the default value:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hpc_install_cuda_toolkit</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">hpc_install_hpc_nvidia_nccl</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span></code></pre></div>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
+<h1 id="variables-for-configuring-tuning-for-hpc-workloads">Variables
+for Configuring Tuning for HPC Workloads</h1>
+<h2 id="hpc_tuning">hpc_tuning</h2>
+<p>Whether to apply tuning for HPC workloads.</p>
+<p>The role applies the following tuning configurations:</p>
+<ul>
+<li><p>Remove user memory limits to ensure applications aren't
+restricted by creating a file
+<code>/etc/security/limits.d/90-hpc-limits.conf</code> with memlock,
+nofile, and stack configuration.</p></li>
+<li><p>Configure system by creating a file
+<code>/etc/sysctl.d/90-hpc-sysctl.conf</code>. This file applies the
+following configuration:</p>
+<ul>
+<li>Enable zone reclaim mode</li>
+<li>Increase the size of the IP neighbour cache</li>
+<li>Increase the number of NFS RPCs per transport to have in flight at
+once</li>
+</ul></li>
+<li><p>Load a <code>sunrpc</code> kernel module with
+<code>sunrpc.tcp_max_slot_table_entries=128</code>.</p></li>
+<li><p>Boost read performance for newly mounted NFS network shares by
+adding a file <code>/etc/udev/rules.d/90-nfs-readahead.rules</code>.
+This configuration increases the data pre-fetching buffer to 15,380 KB
+to help overcome network latency.</p></li>
+</ul>
 <p>Default: <code>true</code></p>
 <p>Type: <code>bool</code></p>
 <h1
@@ -269,18 +364,35 @@ a reboot to take effect.</p>
 <p>Type: <code>bool</code></p>
 <h2 id="example-playbook-for-configuring-packages">Example Playbook for
 Configuring Packages</h2>
-<div class="sourceCode" id="cb2"><pre
-class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Configure my virtual machine for HPC</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hosts</span><span class="kw">:</span><span class="at"> localhost</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">vars</span><span class="kw">:</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_cuda_driver</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_cuda_toolkit</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_hpc_nvidia_nccl</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_nvidia_fabric_manager</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_nvidia_rdma</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_openmpi</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">roles</span><span class="kw">:</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> linux-system-roles.hpc</span></span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Configure my virtual machine for HPC</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hosts</span><span class="kw">:</span><span class="at"> localhost</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">vars</span><span class="kw">:</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_cuda_driver</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_cuda_toolkit</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_hpc_nvidia_nccl</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_nvidia_fabric_manager</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_rdma</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_system_openmpi</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_build_openmpi_w_nvidia_gpu_support</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">roles</span><span class="kw">:</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> linux-system-roles.hpc</span></span></code></pre></div>
+<h1 id="variables-for-configuring-firewall">Variables for Configuring
+Firewall</h1>
+<h2 id="hpc_manage_firewall">hpc_manage_firewall</h2>
+<p>Whether to run the linux-system-roles.firewall role to manage
+Firewall.</p>
+<p>Setting this variable to <code>true</code> does the following:</p>
+<ol type="1">
+<li>Enable and start the firewall service.</li>
+<li>Configure the default firewall zone to be trusted.</li>
+</ol>
+<p>This, basically, allows all connections. This is a common practice
+with HPC workloads because security is handled by cloud providers.</p>
+<p>This is a security measure and we want users to explicitly approve
+this action by setting this variable to <code>true</code>.</p>
+<p>Default: <code>false</code></p>
+<p>Type: bool</p>
 <h1 id="variables-for-configuring-storage">Variables for Configuring
 Storage</h1>
 <p>By default, the role ensures that <code>rootlv</code> and
@@ -341,20 +453,20 @@ logical volume to configure.</p>
 <p>Type: <code>string</code></p>
 <h2 id="example-playbook-for-configuring-storage">Example Playbook for
 Configuring Storage</h2>
-<div class="sourceCode" id="cb3"><pre
-class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Configure my virtual machine for HPC</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hosts</span><span class="kw">:</span><span class="at"> localhost</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">vars</span><span class="kw">:</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_manage_storage</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootvg_name</span><span class="kw">:</span><span class="at"> rootvg</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootlv_name</span><span class="kw">:</span><span class="at"> rootlv</span></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootlv_size</span><span class="kw">:</span><span class="at"> 10G</span></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootlv_mount</span><span class="kw">:</span><span class="at"> /</span></span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_usrlv_name</span><span class="kw">:</span><span class="at"> usrlv</span></span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_usrlv_size</span><span class="kw">:</span><span class="at"> 20G</span></span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_usrlv_mount</span><span class="kw">:</span><span class="at"> /usr</span></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">roles</span><span class="kw">:</span></span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> linux-system-roles.hpc</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Configure my virtual machine for HPC</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hosts</span><span class="kw">:</span><span class="at"> localhost</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">vars</span><span class="kw">:</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_manage_storage</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootvg_name</span><span class="kw">:</span><span class="at"> rootvg</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootlv_name</span><span class="kw">:</span><span class="at"> rootlv</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootlv_size</span><span class="kw">:</span><span class="at"> 10G</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootlv_mount</span><span class="kw">:</span><span class="at"> /</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_usrlv_name</span><span class="kw">:</span><span class="at"> usrlv</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_usrlv_size</span><span class="kw">:</span><span class="at"> 20G</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_usrlv_mount</span><span class="kw">:</span><span class="at"> /usr</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">roles</span><span class="kw">:</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> linux-system-roles.hpc</span></span></code></pre></div>
 <h1 id="variables-exported-by-the-role">Variables Exported by the
 Role</h1>
 <h2 id="hpc_reboot_needed">hpc_reboot_needed</h2>
@@ -363,29 +475,30 @@ reboot is needed to apply the changes made by the role.</p>
 <h1 id="example-playbooks">Example Playbooks</h1>
 <p>Run the role to configure storage, install all packages, and reboot
 if needed.</p>
-<div class="sourceCode" id="cb4"><pre
-class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Configure my virtual machine for HPC</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hosts</span><span class="kw">:</span><span class="at"> localhost</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">vars</span><span class="kw">:</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_manage_storage</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootvg_name</span><span class="kw">:</span><span class="at"> rootvg</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootlv_name</span><span class="kw">:</span><span class="at"> rootlv</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootlv_size</span><span class="kw">:</span><span class="at"> 10G</span></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootlv_mount</span><span class="kw">:</span><span class="at"> /</span></span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_usrlv_name</span><span class="kw">:</span><span class="at"> usrlv</span></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_usrlv_size</span><span class="kw">:</span><span class="at"> 20G</span></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_usrlv_mount</span><span class="kw">:</span><span class="at"> /usr</span></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_cuda_driver</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_cuda_toolkit</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_hpc_nvidia_nccl</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_nvidia_fabric_manager</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_nvidia_rdma</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_openmpi</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_reboot_ok</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">roles</span><span class="kw">:</span></span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> linux-system-roles.hpc</span></span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Configure my virtual machine for HPC</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hosts</span><span class="kw">:</span><span class="at"> localhost</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">vars</span><span class="kw">:</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_manage_storage</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootvg_name</span><span class="kw">:</span><span class="at"> rootvg</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootlv_name</span><span class="kw">:</span><span class="at"> rootlv</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootlv_size</span><span class="kw">:</span><span class="at"> 10G</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootlv_mount</span><span class="kw">:</span><span class="at"> /</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_usrlv_name</span><span class="kw">:</span><span class="at"> usrlv</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_usrlv_size</span><span class="kw">:</span><span class="at"> 20G</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_usrlv_mount</span><span class="kw">:</span><span class="at"> /usr</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_cuda_driver</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_cuda_toolkit</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_hpc_nvidia_nccl</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_nvidia_fabric_manager</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_rdma</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_system_openmpi</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_build_openmpi_w_nvidia_gpu_support</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_reboot_ok</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">roles</span><span class="kw">:</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> linux-system-roles.hpc</span></span></code></pre></div>
 <h1 id="rpm-ostree">rpm-ostree</h1>
 <p>See README-ostree.md</p>
 <h1 id="license">License</h1>

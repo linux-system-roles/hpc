@@ -1,6 +1,24 @@
 Changelog
 =========
 
+[0.2.0] - 2025-10-02
+--------------------
+
+### New Features
+
+- feat: Add improvements from Yaju and Fabio feedback (#13)
+- feat: Build gdrcopy, hpcx, and openmpi from source (#17)
+- feat: Install system openmpi for usecases that don't need GPUs (#19)
+
+### Bug Fixes
+
+- fix: Only enable the nvidia-fabricmanager service (#14)
+
+### Other Changes
+
+- ci: use tox-lsr 3.12.0 for osbuild_config.yml feature (#16)
+- ci: use JSON format for __bootc_validation (#18)
+
 [0.1.0] - 2025-09-16
 --------------------
 
