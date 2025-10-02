@@ -124,28 +124,17 @@
   package_facts:
   no_log: true
 
-- name: >-
-    Explicitly install kernel-devel and kernel-headers packages matching the
-    latest installed kernel
+# This is required for dkms to build NVidia drivers for all kernels
+- name: Install kernel-devel and kernel-headers packages for all kernels
   vars:
-    latest_kernel_by_ver: >-
-      {{ ansible_facts.packages.kernel | max(attribute='version') }}
-    latest_kernel: >-
-      {{ ansible_facts.packages.kernel
-      | selectattr('version', 'equalto', latest_kernel_by_ver.version)
-      | max(attribute='release') }}
-    latest_kernel_ver_release: >-
-      {{ latest_kernel.version }}-{{ latest_kernel.release }}
-    kernel_version: "{{
-      latest_kernel_ver_release if __hpc_force_kernel_version is none
-      else __hpc_force_kernel_version
-      }}"
+    kernel_version: "{{ item.version }}-{{ item.release }}"
   package:
     name:
       - kernel-devel-{{ kernel_version }}
       - kernel-headers-{{ kernel_version }}
     state: present
   notify: Reboot system
+  loop: "{{ ansible_facts.packages.kernel }}"
 
 - name: Ensure that dnf-command(versionlock) is installed
   package:
@@ -206,6 +195,13 @@
         use: "{{ (__hpc_server_is_ostree | d(false)) |
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
+    - name: Install NVIDIA driver
+      package:
+        name: "{{ __hpc_nvidia_driver_packages }}"
+        state: present
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
     # This makes the role not idempotent.
     # We need to find a condition in which starting and enabling is not enough.
     - name: Restart dkms service to make it build nvidia drivers for all kernels
@@ -213,13 +209,6 @@
         name: dkms.service
         enabled: true
         state: restarted
-
-    - name: Install NVIDIA driver
-      package:
-        name: "{{ __hpc_nvidia_driver_packages }}"
-        state: present
-        use: "{{ (__hpc_server_is_ostree | d(false)) |
-          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
 - name: Install CUDA driver and enable nvidia-persistenced.service
   when:
