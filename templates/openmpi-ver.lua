@@ -20,6 +20,9 @@ local base_dir = "/opt/{{ __hpc_openmpi_info.name }}-{{ __hpc_openmpi_info.versi
 -- Set up important paths
 prepend_path("PATH", pathJoin(base_dir, "bin"))
 prepend_path("LD_LIBRARY_PATH", pathJoin(base_dir, "lib"))
+prepend_path("LD_LIBRARY_PATH", pathJoin("{{ __hpc_ucx_path }}", "lib"))
+prepend_path("LD_LIBRARY_PATH", pathJoin("{{ __hpc_ucc_path }}", "lib"))
+prepend_path("LD_LIBRARY_PATH", pathJoin("{{ __hpc_hcoll_path }}", "lib"))
 prepend_path("PKG_LIBRARY_PATH", pathJoin(base_dir, "lib/pkgconfig"))
 prepend_path("MANPATH", pathJoin(base_dir, "share/man"))
 
