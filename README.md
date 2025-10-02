@@ -93,9 +93,10 @@ Type: `bool`
 ### hpc_install_system_openmpi
 
 Whether to install OpenMPI that comes from AppStream repositories and does not have Nvidia GPU support.
-This is useful for applications requiring less parallel processing, tasks that benefit from sequential processing or high-speed core operations.
 
-You can run an `lmod` environmental module for this openmpi by entering the following command:
+The system openmpi package should be installed to support MPI applications that do not require CUDA support and/or GPU acceleration. It can co-exist alongside other installed OpenMPI packages safely, so if in doubt always install this package.
+
+You can run an `lmod` environmental module to select this openmpi by entering the following command:
 
 ```bash
 module load mpi/openmpi-x86_64
@@ -117,7 +118,7 @@ However, the library it installs as libpmix.so.2 is incorrectly versioned - v4.2
 
 As OpenMPI v5.x requires PMIx >= 4.2.0, we have no choice but to build PMIx from source so that we can have both versions installed on the system at the same time. This also requires a pmix-4.2.9 environment module to put the pmix install into various paths.
 
-You can run an `lmod` environmental module for this openmpi by entering the following command:
+You can run an `lmod` environmental module to select this openmpi by entering the following command:
 
 ```bash
 module load mpi/openmpi-5.0.8
