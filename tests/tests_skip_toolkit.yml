@@ -101,17 +101,33 @@
         - name: Flush handlers
           meta: flush_handlers
 
-        - name: In a new login shell, get ulimits
-          command: bash -l -c "ulimit -a"
+        # Getting ulimits requires a new login shell, hence checking the file
+        - name: Print 90-hpc-limits.conf file
+          command: cat /etc/security/limits.d/90-hpc-limits.conf
           changed_when: false
-          register: __hpc_ulimits_cmd
+          register: __hpc_limits_conf
 
-        - name: Verify ulimits set from templates/90-hpc-limits.conf
+        - name: Verify limits in 90-hpc-limits.conf
           assert:
             that:
-              - __hpc_ulimits_cmd.stdout | regex_search('open files .* 65535')
-              - __hpc_ulimits_cmd.stdout | regex_search('max memory size .* unlimited')
-              - __hpc_ulimits_cmd.stdout | regex_search('stack size .* unlimited')
+              - >-
+                '*               hard    memlock         unlimited'
+                in __hpc_limits_conf.stdout
+              - >-
+                '*               soft    memlock         unlimited'
+                in __hpc_limits_conf.stdout
+              - >-
+                '*               hard    nofile          65535'
+                in __hpc_limits_conf.stdout
+              - >-
+                '*               soft    nofile          65535'
+                in __hpc_limits_conf.stdout
+              - >-
+                '*               hard    stack           unlimited'
+                in __hpc_limits_conf.stdout
+              - >-
+                '*               soft    stack           unlimited'
+                in __hpc_limits_conf.stdout
 
         - name: Verify sysctl settings set from templates
           command: sysctl -n {{ item.setting}}
