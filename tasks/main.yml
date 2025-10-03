@@ -194,6 +194,8 @@
         state: present
         use: "{{ (__hpc_server_is_ostree | d(false)) |
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+      register: __hpc_dkms_packages_install
+      until: __hpc_dkms_packages_install is success
 
     - name: Install NVIDIA driver
       package:
@@ -201,6 +203,8 @@
         state: present
         use: "{{ (__hpc_server_is_ostree | d(false)) |
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+      register: __hpc_nvidia_driver_packages_install
+      until: __hpc_nvidia_driver_packages_install is success
 
     # This makes the role not idempotent.
     # We need to find a condition in which starting and enabling is not enough.
@@ -221,6 +225,8 @@
         state: present
         use: "{{ (__hpc_server_is_ostree | d(false)) |
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+      register: __hpc_cuda_driver_packages_install
+      until: __hpc_cuda_driver_packages_install is success
 
     - name: Enable nvidia-persistenced.service
       service:
@@ -239,6 +245,8 @@
         allow_downgrade: true
         use: "{{ (__hpc_server_is_ostree | d(false)) |
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+      register: __hpc_cuda_toolkit_packages_install
+      until: __hpc_cuda_toolkit_packages_install is success
 
     - name: Prevent update of CUDA Toolkit packages
       command: dnf versionlock add {{ item }}
@@ -258,6 +266,8 @@
         allow_downgrade: true
         use: "{{ (__hpc_server_is_ostree | d(false)) |
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+      register: __hpc_nvidia_nccl_packages_install
+      until: __hpc_nvidia_nccl_packages_install is success
 
     - name: Prevent update of NVIDIA NCCL packages
       command: dnf versionlock add {{ item }}
@@ -276,6 +286,8 @@
         state: present
         use: "{{ (__hpc_server_is_ostree | d(false)) |
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+      register: __hpc_nvidia_fabric_manager_packages_install
+      until: __hpc_nvidia_fabric_manager_packages_install is success
 
     - name: Ensure that Fabric Manager service is enabled
       service:
@@ -291,6 +303,8 @@
         state: present
         use: "{{ (__hpc_server_is_ostree | d(false)) |
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+      register: __hpc_rdma_packages_install
+      until: __hpc_rdma_packages_install is success
 
     # azhpc-images build scripts do the same thing here:
     # https://github.com/Azure/azhpc-images/blob/a3f92d283af6c9d11bf08eb0f8763ab67f7c8713/common/install_waagent.sh#L53
@@ -310,6 +324,8 @@
     state: present
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+    register: __hpc_openmpi_common_packages_install
+    until: __hpc_openmpi_common_packages_install is success
 
 - name: Install system OpenMPI
   when: hpc_install_system_openmpi
@@ -318,6 +334,8 @@
     state: present
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+  register: __hpc_system_openmpi_packages_install
+  until: __hpc_system_openmpi_packages_install is success
 
 - name: Download, build, and configure OpenMPI and all required packages
   when: hpc_build_openmpi_w_nvidia_gpu_support

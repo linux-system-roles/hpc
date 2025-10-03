@@ -101,8 +101,8 @@
         - name: Flush handlers
           meta: flush_handlers
 
-        - name: Get all ulimits
-          command: ulimit -a
+        - name: In a new login shell, get ulimits
+          command: bash -l -c "ulimit -a"
           changed_when: false
           register: __hpc_ulimits_cmd
 
