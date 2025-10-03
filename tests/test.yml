@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Verify if role configures a custom storage properly
+  hosts: localhost
+  gather_facts: false
+  vars:
+    hpc_install_prefix: /opt
+    __hpc_hpcx_info:
+      name: hpcx
+      version: 2.24.1
+      sha256: 92f746dd8cf293cf5b3955a0addd92e162dd012e1f8f728983a85c6c134e33b0
+      url: https://content.mellanox.com/hpc/hpc-x/v2.24.1_cuda12/hpcx-v2.24.1-gcc-inbox-redhat9-cuda12-x86_64.tbz
+    __hpc_gdrcopy_info:
+      name: gdrcopy
+      url: https://github.com/NVIDIA/gdrcopy/archive/0f7366e73b019e7facf907381f6b0b2f5a1576e4.zip
+      build_cmd: |
+        set -euo pipefail
+        GDRCOPY_VERSION=2.5-1
+        GDRCOPY_DISTRIBUTION=el9
+        CUDA=/usr/local/cuda ./build-rpm-packages.sh
+        rpm -Uvh gdrcopy-kmod-${GDRCOPY_VERSION}dkms.${GDRCOPY_DISTRIBUTION}.noarch.rpm
+        rpm -Uvh gdrcopy-${GDRCOPY_VERSION}.${GDRCOPY_DISTRIBUTION}.x86_64.rpm
+        rpm -Uvh gdrcopy-devel-${GDRCOPY_VERSION}.${GDRCOPY_DISTRIBUTION}.noarch.rpm
+    version: 4.2.9-1
+  tasks:
+    - name: Set __hpc_hpcx_path fact
+      vars:
+        hpcx_tarball_name: "{{ __hpc_hpcx_info.url | basename
+          | regex_replace('\\.[^.]*$', '') }}"
+      debug:
+        msg: "{{ hpc_install_prefix }}/{{ hpcx_tarball_name }}"
