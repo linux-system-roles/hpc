@@ -324,8 +324,8 @@
     state: present
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
-    register: __hpc_openmpi_common_packages_install
-    until: __hpc_openmpi_common_packages_install is success
+  register: __hpc_openmpi_common_packages_install
+  until: __hpc_openmpi_common_packages_install is success
 
 - name: Install system OpenMPI
   when: hpc_install_system_openmpi
