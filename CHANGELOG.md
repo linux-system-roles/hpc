@@ -1,6 +1,19 @@
 Changelog
 =========
 
+[0.2.1] - 2025-10-06
+--------------------
+
+### Bug Fixes
+
+- fix: Improve efficiency and apply overall fixes to the role processes (#22)
+- fix: Retry installation of packages (#23)
+- fix: Fix bug with incorrect indentation of until (#24)
+
+### Other Changes
+
+- ci: Bump actions/github-script from 7 to 8 (#20)
+
 [0.2.0] - 2025-10-02
 --------------------
 
