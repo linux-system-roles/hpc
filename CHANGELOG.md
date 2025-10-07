@@ -1,6 +1,17 @@
 Changelog
 =========
 
+[0.2.2] - 2025-10-07
+--------------------
+
+### Bug Fixes
+
+- fix: fix lmod PATH env for openmpi-5.0.8 (#27)
+
+### Other Changes
+
+- ci: bump github-script from v6 to v7; bump setup-python from v5 to v6 (#26)
+
 [0.2.1] - 2025-10-06
 --------------------
 
