@@ -1,0 +1,33 @@
+[epel]
+name=Extra Packages for Enterprise Linux 9
+# It is much more secure to use the metalink, but if you wish to use a local mirror
+# place its address here.
+baseurl=https://dl.fedoraproject.org/pub/epel/9/Everything/x86_64
+#metalink=https://mirrors.fedoraproject.org/metalink?repo=epel-9&arch=$basearch&infra=$infra&content=$contentdir
+enabled=1
+gpgcheck=1
+countme=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-9
+
+[epel-next]
+name=Extra Packages for Enterprise Linux 9 - Next
+# It is much more secure to use the metalink, but if you wish to use a local mirror
+# place its address here.
+baseurl=https://dl.fedoraproject.org/pub/epel/next/9/Everything/x86_64
+#metalink=https://mirrors.fedoraproject.org/metalink?repo=epel-next-9&arch=$basearch&infra=$infra&content=$contentdir
+enabled=1
+gpgcheck=1
+countme=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-9
+
+[nvidia-cuda]
+name=NVIDIA CUDA repository
+gpgkey=https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/D42D0685.pub
+baseurl=https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64
+enabled=1
+
+[microsoft-prod]
+name=Microsoft Production repository
+gpgkey=https://packages.microsoft.com/keys/microsoft.asc
+baseurl=https://packages.microsoft.com/rhel/9/prod/
+enabled=1
