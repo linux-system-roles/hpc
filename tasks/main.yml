@@ -51,6 +51,32 @@
     - "{{ __hpc_nvidia_cuda_repo }}"
     - "{{ __hpc_microsoft_prod_repo }}"
 
+- name: Get list of installed repositories
+  command: dnf repolist
+  changed_when: false
+  register: __hpc_dnf_repolist
+
+- name: Remove RHUI Azure repository
+  command: dnf config-manager --set-disabled rhui-microsoft-azure-rhel9
+  changed_when: true
+  when: "'rhui-microsoft-azure-rhel9 ' in __hpc_dnf_repolist.stdout"
+
+- name: Configure RHUI Azure EUS repository
+  yum_repository:
+    name: "{{ __hpc_rhui_azure_rhel_9_eus_repo.name }}"
+    description: "{{ __hpc_rhui_azure_rhel_9_eus_repo.description }}"
+    baseurl: "{{ __hpc_rhui_azure_rhel_9_eus_repo.baseurl }}"
+    gpgkey: "{{ __hpc_rhui_azure_rhel_9_eus_repo.key }}"
+    gpgcheck: true
+
+- name: Lock the RHEL minor release to the current minor release
+  copy:
+    content: "{{ ansible_distribution_version }}"
+    dest: /etc/dnf/vars/releasever
+    mode: "0644"
+    owner: root
+    group: root
+
 - name: Configure firewall to use trusted zone as default
   when: hpc_manage_firewall
   include_role:
