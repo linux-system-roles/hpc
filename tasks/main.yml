@@ -3,6 +3,14 @@
 - name: Set platform/version specific variables
   include_tasks: tasks/set_vars.yml
 
+- name: Fail on unsupported architectures
+  fail:
+    msg: >-
+      This role supports only on x86_64 architecture.
+      You are running on {{ ansible_architecture }} architecture.
+      Let us know if you need the role to support it.
+  when: ansible_architecture != 'x86_64'
+
 - name: Fail if role installs openmpi without cuda toolkit
   fail:
     msg:

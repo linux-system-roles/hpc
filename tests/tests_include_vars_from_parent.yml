@@ -3,6 +3,9 @@
   hosts: all
   gather_facts: true
   tasks:
+    - name: Skip unsupported architectures
+      include_tasks: tasks/skip_unsupported_archs.yml
+
     - name: Run test in a block to clean up in always
       block:
         - name: Create var file in caller that can override the one in called role

@@ -15,6 +15,9 @@
     hpc_install_system_openmpi: false
     hpc_build_openmpi_w_nvidia_gpu_support: false
   tasks:
+    - name: Skip unsupported architectures
+      include_tasks: tasks/skip_unsupported_archs.yml
+
     - name: Run test in a block to clean up in always
       block:
         - name: Run the role
