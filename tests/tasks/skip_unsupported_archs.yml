@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Gather architecture facts
+  setup:
+    gather_subset: architecture
+  when: '"architecture" not in ansible_facts.keys() | list'
+
+- name: Skip unsupported architectures
+  when: ansible_architecture != 'x86_64'
+  meta: end_host

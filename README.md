@@ -8,7 +8,8 @@ Ansible role that configures RHEL 9.6 image in Microsoft Azure Cloud for HPC.
 
 ## Requirements
 
-See below
+* This role supports the x86_64 architecture only.
+HPC software is not available on other architectures for now.
 
 ### Collection requirements
 

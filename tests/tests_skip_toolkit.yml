@@ -16,7 +16,12 @@
     hpc_install_system_openmpi: false
     hpc_build_openmpi_w_nvidia_gpu_support: false
     hpc_reboot_ok: true
+  tags:
+    - tests::reboot
   tasks:
+    - name: Skip unsupported architectures
+      include_tasks: tasks/skip_unsupported_archs.yml
+
     - name: Run test in block to clean up afterwards
       block:
         # These tasks are copied from storage/tests/get_unused_disk.yml
