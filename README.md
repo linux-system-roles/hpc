@@ -22,6 +22,20 @@ from external collections.  Please use the following command to install them:
 ansible-galaxy collection install -vv -r meta/collection-requirements.yml
 ```
 
+## Variables for Controlling Repositories
+
+### hpc_enable_eus_repo
+
+Whether to disable the default `rhui-azure-rhel${major_version}` repository and enable the EUS `rhui-azure-rhel${major_version}-eus` repository.
+
+This is required to continue getting updates for your minor version.
+For example, when on RHEL 9.6, once RHEL 9.7 is released, your system will install packages from RHEL 9.7 repositories.
+Setting this variable to `true` locks the version to RHEL 9.6 so that you get packages from RHEL 9.6.z repositories.
+
+Default: `true`
+
+Type: `bool`
+
 ## Variables for Controlling Packages to Install
 
 These variables control what packages the role installs.

@@ -14,6 +14,7 @@
     hpc_install_rdma: false
     hpc_install_system_openmpi: false
     hpc_build_openmpi_w_nvidia_gpu_support: false
+    hpc_enable_eus_repo: false
   tasks:
     - name: Skip unsupported architectures
       include_tasks: tasks/skip_unsupported_archs.yml
