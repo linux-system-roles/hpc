@@ -59,6 +59,7 @@
             hpc_install_rdma: false
             hpc_install_system_openmpi: false
             hpc_build_openmpi_w_nvidia_gpu_support: false
+            hpc_enable_eus_repo: false
 
         - name: Cleanup
           file:

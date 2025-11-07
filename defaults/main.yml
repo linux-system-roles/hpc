@@ -25,3 +25,5 @@ hpc_tuning: true
 
 hpc_update_kernel: true
 hpc_update_all_packages: false
+
+hpc_enable_eus_repo: true
