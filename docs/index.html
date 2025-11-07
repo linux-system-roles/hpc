@@ -141,6 +141,13 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li><a href="#collection-requirements"
 id="toc-collection-requirements">Collection requirements</a></li>
 </ul></li>
+<li><a href="#variables-for-controlling-repositories"
+id="toc-variables-for-controlling-repositories">Variables for
+Controlling Repositories</a>
+<ul>
+<li><a href="#hpc_enable_eus_repo"
+id="toc-hpc_enable_eus_repo">hpc_enable_eus_repo</a></li>
+</ul></li>
 <li><a href="#variables-for-controlling-packages-to-install"
 id="toc-variables-for-controlling-packages-to-install">Variables for
 Controlling Packages to Install</a>
@@ -243,6 +250,19 @@ additional modules from external collections. Please use the following
 command to install them:</p>
 <div class="sourceCode" id="cb1"><pre
 class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ansible-galaxy</span> collection install <span class="at">-vv</span> <span class="at">-r</span> meta/collection-requirements.yml</span></code></pre></div>
+<h1 id="variables-for-controlling-repositories">Variables for
+Controlling Repositories</h1>
+<h2 id="hpc_enable_eus_repo">hpc_enable_eus_repo</h2>
+<p>Whether to disable the default
+<code>rhui-azure-rhel${major_version}</code> repository and enable the
+EUS <code>rhui-azure-rhel${major_version}-eus</code> repository.</p>
+<p>This is required to continue getting updates for your minor version.
+For example, when on RHEL 9.6, once RHEL 9.7 is released, your system
+will install packages from RHEL 9.7 repositories. Setting this variable
+to <code>true</code> locks the version to RHEL 9.6 so that you get
+packages from RHEL 9.6.z repositories.</p>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
 <h1 id="variables-for-controlling-packages-to-install">Variables for
 Controlling Packages to Install</h1>
 <p>These variables control what packages the role installs. By default,
