@@ -1,6 +1,24 @@
 Changelog
 =========
 
+[0.3.0] - 2025-11-13
+--------------------
+
+### New Features
+
+- feat: lock VM to RHEL9.6 and enable EUS channels (#31)
+
+### Bug Fixes
+
+- fix: Fail on unsupported architectures (#30)
+
+### Other Changes
+
+- ci: Bump actions/upload-artifact from 4 to 5 (#32)
+- ci: use versioned upload-artifact instead of master; bump codeql-action to v4; bump upload-artifact to v5 (#33)
+- ci: bump tox-lsr to 3.13.0 (#34)
+- ci: bump tox-lsr to 3.14.0 - this moves standard-inventory-qcow2 to tox-lsr (#35)
+
 [0.2.2] - 2025-10-07
 --------------------
 
