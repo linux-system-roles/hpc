@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.3.1] - 2025-11-17
+--------------------
+
+### Bug Fixes
+
+- fix: cannot use community-general version 12 - no py27 and py36 support (#37)
+
 [0.3.0] - 2025-11-13
 --------------------
 
