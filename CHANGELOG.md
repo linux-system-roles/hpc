@@ -1,6 +1,16 @@
 Changelog
 =========
 
+[0.3.2] - 2026-01-06
+--------------------
+
+### Other Changes
+
+- ci: bump actions/checkout from 5 to 6 (#39)
+- ci: add qemu tests for Fedora 43, drop Fedora 41 (#40)
+- ci: bump actions/upload-artifact from 5 to 6 (#41)
+- docs: fix copyright in license (#42)
+
 [0.3.1] - 2025-11-17
 --------------------
 
