@@ -7,9 +7,9 @@
   fail:
     msg: >-
       This role supports only on x86_64 architecture.
-      You are running on {{ ansible_architecture }} architecture.
+      You are running on {{ ansible_facts['architecture'] }} architecture.
       Let us know if you need the role to support it.
-  when: ansible_architecture != 'x86_64'
+  when: ansible_facts['architecture'] != 'x86_64'
 
 - name: Fail if role installs openmpi without cuda toolkit
   fail:
@@ -61,20 +61,20 @@
 
     - name: Ensure that the non-EUS RHUI Azure repository is not installed
       package:
-        name: rhui-azure-rhel{{ ansible_distribution_major_version }}
+        name: rhui-azure-rhel{{ ansible_facts['distribution_major_version'] }}
         state: absent
         use: "{{ (__hpc_server_is_ostree | d(false)) |
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
     - name: Enable the RHUI Azure EUS repository
       when: >-
-        'rhui-microsoft-azure-rhel' + ansible_distribution_major_version
+        'rhui-microsoft-azure-rhel' + ansible_facts['distribution_major_version']
         + '-eus ' not in __hpc_dnf_repolist.stdout
       block:
         - name: Create a temp file for the EUS repository configuration
           tempfile:
             state: file
-            prefix: rhel{{ ansible_distribution_major_version }}-eus
+            prefix: rhel{{ ansible_facts['distribution_major_version'] }}-eus
             suffix: .config
           register: __hpc_euc_config
 
@@ -89,13 +89,13 @@
         - name: Add EUS repository
           command: >-
             dnf --config {{ __hpc_euc_config.path }} install
-            rhui-azure-rhel{{ ansible_distribution_major_version }}-eus
+            rhui-azure-rhel{{ ansible_facts['distribution_major_version'] }}-eus
             --assumeyes
           changed_when: true
 
         - name: Lock the RHEL minor release to the current minor release
           copy:
-            content: "{{ ansible_distribution_version }}"
+            content: "{{ ansible_facts['distribution_version'] }}"
             dest: /etc/dnf/vars/releasever
             mode: "0644"
             owner: root
@@ -225,7 +225,7 @@
 - name: Install NVidia driver
   # Note that currently the role supports only Microsoft Azure
   # When we add more cloud providers, we need to update this condition
-  when: ansible_system_vendor == "Microsoft Corporation"
+  when: ansible_facts["system_vendor"] == "Microsoft Corporation"
   block:
     - name: Get list of dnf modules
       command: dnf module list
@@ -274,7 +274,7 @@
 
 - name: Install CUDA driver and enable nvidia-persistenced.service
   when:
-    - ansible_system_vendor == "Microsoft Corporation"
+    - ansible_facts["system_vendor"] == "Microsoft Corporation"
     - hpc_install_cuda_driver
   block:
     - name: Install CUDA driver
@@ -294,7 +294,7 @@
 - name: Install CUDA Toolkit and lock version of its packages
   when:
     - hpc_install_cuda_toolkit
-    - ansible_system_vendor == "Microsoft Corporation"
+    - ansible_facts["system_vendor"] == "Microsoft Corporation"
   block:
     - name: Install CUDA Toolkit
       package:
@@ -449,7 +449,7 @@
               ./configure --prefix={{ __hpc_pmix_path }}
               --enable-pmix-binaries
               --disable-dependency-tracking
-            - make -j {{ ansible_processor_nproc }}
+            - make -j {{ ansible_facts["processor_nproc"] }}
             - make install
 
     - name: Ensure PMIx modulefile directory exists
@@ -638,7 +638,7 @@
               --enable-prte-prefix-by-default
               --with-platform=contrib/platform/mellanox/optimized
               --with-cuda={{ __hpc_cuda_path }}
-            - make -j {{ ansible_processor_nproc }}
+            - make -j {{ ansible_facts["processor_nproc"] }}
             - make install
 
         - name: Remove extracted tarball
