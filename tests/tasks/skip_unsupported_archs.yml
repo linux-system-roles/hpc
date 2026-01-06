@@ -6,5 +6,5 @@
   when: '"architecture" not in ansible_facts.keys() | list'
 
 - name: Skip unsupported architectures
-  when: ansible_architecture != 'x86_64'
+  when: ansible_facts['architecture'] != 'x86_64'
   meta: end_host

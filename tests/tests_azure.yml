@@ -10,7 +10,7 @@
   tasks:
     - name: End if not running on Azure
       meta: end_play
-      when: ansible_system_vendor != "Microsoft Corporation"
+      when: ansible_facts['system_vendor'] != "Microsoft Corporation"
 
     - name: Run the role
       include_role:

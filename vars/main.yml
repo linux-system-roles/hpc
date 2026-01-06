@@ -6,9 +6,9 @@ __hpc_required_facts:
   - distribution_major_version
   - distribution_version
   - os_family
-  # required for ansible_system_vendor
+  # required for ansible_facts["system_vendor"]
   - devices
-  # required for ansible_processor_nproc
+  # required for ansible_facts["processor_nproc"]
   - processor
 # the subsets of ansible_facts that need to be gathered in case any of the
 # facts in required_facts is missing; see the documentation of
@@ -87,8 +87,8 @@ __hpc_rh_distros:
 __hpc_rh_distros_fedora: "{{ __hpc_rh_distros + ['Fedora'] }}"
 
 # Use this in conditionals to check if distro is Red Hat or clone
-__hpc_is_rh_distro: "{{ ansible_distribution in __hpc_rh_distros }}"
+__hpc_is_rh_distro: "{{ ansible_facts['distribution'] in __hpc_rh_distros }}"
 
 # Use this in conditionals to check if distro is Red Hat or clone, or Fedora
-__hpc_is_rh_distro_fedora: "{{ ansible_distribution in __hpc_rh_distros_fedora }}"
+__hpc_is_rh_distro_fedora: "{{ ansible_facts['distribution'] in __hpc_rh_distros_fedora }}"
 # END - DO NOT EDIT THIS BLOCK - rh distros variables
