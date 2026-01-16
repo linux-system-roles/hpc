@@ -716,6 +716,57 @@
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
+- name: Install Moneo monitoring tool
+  when: hpc_install_moneo
+  block:
+    - name: Check if Moneo is already installed
+      stat:
+        path: "{{ __hpc_moneo_install_dir }}/Moneo/moneo.py"
+      register: __hpc_moneo_installed
+
+    - name: Download and install Moneo
+      when: not __hpc_moneo_installed.stat.exists
+      block:
+        - name: Ensure Moneo install directory exists
+          file:
+            path: "{{ __hpc_moneo_install_dir }}"
+            state: directory
+            mode: '0755'
+            owner: root
+            group: root
+
+        - name: Download Moneo
+          include_tasks: download_extract_package.yml
+          vars:
+            __hpc_pkg_info: "{{ __hpc_moneo_info }}"
+
+        - name: Copy Moneo files to install directory
+          copy:
+            src: "{{ __hpc_pkg_extracted.path }}/"
+            remote_src: true
+            dest: "{{ __hpc_moneo_install_dir }}/Moneo"
+            mode: '0755'
+            owner: root
+            group: root
+
+        - name: Configure Moneo service
+          command: "{{ __hpc_moneo_install_dir }}/Moneo/linux_service/configure_service.sh"
+          register: __hpc_moneo_configure
+          changed_when: "'already configured' not in __hpc_moneo_configure.stdout"
+
+        - name: Remove extracted temp directory
+          file:
+            path: "{{ __hpc_pkg_extracted.path }}"
+            state: absent
+          changed_when: false
+
+    - name: Add Moneo alias to /etc/bashrc
+      lineinfile:
+        path: /etc/bashrc
+        line: "alias moneo='python3 {{ __hpc_moneo_install_dir }}/Moneo/moneo.py'"
+        state: present
+        mode: '0644'
+
 - name: Clean dnf cache
   command: dnf clean all
   changed_when: false

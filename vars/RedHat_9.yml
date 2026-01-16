@@ -52,3 +52,9 @@ __hpc_pmix_info:
   version: 4.2.9
   sha256: 6b11f4fd5c9d7f8e55fc6ebdee9af04b839f44d06044e58cea38c87c168784b3
   url: https://github.com/openpmix/openpmix/releases/download/v4.2.9/pmix-4.2.9.tar.bz2
+
+__hpc_moneo_info:
+  name: moneo
+  version: 0.3.4
+  sha256: bab588b37f9a7d03fff82ff22d8a24c18a64e18eb2dad31f447a67b6fb76bd4c
+  url: https://github.com/Azure/Moneo/archive/refs/tags/v0.3.4.tar.gz

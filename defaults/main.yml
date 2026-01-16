@@ -20,6 +20,7 @@ hpc_install_nvidia_fabric_manager: true
 hpc_install_rdma: true
 hpc_install_system_openmpi: true
 hpc_build_openmpi_w_nvidia_gpu_support: true
+hpc_install_moneo: true
 
 hpc_tuning: true
 
