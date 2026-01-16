@@ -716,6 +716,9 @@
     use: "{{ (__hpc_server_is_ostree | d(false)) |
       ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
+- name: Install Moneo monitoring tool
+  include_tasks: tasks/install_moneo.yml
+
 - name: Clean dnf cache
   command: dnf clean all
   changed_when: false

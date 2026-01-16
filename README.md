@@ -150,6 +150,22 @@ Default: `true`
 
 Type: `bool`
 
+### hpc_install_moneo
+
+Whether to install the Azure Moneo monitoring tool.
+
+Moneo is a distributed GPU system monitor for AI training and inferencing clusters.
+It collects GPU telemetry and supports integration with Azure Monitor.
+
+The tool is installed to `/opt/azurehpc/tools/Moneo` and an alias `moneo` is added
+to `/etc/bashrc` for easy access.
+
+For more information, see: <https://github.com/Azure/Moneo>
+
+Default: `true`
+
+Type: `bool`
+
 ## Variables for Configuring Tuning for HPC Workloads
 
 ### hpc_tuning
