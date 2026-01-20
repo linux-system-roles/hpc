@@ -69,6 +69,7 @@ __hpc_kernel_versionlock_rpms:
   - kernel-devel
   - kernel-headers
 __hpc_install_prefix: /opt
+__hpc_moneo_install_dir: /opt/azurehpc/tools
 
 __hpc_module_dir: /usr/share/modulefiles
 
