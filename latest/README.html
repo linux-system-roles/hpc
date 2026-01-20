@@ -170,6 +170,8 @@ id="toc-hpc_install_rdma">hpc_install_rdma</a></li>
 id="toc-hpc_install_system_openmpi">hpc_install_system_openmpi</a></li>
 <li><a href="#hpc_build_openmpi_w_nvidia_gpu_support"
 id="toc-hpc_build_openmpi_w_nvidia_gpu_support">hpc_build_openmpi_w_nvidia_gpu_support</a></li>
+<li><a href="#hpc_install_moneo"
+id="toc-hpc_install_moneo">hpc_install_moneo</a></li>
 </ul></li>
 <li><a href="#variables-for-configuring-tuning-for-hpc-workloads"
 id="toc-variables-for-configuring-tuning-for-hpc-workloads">Variables
@@ -342,6 +344,17 @@ to <code>true</code>, which is the default value:</p>
 <div class="sourceCode" id="cb4"><pre
 class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hpc_install_cuda_toolkit</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">hpc_install_hpc_nvidia_nccl</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span></code></pre></div>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
+<h2 id="hpc_install_moneo">hpc_install_moneo</h2>
+<p>Whether to install the Azure Moneo monitoring tool.</p>
+<p>Moneo is a distributed GPU system monitor for AI training and
+inferencing clusters. It collects GPU telemetry and supports integration
+with Azure Monitor.</p>
+<p>The role installs Moneo to /opt/azurehpc/tools/Moneo and adds an
+alias moneo to /etc/bashrc for easy access.</p>
+<p>For more information, see <a
+href="https://github.com/Azure/Moneo">https://github.com/Azure/Moneo</a>.</p>
 <p>Default: <code>true</code></p>
 <p>Type: <code>bool</code></p>
 <h1 id="variables-for-configuring-tuning-for-hpc-workloads">Variables
