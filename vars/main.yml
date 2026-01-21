@@ -71,6 +71,14 @@ __hpc_kernel_versionlock_rpms:
 __hpc_install_prefix: /opt
 __hpc_moneo_install_dir: /opt/azurehpc/tools
 
+# location for azure specific scripts and resources
+__hpc_azure_resource_dir: "{{ __hpc_install_prefix }}/hpc/azure"
+__hpc_azure_tools_dir: "{{ __hpc_azure_resource_dir }}/tools"
+__hpc_azure_tests_dir: "{{ __hpc_azure_resource_dir }}/tests"
+
+# location for runtime selected azure resources
+__hpc_azure_runtime_dir: /var/hpc/azure
+
 __hpc_module_dir: /usr/share/modulefiles
 
 # A variable for testing purposes to force a specific kernel version to be installed
