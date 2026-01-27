@@ -34,6 +34,16 @@
     - hpc_install_nvidia_container_toolkit
     - not hpc_install_docker
 
+- name: Fail if role installs azurehpc-health-checks without NVIDIA Container Toolkit
+  fail:
+    msg:
+      - azurehpc-health-checks requires NVIDIA Container Toolkit to be installed
+      - You must set the following variable to true
+      - "hpc_install_nvidia_container_toolkit: true"
+  when:
+    - hpc_install_azurehpc_health_checks
+    - not hpc_install_nvidia_container_toolkit
+
 - name: Deploy GPG keys for repositories
   rpm_key:
     key: "{{ item.key }}"
@@ -1019,6 +1029,196 @@
         line: "alias moneo='python3 {{ __hpc_moneo_install_dir }}/Moneo/moneo.py'"
         state: present
         mode: '0644'
+
+- name: Install KVP client
+  block:
+    - name: Check if KVP client is already installed
+      stat:
+        path: "{{ __hpc_azure_tools_dir }}/kvp_client"
+      register: __hpc_kvp_installed
+
+    - name: Download and compile KVP client
+      when: not __hpc_kvp_installed.stat.exists
+      block:
+        - name: Create temporary directory for KVP client
+          tempfile:
+            state: directory
+            prefix: kvp_client_build_
+          register: __hpc_kvp_temp_dir
+
+        - name: Download KVP client source code to temp directory
+          get_url:
+            url: "{{ __hpc_kvp_client_info.url }}"
+            dest: "{{ __hpc_kvp_temp_dir.path }}/{{ __hpc_kvp_client_info.name }}"
+            checksum: "sha256:{{ __hpc_kvp_client_info.sha256 }}"
+            mode: '0644'
+
+        - name: Compile KVP client in temp directory
+          command:
+            cmd: gcc {{ __hpc_kvp_temp_dir.path }}/kvp_client.c -o {{ __hpc_kvp_temp_dir.path }}/kvp_client
+
+        - name: Copy compiled KVP client to {{ __hpc_azure_tools_dir }}
+          copy:
+            src: "{{ __hpc_kvp_temp_dir.path }}/kvp_client"
+            dest: "{{ __hpc_azure_tools_dir }}/kvp_client"
+            remote_src: true
+            owner: root
+            group: root
+            mode: '0755'
+
+        - name: Clean up temporary KVP client build directory
+          file:
+            path: "{{ __hpc_kvp_temp_dir.path }}"
+            state: absent
+
+- name: Install azurehpc-health-checks
+  when: hpc_install_azurehpc_health_checks
+  block:
+    - name: Check if azurehpc-health-checks aznhc-nv Docker image exists
+      command: docker images -q mcr.microsoft.com/aznhc/aznhc-nv:latest
+      register: __hpc_aznhc_docker_image
+      changed_when: false
+      failed_when: false
+
+    - name: Check if azurehpc-health-checks directory exists
+      stat:
+        path: "{{ __hpc_azure_tests_dir }}/azurehpc-health-checks"
+      register: __hpc_aznhc_dir
+
+    - name: Determine if installation is complete
+      set_fact:
+        __hpc_aznhc_installed: "{{ __hpc_aznhc_docker_image.stdout != '' and __hpc_aznhc_dir.stat.exists }}"
+
+    - name: Check for existing installation
+      debug:
+        msg: "azurehpc-health-checks found. Checking for updates and ensuring latest version..."
+      when: __hpc_aznhc_installed | bool
+
+    - name: Determine if files need to be extracted
+      set_fact:
+        __hpc_aznhc_need_extract: "{{ not __hpc_aznhc_dir.stat.exists }}"
+
+    # Only check /var free space if Docker image doesn't exist yet (first-time installation)
+    - name: Check /var free space for first-time aznhc-nv Docker image download
+      when: __hpc_aznhc_docker_image.stdout == ''
+      vars:
+        __hpc_var_free_gb: "{{ __hpc_var_free_cmd.stdout_lines[1] | regex_replace('G','') | trim | int }}"
+        __hpc_var_has_space: "{{ (__hpc_var_free_gb | int) >= 20 }}"
+      block:
+        - name: Get /var free space
+          command: df -BG /var --output=avail
+          register: __hpc_var_free_cmd
+          changed_when: false
+
+        - name: Warn if /var free space is too small for aznhc-nv Docker image pull
+          fail:
+            msg: >-
+              WARNING: /var free space ({{ __hpc_var_free_gb }}G) is less than the required 20G.
+              Skipping azurehpc-health-checks installation because aznhc-nv Docker image cannot be pulled.
+              To install health checks, increase /var space by:
+              (1) Expanding the root disk in Azure portal,
+              (2) Adding the new space as a PV to the volume group (e.g., pvresize /dev/sda2),
+              (3) Expanding the /var logical volume (e.g., lvextend -L +20G /dev/rootvg/varlv && xfs_growfs /var).
+              See https://learn.microsoft.com/en-us/azure/virtual-machines/linux/expand-disks?tabs=rhellvm for details.
+              Alternatively, configure hpc_varlv_size before running this role.
+          when: not __hpc_var_has_space
+
+        - name: Set skip flag if /var has insufficient free space
+          set_fact:
+            __hpc_skip_healthcheck: "{{ not __hpc_var_has_space }}"
+
+    # If image already exists, skip the space check
+    - name: Skip space check when image already exists
+      set_fact:
+        __hpc_skip_healthcheck: false
+      when: __hpc_aznhc_docker_image.stdout != ''
+
+    - name: Configure and install azurehpc-health-checks files
+      when: __hpc_aznhc_need_extract | bool and not __hpc_skip_healthcheck | bool
+      block:
+        - name: Download and extract azurehpc-health-checks
+          include_tasks: download_extract_package.yml
+          vars:
+            __hpc_pkg_info: "{{ __hpc_aznhc_info }}"
+
+        - name: Replace hardcoded /opt/azurehpc/tools paths in temporary getPhysHostName.py
+          replace:
+            path: "{{ __hpc_pkg_extracted.path }}/getPhysHostName.py"
+            regexp: '/opt/azurehpc/tools'
+            replace: '{{ __hpc_azure_tools_dir }}'
+
+        - name: Replace hardcoded /opt/azurehpc/tools paths in temporary export_nhc_result_to_kusto.py
+          replace:
+            path: "{{ __hpc_pkg_extracted.path }}/distributed_nhc/export_nhc_result_to_kusto.py"
+            regexp: '/opt/azurehpc/tools'
+            replace: '{{ __hpc_azure_tools_dir }}'
+
+        - name: Create azurehpc-health-checks directory
+          file:
+            path: "{{ __hpc_azure_tests_dir }}/azurehpc-health-checks"
+            state: directory
+            mode: "0755"
+
+        - name: Copy extracted files to {{ __hpc_azure_tests_dir }}/azurehpc-health-checks
+          copy:
+            src: "{{ __hpc_pkg_extracted.path }}/"
+            dest: "{{ __hpc_azure_tests_dir }}/azurehpc-health-checks/"
+            remote_src: true
+            mode: preserve
+
+        - name: Install dos2unix if not present
+          package:
+            name: dos2unix
+            state: present
+            use: "{{ (__hpc_server_is_ostree | d(false)) |
+              ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
+        - name: Find config files in triggerGHR/config
+          find:
+            paths: "{{ __hpc_azure_tests_dir }}/azurehpc-health-checks/triggerGHR/config"
+            patterns: "*"
+          register: __hpc_aznhc_config_files
+
+        - name: Convert config files from DOS to Unix format
+          command:
+            cmd: dos2unix {{ item.path }}
+          loop: "{{ __hpc_aznhc_config_files.files }}"
+          changed_when: true
+
+        - name: Make triggerGHR.sh executable
+          file:
+            path: "{{ __hpc_azure_tests_dir }}/azurehpc-health-checks/triggerGHR/triggerGHR.sh"
+            mode: "0755"
+
+        - name: Make pull-image-mcr.sh executable
+          file:
+            path: "{{ __hpc_azure_tests_dir }}/azurehpc-health-checks/dockerfile/pull-image-mcr.sh"
+            mode: "0755"
+
+        - name: Configure NCCL allreduce check for nd96isr_h200_v5
+          replace:
+            path: "{{ __hpc_azure_tests_dir }}/azurehpc-health-checks/conf/nd96isr_h200_v5.conf"
+            regexp: '\* \|\| check_nccl_allreduce 431\.0 1 16G \$AZ_NHC_ROOT/topofiles/ndv5-topo\.xml'
+            replace: '* || check_nccl_allreduce 431.0 1 16G'
+
+        - name: Configure NCCL allreduce check for nd96isr_h100_v5
+          replace:
+            path: "{{ __hpc_azure_tests_dir }}/azurehpc-health-checks/conf/nd96isr_h100_v5.conf"
+            regexp: '\* \|\| check_nccl_allreduce 460\.0 1 16G \$AZ_NHC_ROOT/topofiles/ndv5-topo\.xml'
+            replace: '* || check_nccl_allreduce 460.0 1 16G'
+
+        - name: Clean up temporary extraction directory
+          file:
+            path: "{{ __hpc_pkg_extracted.path }}"
+            state: absent
+          changed_when: false
+
+    - name: Pull azurehpc-health-checks Docker image (always pull latest)
+      when: not __hpc_skip_healthcheck | bool
+      command:
+        cmd: ./dockerfile/pull-image-mcr.sh cuda
+        chdir: "{{ __hpc_azure_tests_dir }}/azurehpc-health-checks"
+      changed_when: true
 
 - name: Clean dnf cache
   command: dnf clean all

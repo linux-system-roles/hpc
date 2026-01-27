@@ -68,3 +68,14 @@ __hpc_moneo_info:
   version: 0.3.4
   sha256: bab588b37f9a7d03fff82ff22d8a24c18a64e18eb2dad31f447a67b6fb76bd4c
   url: https://github.com/Azure/Moneo/archive/refs/tags/v0.3.4.tar.gz
+
+__hpc_aznhc_info:
+  name: azurehpc-health-checks
+  version: 0.4.5
+  sha256: 5fc69a6dfdc50486dadc8aec082a815dc64c737fbd164bf70ad5c7080d5c7879
+  url: https://github.com/Azure/azurehpc-health-checks/archive/refs/tags/v0.4.5.tar.gz
+
+__hpc_kvp_client_info:
+  name: kvp_client.c
+  sha256: 0f7fa598c40994e9a18fa2982ee6ca9a591bd2ebc419f1ec526ea9bf19aae1eb
+  url: https://raw.githubusercontent.com/microsoft/lis-test/master/WS2012R2/lisa/tools/KVP/kvp_client.c

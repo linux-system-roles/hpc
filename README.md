@@ -184,6 +184,20 @@ Default: `true`
 
 Type: `bool`
 
+## hpc_install_azurehpc_health_checks
+
+Whether to install and configure Azure HPC Health Checks (AZNHC).
+
+This downloads the azurehpc-health-checks toolkit, configures it for the target GPU platform, and pulls the appropriate Docker container image from MCR. The health checks validate HPC components including GPUs, InfiniBand, storage, and MPI operations. For more information, see <https://github.com/Azure/azurehpc-health-checks>.
+
+The role installs the toolkit in `/opt/hpc/azure/tests/azurehpc-health-checks/` and pulls `mcr.microsoft.com/aznhc/aznhc-nv:latest`
+
+Note that NVIDIA Container Toolkit must be installed and at least 20G of free space in /var is required for first-time aznhc-nv docker image download. If the image does not exist and /var has insufficient space, installation will be skipped with a warning. See [Expand virtual hard disks on a Linux VM](https://learn.microsoft.com/en-us/azure/virtual-machines/linux/expand-disks?tabs=rhellvm) for disk expansion details.
+
+Default: `true`
+
+Type: `bool`
+
 ## Variables for Configuring Tuning for HPC Workloads
 
 ### hpc_tuning
