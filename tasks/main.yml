@@ -1023,11 +1023,71 @@
           register: __hpc_moneo_configure
           changed_when: "'already configured' not in __hpc_moneo_configure.stdout"
 
-        - name: Remove extracted temp directory
-          file:
-            path: "{{ __hpc_pkg_extracted.path }}"
-            state: absent
-          changed_when: false
+    - name: Ensure container registries directory exists
+      file:
+        path: /etc/containers/registries.conf.d
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Configure container registries for short-name resolution
+      copy:
+        dest: /etc/containers/registries.conf.d/99-unqualified-search.conf
+        mode: '0644'
+        owner: root
+        group: root
+        content: |
+          [aliases]
+          "prometheus" = "docker.io/prom/prometheus"
+
+    - name: Ensure containers config directory exists
+      file:
+        path: /etc/containers/containers.conf.d
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Ensure tools for managing SELinux file contexts are installed
+      package:
+        name:
+          - policycoreutils-python-utils
+        state: present
+      when:
+        - ansible_selinux is defined
+        - ansible_selinux.status | d('disabled') == 'enabled'
+
+    - name: Allow containers to read Prometheus config (SELinux fcontext)
+      shell: |
+        set -euo pipefail
+        if semanage fcontext -l | grep -Eq '^/etc/prometheus\(/\.\\*\)\?\s+all files\s+.*container_file_t'; then
+          echo "ok"
+        else
+          semanage fcontext -a -t container_file_t '/etc/prometheus(/.*)?' 2>/dev/null \
+            || semanage fcontext -m -t container_file_t '/etc/prometheus(/.*)?'
+          echo "changed"
+        fi
+      register: __hpc_prometheus_fcontext
+      changed_when: "'changed' in __hpc_prometheus_fcontext.stdout"
+      when:
+        - ansible_selinux is defined
+        - ansible_selinux.status | d('disabled') == 'enabled'
+
+    - name: Apply SELinux context labels for Prometheus config directory
+      command: restorecon -Rv /etc/prometheus
+      changed_when: false
+      failed_when: false
+      when:
+        - ansible_selinux is defined
+        - ansible_selinux.status | d('disabled') == 'enabled'
+
+    - name: Remove extracted temp directory
+      when: not __hpc_moneo_installed.stat.exists
+      file:
+        path: "{{ __hpc_pkg_extracted.path }}"
+        state: absent
+      changed_when: false
 
     - name: Add Moneo alias to /etc/bashrc
       lineinfile:
@@ -1035,6 +1095,14 @@
         line: "alias moneo='python3 {{ __hpc_azure_moneo_dir }}/moneo.py'"
         state: present
         mode: '0644'
+
+    - name: Install tests
+      template:
+        src: test-moneo.sh.j2
+        dest: "{{ __hpc_azure_tests_dir }}/test-moneo.sh"
+        owner: root
+        group: root
+        mode: '0755'
 
 - name: Install KVP client
   block:
