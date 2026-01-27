@@ -704,6 +704,20 @@
         mode: '0644'
       notify: Reload udev
 
+- name: Create Azure HPC resource directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - "{{ __hpc_azure_resource_dir }}"
+    - "{{ __hpc_azure_resource_dir }}/bin"
+    - "{{ __hpc_azure_tools_dir }}"
+    - "{{ __hpc_azure_tests_dir }}"
+    - "{{ __hpc_azure_runtime_dir }}"
+
 - name: Remove build dependencies
   vars:
     __hpc_dependencies: >-
