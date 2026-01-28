@@ -774,6 +774,14 @@
         name: sku_customisation.service
         enabled: true
 
+    - name: Install tests
+      template:
+        src: sku/test-sku-setup.sh
+        dest: "{{ __hpc_azure_tests_dir }}/"
+        owner: root
+        group: root
+        mode: '0755'
+
 - name: Remove build dependencies
   vars:
     __hpc_dependencies: >-

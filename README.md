@@ -195,7 +195,7 @@ Type: `bool`
 Whether to install the hardware tuning files for different Azure VM types (SKUs).
 
 This will install definitions for optimal hardware configurations for the different types of high performance VMs that are typically used for HPC workloads in the Azure environment.
-These include Infiniband and GPU/NVLink and NCCL customisations, as well as any workarounds for specific hardware problems that may be needed.
+These include InfiniBand and GPU/NVLink and NCCL customisations, as well as any workarounds for specific hardware problems that may be needed.
 
 Default: `true`
 
