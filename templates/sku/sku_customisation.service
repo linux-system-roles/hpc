@@ -1,0 +1,16 @@
+{{ ansible_managed | comment }}
+{{ "system_role:hpc" | comment(prefix="", postfix="") }}
+[Unit]
+Description=Customisations based on SKU
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart={{ __hpc_azure_resource_dir }}/bin/setup_sku_customisations.sh
+ExecStop={{ __hpc_azure_resource_dir }}/bin/remove_sku_customisations.sh
+RemainAfterExit=true
+StandardOutput=journal
+
+[Install]
+WantedBy=multi-user.target
+
