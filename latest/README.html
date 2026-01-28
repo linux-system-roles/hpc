@@ -178,6 +178,8 @@ id="toc-variables-for-configuring-tuning-for-hpc-workloads">Variables
 for Configuring Tuning for HPC Workloads</a>
 <ul>
 <li><a href="#hpc_tuning" id="toc-hpc_tuning">hpc_tuning</a></li>
+<li><a href="#hpc_sku_customisation"
+id="toc-hpc_sku_customisation">hpc_sku_customisation</a></li>
 </ul></li>
 <li><a href="#variables-for-configuring-how-role-reboots-managed-nodes"
 id="toc-variables-for-configuring-how-role-reboots-managed-nodes">Variables
@@ -383,6 +385,16 @@ adding a file <code>/etc/udev/rules.d/90-nfs-readahead.rules</code>.
 This configuration increases the data pre-fetching buffer to 15,380 KB
 to help overcome network latency.</p></li>
 </ul>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
+<h2 id="hpc_sku_customisation">hpc_sku_customisation</h2>
+<p>Whether to install the hardware tuning files for different Azure VM
+types (SKUs).</p>
+<p>This will install definitions for optimal hardware configurations for
+the different types of high performance VMs that are typically used for
+HPC workloads in the Azure environment. These include Infiniband and
+GPU/NVLink and NCCL customisations, as well as any workarounds for
+specific hardware problems that may be needed.</p>
 <p>Default: <code>true</code></p>
 <p>Type: <code>bool</code></p>
 <h1
