@@ -150,6 +150,25 @@ Default: `true`
 
 Type: `bool`
 
+### hpc_install_nvidia_container_toolkit
+
+Whether to install and configure NVIDIA Container Toolkit.
+
+This enables GPU support in Docker and containerd by installing the nvidia-container-toolkit package. Note that enabling this variable automatically sets `hpc_install_docker: true` unless you explicitly override it.
+
+Default: `true`
+
+Type: `bool`
+
+### hpc_install_docker
+
+Whether to install the moby-engine and moby-cli packages as well as enable the Docker service.
+To explicitly disable Docker even when using the NVIDIA Container Toolkit, you need to set this to `false`, please note that the role will fail unless you also disable `hpc_install_nvidia_container_toolkit`.
+
+Default: `"{{ hpc_install_nvidia_container_toolkit }}"`
+
+Type: `bool`
+
 ### hpc_install_moneo
 
 Whether to install the Azure Moneo monitoring tool.

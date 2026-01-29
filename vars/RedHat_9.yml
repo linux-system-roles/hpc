@@ -16,6 +16,11 @@ __hpc_microsoft_prod_repo:
   description: Microsoft Production repository
   key: https://packages.microsoft.com/keys/microsoft.asc
   baseurl: https://packages.microsoft.com/rhel/9/prod/
+__hpc_nvidia_container_toolkit_repo:
+# Here only url is used, name and description just for info
+  name: nvidia-container-toolkit
+  description: NVIDIA Container Toolkit repository
+  url: https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo
 __hpc_rhui_azure_rhel_9_eus_repo:
   name: rhui-microsoft-azure-rhel9-eus
   description: Microsoft Azure RPMs for Red Hat Enterprise Linux 9 EUS
@@ -29,6 +34,11 @@ __hpc_cuda_toolkit_packages:
 __hpc_nvidia_nccl_packages:
   - libnccl-2.27.5-1+cuda12.9
   - libnccl-devel-2.27.5-1+cuda12.9
+__hpc_nvidia_container_toolkit_packages:
+  - nvidia-container-toolkit-1.18.1-1
+__hpc_docker_packages:
+  - moby-engine-29.1.4-1.el9
+  - moby-cli-29.1.4-1.el9
 
 # Vars related to building packages from source
 __hpc_gdrcopy_info:

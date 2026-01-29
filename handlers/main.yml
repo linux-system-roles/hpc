@@ -20,3 +20,13 @@
   service:
     name: systemd-modules-load
     state: restarted
+
+- name: Restart containerd service
+  service:
+    name: containerd
+    state: restarted
+
+- name: Restart docker service
+  service:
+    name: docker
+    state: restarted
