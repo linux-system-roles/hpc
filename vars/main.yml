@@ -69,7 +69,7 @@ __hpc_kernel_versionlock_rpms:
   - kernel-devel
   - kernel-headers
 __hpc_install_prefix: /opt
-__hpc_moneo_install_dir: /opt/azurehpc/tools
+__hpc_moneo_install_dir: "{{ __hpc_azure_tools_dir }}"
 
 # location for azure specific scripts and resources
 __hpc_azure_resource_dir: "{{ __hpc_install_prefix }}/hpc/azure"
