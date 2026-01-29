@@ -227,21 +227,32 @@
   # When we add more cloud providers, we need to update this condition
   when: ansible_facts["system_vendor"] == "Microsoft Corporation"
   block:
-    - name: Get list of dnf modules
-      command: dnf module list
-      register: __hpc_dnf_modules
+    - name: Get list of enabled nvidia-driver modules
+      command: dnf module list --enabled nvidia-driver
+      register: __hpc_nvidia_enabled
+      failed_when: false
       changed_when: false
 
     - name: Reset nvidia-driver module if it is enabled of different version
-      when: __hpc_dnf_modules.stdout | regex_search('nvidia-driver (?!575-dkms).* \[e\]')
+      when: 
+      - __hpc_nvidia_enabled.stdout is search('nvidia-driver') 
+      - __hpc_nvidia_driver_stream  not in __hpc_nvidia_enabled.stdout
       command: dnf module reset nvidia-driver --assumeyes
       changed_when: true
 
+    - name: Remove NVIDIA driver packages if old/different version is present
+      when:
+      - __hpc_nvidia_enabled.stdout is search('nvidia-driver')
+      - __hpc_nvidia_driver_stream not in __hpc_nvidia_enabled.stdout
+      package:
+        name:
+        - "{{__hpc_nvidia_driver_packages}}"
+        - "{{__hpc_nvidia_fabric_manager_packages}}"
+        state: absent
+      register: __hpc_nvidia_old_removed
+
     - name: Enable NVIDIA driver module
-      vars:
-        nvidia_enabled_pattern: >-
-          {{ __hpc_nvidia_driver_module | regex_replace(':', ' ') + ' \[e\]' }}
-      when: __hpc_dnf_modules.stdout is not search(nvidia_enabled_pattern)
+      when: __hpc_nvidia_driver_stream  not in __hpc_nvidia_enabled.stdout
       command: dnf module enable {{ __hpc_nvidia_driver_module }} --assumeyes
       notify: Reboot system
       changed_when: true

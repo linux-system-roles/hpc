@@ -19,12 +19,9 @@ __hpc_required_facts_subsets: "{{ ['!all', '!min'] +
 __hpc_microsoft_prod_rpm_key: https://packages.microsoft.com/keys/microsoft.asc
 __hpc_dkms_packages:
   - dkms
-__hpc_nvidia_driver_packages:
-  - nvidia-driver
-__hpc_cuda_driver_packages:
-  - cuda-drivers
-__hpc_nvidia_fabric_manager_packages:
-  - nvidia-fabric-manager
+__hpc_nvidia_driver_packages: nvidia-driver
+__hpc_cuda_driver_packages: cuda-drivers
+__hpc_nvidia_fabric_manager_packages: nvidia-fabric-manager
 __hpc_rdma_packages:
   - rdma-core
   - rdma-core-devel
