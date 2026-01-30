@@ -3,7 +3,7 @@
 - name: Ensure that the role runs with default parameters
   hosts: all
   gather_facts: false
-  # Do not do anything in this stest, otherwise fails with not enough storage
+  # Do not do anything in this test, otherwise fails with not enough storage
   vars:
     hpc_manage_storage: false
     hpc_install_nvidia_driver: false
@@ -15,6 +15,7 @@
     hpc_install_system_openmpi: false
     hpc_build_openmpi_w_nvidia_gpu_support: false
     hpc_enable_eus_repo: false
+    hpc_install_moneo: false
   tasks:
     - name: Skip unsupported architectures
       include_tasks: tasks/skip_unsupported_archs.yml
