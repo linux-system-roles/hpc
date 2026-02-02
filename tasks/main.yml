@@ -24,6 +24,16 @@
     - not hpc_install_cuda_toolkit
     - not hpc_install_nvidia_nccl
 
+- name: Fail if role installs NVIDIA Container Toolkit without Docker
+  fail:
+    msg:
+      - NVIDIA Container Toolkit requires Docker to be installed
+      - You must set the following variable to true
+      - "hpc_install_docker: true"
+  when:
+    - hpc_install_nvidia_container_toolkit
+    - not hpc_install_docker
+
 - name: Deploy GPG keys for repositories
   rpm_key:
     key: "{{ item.key }}"
@@ -654,6 +664,113 @@
         owner: root
         group: root
         mode: '0755'
+
+- name: Install Docker via moby-engine and moby-cli
+  when: hpc_install_docker
+  block:
+    - name: Install Docker packages
+      package:
+        name: "{{ __hpc_docker_packages }}"
+        state: present
+        allow_downgrade: true
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+      register: __hpc_docker_packages_install
+      until: __hpc_docker_packages_install is success
+
+    - name: Enable and start Docker service
+      service:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: Prevent update of Docker packages
+      command: dnf versionlock add {{ item }}
+      register: __hpc_versionlock_check
+      changed_when: >-
+        'Package already locked in equivalent form'
+        not in __hpc_versionlock_check.stdout
+      loop: "{{ __hpc_docker_packages }}"
+
+- name: Install and configure NVIDIA Container Toolkit
+  when: hpc_install_nvidia_container_toolkit
+  block:
+    - name: Add NVIDIA Container Toolkit repository
+      get_url:
+        url: "{{ __hpc_nvidia_container_toolkit_repo.url }}"
+        dest: /etc/yum.repos.d/nvidia-container-toolkit.repo
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Install NVIDIA Container Toolkit
+      package:
+        name: "{{ __hpc_nvidia_container_toolkit_packages }}"
+        state: present
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+      register: __hpc_nvidia_container_toolkit_install
+      until: __hpc_nvidia_container_toolkit_install is success
+
+    - name: Prevent updates of NVIDIA Container Toolkit packages
+      command: dnf versionlock add {{ item }}
+      register: __hpc_versionlock_check
+      changed_when: >-
+        'Package already locked in equivalent form'
+        not in __hpc_versionlock_check.stdout
+      loop: "{{ __hpc_nvidia_container_toolkit_packages }}"
+
+    - name: Check if NVIDIA runtime is configured in Docker daemon
+      find:
+        paths: /etc/docker
+        patterns: daemon.json
+        contains: nvidia
+        read_whole_file: true
+      register: docker_nvidia_runtime_check
+
+    - name: Configure NVIDIA Container Toolkit for Docker runtime
+      command: nvidia-ctk runtime configure --runtime=docker
+      when: docker_nvidia_runtime_check.matched == 0
+      changed_when: true
+      notify: Restart docker service
+
+    - name: Ensure containerd config directory exists
+      file:
+        path: /etc/containerd
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Generate default containerd config
+      shell:
+        cmd: containerd config default > /etc/containerd/config.toml
+        creates: /etc/containerd/config.toml
+
+    - name: Enable SystemdCgroup in containerd config
+      lineinfile:
+        path: /etc/containerd/config.toml
+        regexp: '^\s*SystemdCgroup\s*='
+        line: '            SystemdCgroup = true'
+        backup: true
+
+    - name: Check if NVIDIA Container Toolkit drop-in file exists
+      stat:
+        path: /etc/containerd/conf.d/99-nvidia.toml
+      register: nvidia_containerd_dropin
+
+    - name: Check if containerd config has drop-in imports
+      find:
+        paths: /etc/containerd
+        patterns: config.toml
+        contains: 'imports = \["/etc/containerd/conf\.d/\*\.toml"\]'
+      register: containerd_imports_check
+
+    - name: Configure NVIDIA Container Toolkit for containerd runtime
+      command: nvidia-ctk runtime configure --runtime=containerd --set-as-default
+      when: not nvidia_containerd_dropin.stat.exists or containerd_imports_check.matched == 0
+      changed_when: true
+      notify: Restart containerd service
 
 - name: Tune system for HPC
   when: hpc_tuning
