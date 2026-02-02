@@ -69,12 +69,12 @@ __hpc_kernel_versionlock_rpms:
   - kernel-devel
   - kernel-headers
 __hpc_install_prefix: /opt
-__hpc_moneo_install_dir: "{{ __hpc_azure_tools_dir }}"
 
 # location for azure specific scripts and resources
 __hpc_azure_resource_dir: "{{ __hpc_install_prefix }}/hpc/azure"
 __hpc_azure_tools_dir: "{{ __hpc_azure_resource_dir }}/tools"
 __hpc_azure_tests_dir: "{{ __hpc_azure_resource_dir }}/tests"
+__hpc_azure_moneo_dir: "{{ __hpc_azure_tools_dir }}/Moneo"
 
 # location for runtime selected azure resources
 __hpc_azure_runtime_dir: /var/hpc/azure

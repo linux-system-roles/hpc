@@ -157,7 +157,7 @@ Whether to install the Azure Moneo monitoring tool.
 Moneo is a distributed GPU system monitor for AI training and inferencing clusters.
 It collects GPU telemetry and supports integration with Azure Monitor.
 
-The role installs Moneo to /opt/azurehpc/tools/Moneo and adds an alias moneo to /etc/bashrc for easy access.
+The role installs Moneo to /opt/hpc/azure/tools/Moneo and adds an alias moneo to /etc/bashrc for easy access.
 
 For more information, see <https://github.com/Azure/Moneo>.
 
