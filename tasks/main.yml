@@ -123,6 +123,16 @@
 - name: Configure storage
   when: hpc_manage_storage
   block:
+    - name: Validate storage size formats
+      assert:
+        that:
+          - hpc_rootlv_size is match('^[0-9]+G$')
+          - hpc_usrlv_size is match('^[0-9]+G$')
+          - hpc_varlv_size is match('^[0-9]+G$')
+        fail_msg: |
+          Storage size variables should be whole numbers in format <number>G (e.g., '15G', not '15.5G').
+          Got: rootlv={{ hpc_rootlv_size }}, usrlv={{ hpc_usrlv_size }}, varlv={{ hpc_varlv_size }}
+
     - name: Install lvm2 to get lvs command
       package:
         name: lvm2
@@ -130,46 +140,94 @@
         use: "{{ (__hpc_server_is_ostree | d(false)) |
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
-    - name: Get current LV size of {{ hpc_rootlv_name }}
-      vars:
-        __hpc_lv: /dev/mapper/{{ hpc_rootvg_name }}-{{ hpc_rootlv_name }}
-      command: lvs --noheadings --units g --nosuffix -o lv_size {{ __hpc_lv }}
+    - name: Check if rootlv exists
+      stat:
+        path: /dev/mapper/{{ hpc_rootvg_name }}-{{ hpc_rootlv_name }}
+      register: __hpc_rootlv_stat
+
+    - name: Check if usrlv exists
+      stat:
+        path: /dev/mapper/{{ hpc_rootvg_name }}-{{ hpc_usrlv_name }}
+      register: __hpc_usrlv_stat
+
+    - name: Check if varlv exists
+      stat:
+        path: /dev/mapper/{{ hpc_rootvg_name }}-{{ hpc_varlv_name }}
+      register: __hpc_varlv_stat
+
+    - name: Get current LV size of rootlv
+      command: lvs --noheadings --units g --nosuffix -o lv_size /dev/mapper/{{ hpc_rootvg_name }}-{{ hpc_rootlv_name }}
       register: __hpc_rootlv_size_cmd
       changed_when: false
+      when: __hpc_rootlv_stat.stat.exists
 
-    - name: Get current LV size of {{ hpc_usrlv_name }}
-      vars:
-        __hpc_lv: /dev/mapper/{{ hpc_rootvg_name }}-{{ hpc_usrlv_name }}
-      command: lvs --noheadings --units g --nosuffix -o lv_size {{ __hpc_lv }}
+    - name: Get current LV size of usrlv
+      command: lvs --noheadings --units g --nosuffix -o lv_size /dev/mapper/{{ hpc_rootvg_name }}-{{ hpc_usrlv_name }}
       register: __hpc_usrlv_size_cmd
       changed_when: false
+      when: __hpc_usrlv_stat.stat.exists
+
+    - name: Get current LV size of varlv
+      command: lvs --noheadings --units g --nosuffix -o lv_size /dev/mapper/{{ hpc_rootvg_name }}-{{ hpc_varlv_name }}
+      register: __hpc_varlv_size_cmd
+      changed_when: false
+      when: __hpc_varlv_stat.stat.exists
+
+    - name: Initialize volumes list
+      set_fact:
+        __hpc_volumes: []
+
+    - name: Add rootlv if exists and needs expansion
+      set_fact:
+        __hpc_volumes: "{{ __hpc_volumes + [volume_config] }}"
+      vars:
+        size_expected: "{{ hpc_rootlv_size | regex_replace('[^0-9]', '') | int }}"
+        size_current: "{{ __hpc_rootlv_size_cmd.stdout | default('0') | trim | int }}"
+        volume_config:
+          name: "{{ hpc_rootlv_name }}"
+          size: "{{ hpc_rootlv_size }}"
+          mount_point: "{{ hpc_rootlv_mount }}"
+      when:
+        - __hpc_rootlv_stat.stat.exists
+        - size_expected > size_current
+
+    - name: Add usrlv if exists and needs expansion
+      set_fact:
+        __hpc_volumes: "{{ __hpc_volumes + [volume_config] }}"
+      vars:
+        size_expected: "{{ hpc_usrlv_size | regex_replace('[^0-9]', '') | int }}"
+        size_current: "{{ __hpc_usrlv_size_cmd.stdout | default('0') | trim | int }}"
+        volume_config:
+          name: "{{ hpc_usrlv_name }}"
+          size: "{{ hpc_usrlv_size }}"
+          mount_point: "{{ hpc_usrlv_mount }}"
+      when:
+        - __hpc_usrlv_stat.stat.exists
+        - size_expected > size_current
+
+    - name: Add varlv if exists and needs expansion
+      set_fact:
+        __hpc_volumes: "{{ __hpc_volumes + [volume_config] }}"
+      vars:
+        size_expected: "{{ hpc_varlv_size | regex_replace('[^0-9]', '') | int }}"
+        size_current: "{{ __hpc_varlv_size_cmd.stdout | default('0') | trim | int }}"
+        volume_config:
+          name: "{{ hpc_varlv_name }}"
+          size: "{{ hpc_varlv_size }}"
+          mount_point: "{{ hpc_varlv_mount }}"
+      when:
+        - __hpc_varlv_stat.stat.exists
+        - size_expected > size_current
 
     - name: Configure storage
       include_role:
         name: fedora.linux_system_roles.storage
       vars:
-        hpc_rootlv_size_expected: >-
-          {{ hpc_rootlv_size | regex_replace('[^0-9]', '') | int }}
-        hpc_rootlv_size_curr: "{{ __hpc_rootlv_size_cmd.stdout | int }}"
-        __hpc_rootlv_size: >-
-          {{ (hpc_rootlv_size_expected | int > hpc_rootlv_size_curr | int)
-          | ternary(hpc_rootlv_size, hpc_rootlv_size_curr ~ "G") }}
-        hpc_usrlv_size_expected: >-
-          {{ hpc_usrlv_size | regex_replace('[^0-9]', '') | int }}
-        hpc_usrlv_size_curr: "{{ __hpc_usrlv_size_cmd.stdout | int }}"
-        __hpc_usrlv_size: >-
-          {{ (hpc_usrlv_size_expected | int > hpc_usrlv_size_curr | int)
-          | ternary(hpc_usrlv_size, hpc_usrlv_size_curr ~ "G") }}
         storage_pools:
           - name: "{{ hpc_rootvg_name }}"
             grow_to_fill: true
-            volumes:
-              - name: "{{ hpc_rootlv_name }}"
-                size: "{{ __hpc_rootlv_size }}"
-                mount_point: "{{ hpc_rootlv_mount }}"
-              - name: "{{ hpc_usrlv_name }}"
-                size: "{{ __hpc_usrlv_size }}"
-                mount_point: "{{ hpc_usrlv_mount }}"
+            volumes: "{{ __hpc_volumes }}"
+      when: __hpc_volumes | length > 0
 
 - name: Force install kernel version
   package:

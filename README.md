@@ -273,12 +273,12 @@ Type: bool
 
 ## Variables for Configuring Storage
 
-By default, the role ensures that `rootlv` and `usrlv` in Azure has enough storage for packages to be installed.
+By default, the role ensures that `rootlv`, `usrlv` and `varlv` in Azure has enough storage for packages to be installed.
 You can use variables described in this section to control the exact sizes and paths.
 
 ### hpc_manage_storage
 
-Whether to configure the VG from [hpc_rootvg_name](#hpc_rootvg_name) to have logical volumes [hpc_rootlv_name](#hpc_rootlv_name) and [hpc_usrlv_name](#hpc_usrlv_name) with indicated sizes and mounted to indicated mount points.
+Whether to configure the VG from [hpc_rootvg_name](#hpc_rootvg_name) to have logical volumes [hpc_rootlv_name](#hpc_rootlv_name), [hpc_usrlv_name](#hpc_usrlv_name) and [hpc_varlv_name](#hpc_varlv_name) with indicated sizes and mounted to indicated mount points.
 
 Note that the role configures not the exact size, but ensures that the size is at least as indicated, i.e. the role won't shrink logical volumes.
 
@@ -289,7 +289,7 @@ Type: `bool`
 ### hpc_rootvg_name
 
 Name of the root volume group to use.
-The role configures logical volumes [hpc_rootlv_name](#hpc_rootlv_name) and [hpc_usrlv_name](#hpc_usrlv_name) to extend them to the size required to install HPC packages.
+The role configures logical volumes [hpc_rootlv_name](#hpc_rootlv_name), [hpc_usrlv_name](#hpc_usrlv_name) and [hpc_varlv_name](#hpc_varlv_name) to extend them to the size required to install HPC packages.
 
 Default: `rootvg`
 
@@ -347,6 +347,32 @@ Default: `/usr`
 
 Type: `string`
 
+### hpc_varlv_name
+
+Name of the `var` logical volume to use.
+
+Default: `varlv`
+
+Type: `string`
+
+### hpc_varlv_size
+
+The size of the [hpc_varlv_name](#hpc_varlv_name) logical volume to configure.
+
+Note that the role configures not the exact size, but ensures that the size is at least as indicated, i.e. the role won't shrink logical volumes if current size is larger than value of this variable.
+
+Default: `10G`
+
+Type: `string`
+
+### hpc_varlv_mount
+
+Mount point of the [hpc_varlv_name](#hpc_varlv_name) logical volume to configure.
+
+Default: `/var`
+
+Type: `string`
+
 ### Example Playbook for Configuring Storage
 
 ```yaml
@@ -361,6 +387,9 @@ Type: `string`
     hpc_usrlv_name: usrlv
     hpc_usrlv_size: 20G
     hpc_usrlv_mount: /usr
+    hpc_varlv_name: varlv
+    hpc_varlv_size: 10G
+    hpc_varlv_mount: /var
   roles:
     - linux-system-roles.hpc
 ```
@@ -387,6 +416,9 @@ Run the role to configure storage, install all packages, and reboot if needed.
     hpc_usrlv_name: usrlv
     hpc_usrlv_size: 20G
     hpc_usrlv_mount: /usr
+    hpc_varlv_name: varlv
+    hpc_varlv_size: 10G
+    hpc_varlv_mount: /var
 
     hpc_install_cuda_driver: true
     hpc_install_cuda_toolkit: true
