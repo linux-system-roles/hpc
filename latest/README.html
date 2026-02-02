@@ -170,6 +170,10 @@ id="toc-hpc_install_rdma">hpc_install_rdma</a></li>
 id="toc-hpc_install_system_openmpi">hpc_install_system_openmpi</a></li>
 <li><a href="#hpc_build_openmpi_w_nvidia_gpu_support"
 id="toc-hpc_build_openmpi_w_nvidia_gpu_support">hpc_build_openmpi_w_nvidia_gpu_support</a></li>
+<li><a href="#hpc_install_nvidia_container_toolkit"
+id="toc-hpc_install_nvidia_container_toolkit">hpc_install_nvidia_container_toolkit</a></li>
+<li><a href="#hpc_install_docker"
+id="toc-hpc_install_docker">hpc_install_docker</a></li>
 <li><a href="#hpc_install_moneo"
 id="toc-hpc_install_moneo">hpc_install_moneo</a></li>
 </ul></li>
@@ -347,6 +351,24 @@ to <code>true</code>, which is the default value:</p>
 class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hpc_install_cuda_toolkit</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">hpc_install_hpc_nvidia_nccl</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span></code></pre></div>
 <p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
+<h2
+id="hpc_install_nvidia_container_toolkit">hpc_install_nvidia_container_toolkit</h2>
+<p>Whether to install and configure NVIDIA Container Toolkit.</p>
+<p>This enables GPU support in Docker and containerd by installing the
+nvidia-container-toolkit package. Note that enabling this variable
+automatically sets <code>hpc_install_docker: true</code> unless you
+explicitly override it.</p>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
+<h2 id="hpc_install_docker">hpc_install_docker</h2>
+<p>Whether to install the moby-engine and moby-cli packages as well as
+enable the Docker service. To explicitly disable Docker even when using
+the NVIDIA Container Toolkit, you need to set this to
+<code>false</code>, please note that the role will fail unless you also
+disable <code>hpc_install_nvidia_container_toolkit</code>.</p>
+<p>Default:
+<code>"{{ hpc_install_nvidia_container_toolkit }}"</code></p>
 <p>Type: <code>bool</code></p>
 <h2 id="hpc_install_moneo">hpc_install_moneo</h2>
 <p>Whether to install the Azure Moneo monitoring tool.</p>
