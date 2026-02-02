@@ -721,66 +721,66 @@
 - name: Install SKU Customisation scripts and services
   when: hpc_sku_customisation
   block:
-  - name: Check if already installed
-    stat:
-      path: "{{ __hpc_azure_resource_dir }}/topology"
-    register: __hpc_sku_topology_stat
+    - name: Check if already installed
+      stat:
+        path: "{{ __hpc_azure_resource_dir }}/topology"
+      register: __hpc_sku_topology_stat
 
-  - name: Install files
-    when: not __hpc_sku_topology_stat.stat.exists
-    block:
-    - name: Install Topology Definitions
-      copy:
-        src: sku/topology/
-        dest: "{{ __hpc_azure_resource_dir }}/topology"
-        owner: root
-        group: root
-        mode: '0755'
+    - name: Install files
+      when: not __hpc_sku_topology_stat.stat.exists
+      block:
+        - name: Install Topology Definitions
+          copy:
+            src: sku/topology/
+            dest: "{{ __hpc_azure_resource_dir }}/topology"
+            owner: root
+            group: root
+            mode: '0755'
 
-    - name: Install Graph Files
-      copy:
-        src: sku/customisations/
-        dest: "{{ __hpc_azure_resource_dir }}/customisations"
-        owner: root
-        group: root
-        mode: '0755'
+        - name: Install Graph Files
+          copy:
+            src: sku/customisations/
+            dest: "{{ __hpc_azure_resource_dir }}/customisations"
+            owner: root
+            group: root
+            mode: '0755'
 
-    - name: Install setup script
-      template:
-        src: sku/setup_sku_customisations.sh
-        dest: "{{ __hpc_azure_resource_dir }}/bin/setup_sku_customisations.sh"
-        owner: root
-        group: root
-        mode: '0755'
+        - name: Install setup script
+          template:
+            src: sku/setup_sku_customisations.sh
+            dest: "{{ __hpc_azure_resource_dir }}/bin/setup_sku_customisations.sh"
+            owner: root
+            group: root
+            mode: '0755'
 
-    - name: Install removal script
-      template:
-        src: sku/remove_sku_customisations.sh
-        dest: "{{ __hpc_azure_resource_dir }}/bin/remove_sku_customisations.sh"
-        owner: root
-        group: root
-        mode: '0755'
+        - name: Install removal script
+          template:
+            src: sku/remove_sku_customisations.sh
+            dest: "{{ __hpc_azure_resource_dir }}/bin/remove_sku_customisations.sh"
+            owner: root
+            group: root
+            mode: '0755'
 
-    - name: Install systemd service file
-      template:
-        src: sku/sku_customisation.service
-        dest: /etc/systemd/system/
-        owner: root
-        group: root
-        mode: '0755'
+        - name: Install systemd service file
+          template:
+            src: sku/sku_customisation.service
+            dest: /etc/systemd/system/
+            owner: root
+            group: root
+            mode: '0755'
 
-    - name: Enable systemd service file
-      service:
-        name: sku_customisation.service
-        enabled: true
+        - name: Enable systemd service file
+          service:
+            name: sku_customisation.service
+            enabled: true
 
-    - name: Install tests
-      template:
-        src: sku/test-sku-setup.sh
-        dest: "{{ __hpc_azure_tests_dir }}/"
-        owner: root
-        group: root
-        mode: '0755'
+        - name: Install tests
+          template:
+            src: sku/test-sku-setup.sh
+            dest: "{{ __hpc_azure_tests_dir }}/"
+            owner: root
+            group: root
+            mode: '0755'
 
 - name: Remove build dependencies
   vars:
