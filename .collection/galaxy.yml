@@ -1,0 +1,27 @@
+---
+namespace: "redhat"
+name: "hpc"
+version: "1.0.0"
+description: "The Ansible role that manages HPC workloads"
+
+authors:
+  - "Sergei Petrosian <spetrosi@redhat.com>"
+
+repository: "https://github.com/linux-system-roles/hpc"
+documentation: "https://github.com/linux-system-roles/hpc/blob/main/README.md"
+issues: "https://github.com/linux-system-roles/hpc/issues"
+
+readme: "README.md"
+
+license:
+  - MIT
+
+dependencies:
+  "fedora.linux_system_roles": "*"
+
+tags:
+  - "hpc"
+  - "microsoft"
+  - "azure"
+  - "application"
+  - "cloud"
