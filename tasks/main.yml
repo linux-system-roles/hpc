@@ -974,7 +974,7 @@
   block:
     - name: Check if Moneo is already installed
       stat:
-        path: "{{ __hpc_moneo_install_dir }}/Moneo/moneo.py"
+        path: "{{ __hpc_azure_moneo_dir }}/moneo.py"
       register: __hpc_moneo_installed
 
     - name: Download and install Moneo
@@ -982,7 +982,7 @@
       block:
         - name: Ensure Moneo install directory exists
           file:
-            path: "{{ __hpc_moneo_install_dir }}"
+            path: "{{ __hpc_azure_tools_dir }}"
             state: directory
             mode: '0755'
             owner: root
@@ -997,13 +997,19 @@
           copy:
             src: "{{ __hpc_pkg_extracted.path }}/"
             remote_src: true
-            dest: "{{ __hpc_moneo_install_dir }}/Moneo"
+            dest: "{{ __hpc_azure_moneo_dir }}"
             mode: '0755'
             owner: root
             group: root
 
+        - name: Patch hardcoded paths in Moneo scripts
+          replace:
+            path: "{{ __hpc_azure_moneo_dir }}/linux_service/configure_service.sh"
+            regexp: '/opt/azurehpc/tools/Moneo'
+            replace: "{{ __hpc_azure_moneo_dir }}"
+
         - name: Configure Moneo service
-          command: "{{ __hpc_moneo_install_dir }}/Moneo/linux_service/configure_service.sh"
+          command: "{{ __hpc_azure_moneo_dir }}/linux_service/configure_service.sh"
           register: __hpc_moneo_configure
           changed_when: "'already configured' not in __hpc_moneo_configure.stdout"
 
@@ -1016,7 +1022,7 @@
     - name: Add Moneo alias to /etc/bashrc
       lineinfile:
         path: /etc/bashrc
-        line: "alias moneo='python3 {{ __hpc_moneo_install_dir }}/Moneo/moneo.py'"
+        line: "alias moneo='python3 {{ __hpc_azure_moneo_dir }}/moneo.py'"
         state: present
         mode: '0644'
 
