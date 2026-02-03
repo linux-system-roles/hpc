@@ -25,7 +25,7 @@ __hpc_rhui_azure_rhel_9_eus_repo:
 # Vars related to RPMs
 
 __hpc_nvidia_driver_stream:  580-dkms
-__hpc_nvidia_driver_module:  "nvidia-driver:{{__hpc_nvidia_driver_stream}}"
+__hpc_nvidia_driver_module:  nvidia-driver:{{__hpc_nvidia_driver_stream}}
 __hpc_cuda_toolkit_packages:
   - cuda-toolkit-12-9
 __hpc_nvidia_nccl_packages:

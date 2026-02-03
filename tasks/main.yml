@@ -235,15 +235,15 @@
 
     - name: Reset nvidia-driver module if it is enabled of different version
       when: 
-      - __hpc_nvidia_enabled.stdout is search('nvidia-driver') 
-      - __hpc_nvidia_driver_stream not in __hpc_nvidia_enabled.stdout
+        - __hpc_nvidia_enabled.stdout is search('nvidia-driver') 
+        - __hpc_nvidia_driver_stream not in __hpc_nvidia_enabled.stdout
       command: dnf module reset nvidia-driver --assumeyes
       changed_when: true
 
     - name: Remove NVIDIA driver packages if old/different version is present
       when:
-      - __hpc_nvidia_enabled.stdout is search('nvidia-driver')
-      - __hpc_nvidia_driver_stream not in __hpc_nvidia_enabled.stdout
+        - __hpc_nvidia_enabled.stdout is search('nvidia-driver')
+        - __hpc_nvidia_driver_stream not in __hpc_nvidia_enabled.stdout
       package:
         name: "{{ __hpc_nvidia_driver_packages + __hpc_nvidia_fabric_manager_packages }}"
         state: absent
