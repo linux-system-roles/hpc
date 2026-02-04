@@ -177,6 +177,8 @@ id="toc-hpc_install_docker">hpc_install_docker</a></li>
 <li><a href="#hpc_install_moneo"
 id="toc-hpc_install_moneo">hpc_install_moneo</a></li>
 </ul></li>
+<li><a href="#hpc_install_azurehpc_health_checks"
+id="toc-hpc_install_azurehpc_health_checks">hpc_install_azurehpc_health_checks</a></li>
 <li><a href="#variables-for-configuring-tuning-for-hpc-workloads"
 id="toc-variables-for-configuring-tuning-for-hpc-workloads">Variables
 for Configuring Tuning for HPC Workloads</a>
@@ -385,6 +387,26 @@ with Azure Monitor.</p>
 alias moneo to /etc/bashrc for easy access.</p>
 <p>For more information, see <a
 href="https://github.com/Azure/Moneo">https://github.com/Azure/Moneo</a>.</p>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
+<h1
+id="hpc_install_azurehpc_health_checks">hpc_install_azurehpc_health_checks</h1>
+<p>Whether to install and configure Azure HPC Health Checks (AZNHC).</p>
+<p>This downloads the azurehpc-health-checks toolkit, configures it for
+the target GPU platform, and pulls the appropriate Docker container
+image from MCR. The health checks validate HPC components including
+GPUs, InfiniBand, storage, and MPI operations. For more information, see
+<a
+href="https://github.com/Azure/azurehpc-health-checks">https://github.com/Azure/azurehpc-health-checks</a>.</p>
+<p>The role installs the toolkit in
+<code>/opt/hpc/azure/tests/azurehpc-health-checks/</code> and pulls
+<code>mcr.microsoft.com/aznhc/aznhc-nv:latest</code></p>
+<p>Note that NVIDIA Container Toolkit must be installed and at least 20G
+of free space in /var is required for first-time aznhc-nv docker image
+download. If the image does not exist and /var has insufficient space,
+installation will be skipped with a warning. See <a
+href="https://learn.microsoft.com/en-us/azure/virtual-machines/linux/expand-disks?tabs=rhellvm">Expand
+virtual hard disks on a Linux VM</a> for disk expansion details.</p>
 <p>Default: <code>true</code></p>
 <p>Type: <code>bool</code></p>
 <h1 id="variables-for-configuring-tuning-for-hpc-workloads">Variables
