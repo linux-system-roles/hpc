@@ -46,7 +46,7 @@ jobs:
           ls -alrtF "$coll_dir"
           ls -alrtF "$coll_dir"/meta
           # cleanup after collection conversion
-          rm -rf "$coll_dir/.ansible" .tox/ansible-plugin-scan
+          rm -rf "$coll_dir/.ansible" .tox/ansible-plugin-scan "$coll_dir/.collection"
           # ansible-lint action requires a .git directory???
           # https://github.com/ansible/ansible-lint/blob/main/action.yml#L45
           mkdir -p "$coll_dir/.git"
