@@ -1,0 +1,197 @@
+#!/usr/bin/env bash
+# These are templates, not actual shell scripts, so tell shellcheck to
+# ignore the templated parts
+# shellcheck disable=all
+{{ ansible_managed | comment }}
+{{ "system_role:hpc" | comment(prefix="", postfix="") }}
+# shellcheck enable=all
+# SPDX-License-Identifier: MIT
+#
+# Moneo Installation Verification and Functional Testing Script
+# Usage: ./test-moneo.sh
+
+set -euo pipefail
+
+# Configuration - derived from Ansible role variables
+MONEO_HOME="{{ __hpc_azure_moneo_dir }}"
+MONEO_SCRIPT="${MONEO_HOME}/moneo.py"
+HOSTFILE="/tmp/moneo-test-hostfile.txt"
+
+# Test counter
+PASSED=0
+
+# ------------------------------------------------------------------------------
+# Helper Functions
+# ------------------------------------------------------------------------------
+
+pass() {
+    echo "[PASS] $1"
+    PASSED=$((PASSED + 1))
+}
+
+fail() {
+    echo "[FAIL] $1"
+    exit 1
+}
+
+# ------------------------------------------------------------------------------
+# Cleanup (called via trap)
+# ------------------------------------------------------------------------------
+
+_cleanup() {
+    echo ""
+    echo "[CLEANUP] Removing temporary hostfile..."
+    rm -f "$HOSTFILE"
+}
+
+trap "_cleanup ; exit" EXIT HUP INT TERM QUIT BUS
+
+# ------------------------------------------------------------------------------
+# Setup
+# ------------------------------------------------------------------------------
+
+_setup() {
+    echo "=============================================="
+    echo "Moneo Test Script"
+    echo "=============================================="
+    echo ""
+
+    # Create temporary hostfile
+    echo "[SETUP] Creating temporary hostfile..."
+    echo "localhost" > "$HOSTFILE"
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Tests
+# ------------------------------------------------------------------------------
+
+test_moneo_directory() {
+    echo "Testing: Moneo directory exists"
+    if [[ -d "$MONEO_HOME" ]]; then
+        pass "Moneo directory exists at $MONEO_HOME"
+    else
+        fail "Moneo directory not found at $MONEO_HOME"
+    fi
+}
+
+test_moneo_script() {
+    echo "Testing: Moneo script exists"
+    if [[ -f "$MONEO_SCRIPT" ]]; then
+        pass "moneo.py exists"
+    else
+        fail "moneo.py not found"
+    fi
+}
+
+test_moneo_deploy() {
+    echo "Testing: Moneo deployment"
+
+    cd "$MONEO_HOME"
+    ret=0
+    output=$(sudo python3 moneo.py -d -c "$HOSTFILE" full 2>&1) || ret=$?
+    cd - > /dev/null
+
+    if [[ $ret -ne 0 ]]; then
+        fail "Moneo deployment failed (exit code $ret): ${output:0:500}"
+    elif echo "$output" | grep -qi "exception\|error\|failed\|failure"; then
+        fail "Moneo deployment failed: ${output:0:500}"
+    else
+        pass "Moneo deployed successfully"
+    fi
+}
+
+test_grafana() {
+    echo "Testing: Grafana is running"
+    echo "         Waiting 60 seconds for services to start..."
+    sleep 60
+
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 2>/dev/null) || true
+
+    if [[ "$http_code" == "200" || "$http_code" == "302" ]]; then
+        pass "Grafana is running (HTTP $http_code)"
+    else
+        fail "Grafana not reachable (HTTP $http_code)"
+    fi
+}
+
+test_prometheus() {
+    echo "Testing: Prometheus is running"
+
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:9090 2>/dev/null) || true
+
+    if [[ "$http_code" == "200" || "$http_code" == "302" ]]; then
+        pass "Prometheus is running (HTTP $http_code)"
+    else
+        fail "Prometheus not reachable (HTTP $http_code)"
+    fi
+}
+
+test_moneo_shutdown() {
+    echo "Testing: Moneo shutdown"
+
+    cd "$MONEO_HOME"
+    output=$(echo 'y' | sudo python3 moneo.py -s -c "$HOSTFILE" full 2>&1) || true
+    cd - > /dev/null
+
+    if echo "$output" | grep -qi "shutting down\|shutdown"; then
+        pass "Moneo shutdown completed"
+    else
+        fail "Moneo shutdown failed: ${output:0:200}"
+    fi
+}
+
+test_grafana_stopped() {
+    echo "Testing: Grafana is stopped"
+
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://localhost:3000 2>/dev/null) || true
+
+    if [[ "$http_code" == "000" ]]; then
+        pass "Grafana is stopped (connection refused)"
+    else
+        fail "Grafana still running (HTTP $http_code)"
+    fi
+}
+
+test_prometheus_stopped() {
+    echo "Testing: Prometheus is stopped"
+
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://localhost:9090 2>/dev/null) || true
+
+    if [[ "$http_code" == "000" ]]; then
+        pass "Prometheus is stopped (connection refused)"
+    else
+        fail "Prometheus still running (HTTP $http_code)"
+    fi
+}
+
+# ------------------------------------------------------------------------------
+# Main
+# ------------------------------------------------------------------------------
+
+main() {
+    _setup
+
+    echo "=============================================="
+    echo "Running Tests"
+    echo "=============================================="
+    echo ""
+
+    test_moneo_directory
+    test_moneo_script
+    test_moneo_deploy
+    test_grafana
+    test_prometheus
+    test_moneo_shutdown
+    test_grafana_stopped
+    test_prometheus_stopped
+
+    # Print summary
+    echo ""
+    echo "=============================================="
+    echo "All tests passed: $PASSED"
+    echo "=============================================="
+}
+
+main "$@"
