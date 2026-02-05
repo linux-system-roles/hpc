@@ -13,7 +13,7 @@ hpc_usrlv_name: usrlv
 hpc_usrlv_size: 25G
 hpc_usrlv_mount: /usr
 hpc_varlv_name: varlv
-hpc_varlv_size: 25G
+hpc_varlv_size: 40G
 hpc_varlv_mount: /var
 
 hpc_install_cuda_driver: true

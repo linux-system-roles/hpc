@@ -199,7 +199,7 @@
           mount_point: "{{ hpc_rootlv_mount }}"
       when:
         - __hpc_rootlv_stat.stat.exists
-        - size_expected > size_current
+        - (size_expected | int) > (size_current | int)
 
     - name: Add usrlv if exists and needs expansion
       set_fact:
@@ -213,7 +213,7 @@
           mount_point: "{{ hpc_usrlv_mount }}"
       when:
         - __hpc_usrlv_stat.stat.exists
-        - size_expected > size_current
+        - (size_expected | int) > (size_current | int)
 
     - name: Add varlv if exists and needs expansion
       set_fact:
@@ -227,7 +227,7 @@
           mount_point: "{{ hpc_varlv_mount }}"
       when:
         - __hpc_varlv_stat.stat.exists
-        - size_expected > size_current
+        - (size_expected | int) > (size_current | int)
 
     - name: Configure storage
       include_role:
