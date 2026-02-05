@@ -310,8 +310,8 @@
       register: __hpc_nvidia_enabled
       failed_when: false
       changed_when: false
-    - name: Reset nvidia-driver module and remove old/different nvidia driver packages  
-      when: 
+    - name: Reset nvidia-driver module and remove old/different nvidia driver packages
+      when:
         - __hpc_nvidia_enabled.stdout is search('nvidia-driver')
         - __hpc_nvidia_driver_stream not in __hpc_nvidia_enabled.stdout
       block:
@@ -1137,6 +1137,7 @@
         - name: Compile KVP client in temp directory
           command:
             cmd: gcc {{ __hpc_kvp_temp_dir.path }}/kvp_client.c -o {{ __hpc_kvp_temp_dir.path }}/kvp_client
+            creates: "{{ __hpc_kvp_temp_dir.path }}/kvp_client"
 
         - name: Copy compiled KVP client to {{ __hpc_azure_tools_dir }}
           copy:
@@ -1183,7 +1184,7 @@
     - name: Check /var free space for first-time aznhc-nv Docker image download
       when: __hpc_aznhc_docker_image.stdout == ''
       vars:
-        __hpc_var_free_gb: "{{ __hpc_var_free_cmd.stdout_lines[1] | regex_replace('G','') | trim | int }}"
+        __hpc_var_free_gb: "{{ __hpc_var_free_cmd.stdout_lines[1] | regex_replace('G', '') | trim | int }}"
         __hpc_var_has_space: "{{ (__hpc_var_free_gb | int) >= 20 }}"
       block:
         - name: Get /var free space
@@ -1240,7 +1241,7 @@
             state: directory
             mode: "0755"
 
-        - name: Copy extracted files to {{ __hpc_azure_tests_dir }}/azurehpc-health-checks
+        - name: Copy extracted files for azurehpc-health-checks
           copy:
             src: "{{ __hpc_pkg_extracted.path }}/"
             dest: "{{ __hpc_azure_tests_dir }}/azurehpc-health-checks/"
