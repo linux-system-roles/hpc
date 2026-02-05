@@ -1,0 +1,6 @@
+{{ ansible_managed | comment }}
+{{ "system_role:hpc" | comment(prefix="", postfix="") }}
+# Trigger persistent naming on infiniband device changes.
+# Use systemd activation instead of direct udev RUN= to keep things reliable.
+SUBSYSTEM=="infiniband", ACTION=="add|change", TAG+="systemd", ENV{SYSTEMD_WANTS}="azure_persistent_rdma_naming.service"
+
