@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# These are templates, not actual shell scripts, so tell shellcheck to
+# ignore the templated parts
+# shellcheck disable=all
+{{ ansible_managed | comment }}
+{{ "system_role:hpc" | comment(prefix="", postfix="") }}
+# shellcheck enable=all
+set -euo pipefail
+
+rdma_rename="{{ __hpc_rdma_rename_path }}"
+
+an_index=0
+ib_index=0
+
+if ! command -v ibdev2netdev >/dev/null 2>&1; then
+  echo "ibdev2netdev not found; ensure RDMA tools are installed."
+  exit
+fi
+
+if ! command -v ibv_devinfo >/dev/null 2>&1; then
+  echo "ibv_devinfo not found; ensure libibverbs-utils is installed."
+  exit 0
+fi
+
+for old_device in $(ibdev2netdev -v | sort -n | cut -f2 -d' '); do
+  link_layer=$(ibv_devinfo -d "$old_device" | sed -n 's/^[ \t]*link_layer:[ \t]*\([a-zA-Z]*\)$/\1/p')
+
+  if [ "$link_layer" = "InfiniBand" ]; then
+    "$rdma_rename" "$old_device" NAME_FIXED "mlx5_ib${ib_index}"
+    ib_index=$((ib_index + 1))
+  elif [ "$link_layer" = "Ethernet" ]; then
+    "$rdma_rename" "$old_device" NAME_FIXED "mlx5_an${an_index}"
+    an_index=$((an_index + 1))
+  else
+    echo "Unknown device type for $old_device - $link_layer."
+  fi
+done
+

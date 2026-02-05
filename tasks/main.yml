@@ -460,6 +460,132 @@
         mode: "0644"
       notify: Restart waagent
 
+    - name: Install DOCA host RPM and doca-ofed (RHEL 9 x86_64)
+      when:
+        - not ((__hpc_server_is_ostree | d(false)) | bool)
+        - __hpc_is_rh_distro
+        - ansible_facts['distribution_major_version'] | string == '9'
+        - ansible_facts['architecture'] == 'x86_64'
+      block:
+        - name: Create a temporary file for DOCA host RPM
+          when: ansible_facts.packages['doca-host'] is not defined
+          tempfile:
+            state: file
+            prefix: doca-host_
+            suffix: .rpm
+          register: __hpc_doca_rpm_tempfile
+
+        - name: Download DOCA host RPM
+          when: ansible_facts.packages['doca-host'] is not defined
+          get_url:
+            url: "{{ __hpc_doca_host_rpm_url }}"
+            dest: "{{ __hpc_doca_rpm_tempfile.path }}"
+            mode: "0644"
+
+        - name: Install DOCA host RPM
+          when: ansible_facts.packages['doca-host'] is not defined
+          ansible.builtin.dnf:
+            name: "{{ __hpc_doca_rpm_tempfile.path }}"
+            state: present
+            disable_gpg_check: true
+          register: __hpc_doca_host_rpm_install
+          notify: Clean dnf metadata
+
+        - name: Remove temporary DOCA host RPM file
+          when: __hpc_doca_rpm_tempfile.path is defined
+          file:
+            path: "{{ __hpc_doca_rpm_tempfile.path }}"
+            state: absent
+          changed_when: false
+
+        - name: Ensure distro OpenMPI is installed before DOCA (prevents depsolve conflicts)
+          when: hpc_install_system_openmpi
+          package:
+            name: "{{ __hpc_system_openmpi_packages }}"
+            state: present
+            use: "{{ (__hpc_server_is_ostree | d(false)) |
+              ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+          register: __hpc_system_openmpi_packages_install_for_doca
+          until: __hpc_system_openmpi_packages_install_for_doca is success
+
+        - name: Install doca-ofed
+          ansible.builtin.dnf:
+            name: doca-ofed
+            state: present
+            disable_gpg_check: true
+            exclude:
+              - "openmpi*"
+          register: __hpc_doca_ofed_install
+          until: __hpc_doca_ofed_install is success
+
+    - name: Configure Azure persistent RDMA naming (systemd + udev)
+      when:
+        - hpc_enable_azure_persistent_rdma_naming
+        - ansible_facts['system_vendor'] == 'Microsoft Corporation'
+      block:
+        - name: Install Azure persistent RDMA naming script
+          template:
+            src: rdma/azure_persistent_rdma_naming.sh.j2
+            dest: /usr/sbin/azure_persistent_rdma_naming.sh
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Install systemd service for Azure persistent RDMA naming
+          template:
+            src: rdma/azure_persistent_rdma_naming.service.j2
+            dest: /etc/systemd/system/azure_persistent_rdma_naming.service
+            owner: root
+            group: root
+            mode: "0644"
+          notify: Reload systemd
+
+        - name: Install udev rule to trigger persistent naming on IB device changes
+          template:
+            src: rdma/99-azure-persistent-rdma-naming.rules.j2
+            dest: /etc/udev/rules.d/99-azure-persistent-rdma-naming.rules
+            owner: root
+            group: root
+            mode: "0644"
+          notify:
+            - Reload udev
+            - Trigger udev for infiniband
+
+        - name: Apply notified handlers (reload systemd/udev if needed) before starting services
+          meta: flush_handlers
+
+        - name: Enable and start Azure persistent RDMA naming service
+          systemd:
+            name: azure_persistent_rdma_naming.service
+            enabled: true
+            state: started
+
+        - name: Install Azure persistent RDMA naming monitor script
+          template:
+            src: rdma/azure_persistent_rdma_naming_monitor.sh.j2
+            dest: /usr/sbin/azure_persistent_rdma_naming_monitor.sh
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Install systemd service for Azure persistent RDMA naming monitor
+          template:
+            src: rdma/azure_persistent_rdma_naming_monitor.service.j2
+            dest: /etc/systemd/system/azure_persistent_rdma_naming_monitor.service
+            owner: root
+            group: root
+            mode: "0644"
+          notify: Reload systemd
+
+        - name: Apply notified handlers (reload systemd) before starting monitor service
+          meta: flush_handlers
+
+        - name: Enable and start Azure persistent RDMA naming monitor service
+          systemd:
+            name: azure_persistent_rdma_naming_monitor.service
+            enabled: true
+            state: started
+
 - name: Install common OpenMPI packages
   when: hpc_install_system_openmpi or hpc_build_openmpi_w_nvidia_gpu_support
   package:
