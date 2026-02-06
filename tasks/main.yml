@@ -770,14 +770,6 @@
 - name: Install and configure NVIDIA Container Toolkit
   when: hpc_install_nvidia_container_toolkit
   block:
-    - name: Add NVIDIA Container Toolkit repository
-      get_url:
-        url: "{{ __hpc_nvidia_container_toolkit_repo.url }}"
-        dest: /etc/yum.repos.d/nvidia-container-toolkit.repo
-        mode: '0644'
-        owner: root
-        group: root
-
     - name: Install NVIDIA Container Toolkit
       package:
         name: "{{ __hpc_nvidia_container_toolkit_packages }}"
@@ -786,14 +778,6 @@
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
       register: __hpc_nvidia_container_toolkit_install
       until: __hpc_nvidia_container_toolkit_install is success
-
-    - name: Prevent updates of NVIDIA Container Toolkit packages
-      command: dnf versionlock add {{ item }}
-      register: __hpc_versionlock_check
-      changed_when: >-
-        'Package already locked in equivalent form'
-        not in __hpc_versionlock_check.stdout
-      loop: "{{ __hpc_nvidia_container_toolkit_packages }}"
 
     - name: Check if NVIDIA runtime is configured in Docker daemon
       find:
