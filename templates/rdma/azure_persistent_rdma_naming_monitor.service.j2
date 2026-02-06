@@ -1,0 +1,16 @@
+{{ ansible_managed | comment }}
+{{ "system_role:hpc" | comment(prefix="", postfix="") }}
+[Unit]
+Description=Azure persistent RDMA naming Monitor
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/azure_persistent_rdma_naming_monitor.sh
+Restart=always
+RestartSec=60
+StandardOutput=journal
+
+[Install]
+WantedBy=multi-user.target
+
