@@ -1,0 +1,254 @@
+#!/usr/bin/env bash
+# These are templates, not actual shell scripts, so tell shellcheck to
+# ignore the templated parts
+# shellcheck disable=all
+{{ ansible_managed | comment }}
+{{ "system_role:hpc" | comment(prefix="", postfix="") }}
+# shellcheck enable=all
+# SPDX-License-Identifier: MIT
+#
+# Azure HPC Health Checks Wrapper Script
+# Usage: ./test-azure-health-checks.sh [-v] [-t TIMEOUT]
+#
+
+set -euo pipefail
+
+# Default configuration
+VERBOSE=0
+TIMEOUT=""
+AZNHC_HOME="{{ __hpc_azure_tests_dir }}/azurehpc-health-checks"
+HEALTH_CHECK_SCRIPT="${AZNHC_HOME}/run-health-checks.sh"
+
+# Test counter
+PASSED=0
+
+# ------------------------------------------------------------------------------
+# Helper Functions
+# ------------------------------------------------------------------------------
+
+pass() {
+    echo "[PASS] $1"
+    PASSED=$((PASSED + 1))
+}
+
+fail() {
+    echo "[FAIL] $1"
+    exit 1
+}
+
+skip() {
+    echo "[SKIP] $1"
+    exit 77
+}
+
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") [OPTIONS]
+
+Run Azure HPC Health Checks
+
+OPTIONS:
+    -v              Verbose mode
+    -t TIMEOUT      Timeout in seconds (optional)
+    -h              Show this help message
+
+EXAMPLES:
+    # Run with default settings
+    sudo ./test-azure-health-checks.sh
+
+    # Run with verbose output and timeout of 600 seconds
+    sudo ./test-azure-health-checks.sh -v -t 600
+
+EOF
+    exit 0
+}
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+}
+
+verbose_log() {
+    if [[ $VERBOSE -eq 1 ]]; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+    fi
+}
+
+# ------------------------------------------------------------------------------
+# Parse Arguments
+# ------------------------------------------------------------------------------
+
+while getopts "vt:h" opt; do
+    case $opt in
+        v)
+            VERBOSE=1
+            ;;
+        t)
+            TIMEOUT=$OPTARG
+            ;;
+        h)
+            usage
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+
+# ------------------------------------------------------------------------------
+# Test: Setup Checks
+# ------------------------------------------------------------------------------
+
+test_setup() {
+    log "Test: Setup checks..."
+    echo ""
+
+    # Check if azurehpc-health-checks directory exists
+    echo "Checking: azurehpc-health-checks directory exists"
+    if [[ ! -d "$AZNHC_HOME" ]]; then
+        fail "azurehpc-health-checks directory not found at $AZNHC_HOME"
+    fi
+    pass "azurehpc-health-checks directory exists"
+
+    # Check if trigger script exists
+    echo "Checking: run-health-checks.sh script exists"
+    if [[ ! -f "$HEALTH_CHECK_SCRIPT" ]]; then
+        fail "run-health-checks.sh not found at $HEALTH_CHECK_SCRIPT"
+    fi
+    pass "run-health-checks.sh script exists"
+
+    # Check if Docker is running
+    echo "Checking: Docker service is running"
+    if ! systemctl is-active --quiet docker; then
+        fail "Docker service is not running (start with: systemctl start docker)"
+    fi
+    pass "Docker service is running"
+
+    # Check if AZNHC Docker image exists
+    echo "Checking: AZNHC Docker image is available"
+    if ! docker image inspect mcr.microsoft.com/aznhc/aznhc-nv:latest >/dev/null 2>&1; then
+        fail "AZNHC Docker image not found (mcr.microsoft.com/aznhc/aznhc-nv:latest)"
+    fi
+    pass "AZNHC Docker image is available"
+
+    echo ""
+    verbose_log "Setup tests completed"
+}
+
+# ------------------------------------------------------------------------------
+# Test: Run Health Checks
+# ------------------------------------------------------------------------------
+
+test_run_health_checks() {
+    log "Test: Running Azure HPC health checks..."
+    if [[ -n "$TIMEOUT" ]]; then
+        log "Timeout: ${TIMEOUT}s"
+    fi
+    log "Working directory: $AZNHC_HOME"
+    echo ""
+
+    cd "$AZNHC_HOME"
+
+    # Build the command
+    if [[ -n "$TIMEOUT" ]]; then
+        cmd=("timeout" "$TIMEOUT" "$HEALTH_CHECK_SCRIPT")
+    else
+        cmd=("$HEALTH_CHECK_SCRIPT")
+    fi
+
+    if [[ $VERBOSE -eq 1 ]]; then
+        verbose_log "Executing: ${cmd[*]}"
+    fi
+
+    # Run the health checks and capture output
+    output=$(mktemp)
+    "${cmd[@]}" 2>&1 | tee "$output"
+    ret="${PIPESTATUS[0]}"
+
+    cd - > /dev/null
+
+    echo ""
+
+    # Check if output indicates unsupported SKU (regardless of exit code)
+    if grep -qi "is currently not supported by Azure health checks" "$output"; then
+        skip "VM SKU is not currently supported by Azure health checks"
+    fi
+
+    rm -f "$output"
+
+    # Handle exit codes
+    if [[ $ret -eq 0 ]]; then
+        pass "Azure HPC health checks completed successfully"
+    elif [[ $ret -eq 142 ]]; then
+        if [[ -n "$TIMEOUT" ]]; then
+            fail "Health checks timed out after ${TIMEOUT}s"
+        else
+            fail "Health checks timed out"
+        fi
+    else
+        fail "Health checks completed with exit code $ret (check output above for details)"
+    fi
+}
+
+# ------------------------------------------------------------------------------
+# Test: Validate Health Log
+# ------------------------------------------------------------------------------
+
+test_health_log() {
+    local log_file="${AZNHC_HOME}/health.log"
+
+    log "Test: Validating health.log..."
+    echo ""
+
+    echo "Checking: health.log file exists"
+    if [[ ! -f "$log_file" ]]; then
+        fail "health.log not generated at $log_file"
+    fi
+    pass "health.log file exists"
+
+    echo "Checking: health.log for errors"
+    if grep -Ei "fail|fault|error" "$log_file" | grep -Eiv "success" > /dev/null 2>&1; then
+        echo ""
+        echo "--- Error excerpts from health.log ---"
+        grep -Ei "fail|fault|error" "$log_file" | grep -Eiv "success" | head -20
+        echo "--- End of excerpts ---"
+        echo ""
+        fail "FAIL/FAULT/ERROR found in health.log"
+    fi
+    pass "No FAIL/FAULT/ERROR in health.log"
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Additional System Checks
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# Main
+# ------------------------------------------------------------------------------
+
+main() {
+    log "========================================"
+    log "Azure HPC Health Checks Wrapper"
+    log "========================================"
+    echo ""
+
+    test_setup
+
+    test_run_health_checks
+    ret=$?
+
+    # Only run additional checks if health checks completed successfully
+    if [[ $ret -eq 0 ]]; then
+        test_health_log || ret=$?
+    fi
+
+    # If we get here, all tests passed
+    echo ""
+    log "========================================"
+    log "All tests passed ($PASSED)"
+    log "========================================"
+    exit 0
+}
+
+main "$@"
