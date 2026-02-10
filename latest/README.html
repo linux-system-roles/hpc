@@ -166,6 +166,8 @@ id="toc-hpc_install_hpc_nvidia_nccl">hpc_install_hpc_nvidia_nccl</a></li>
 id="toc-hpc_install_nvidia_fabric_manager">hpc_install_nvidia_fabric_manager</a></li>
 <li><a href="#hpc_install_rdma"
 id="toc-hpc_install_rdma">hpc_install_rdma</a></li>
+<li><a href="#hpc_enable_azure_persistent_rdma_naming"
+id="toc-hpc_enable_azure_persistent_rdma_naming">hpc_enable_azure_persistent_rdma_naming</a></li>
 <li><a href="#hpc_install_system_openmpi"
 id="toc-hpc_install_system_openmpi">hpc_install_system_openmpi</a></li>
 <li><a href="#hpc_build_openmpi_w_nvidia_gpu_support"
@@ -319,6 +321,20 @@ nvidia-fabricmanager service.</p>
 <p>Type: <code>bool</code></p>
 <h2 id="hpc_install_rdma">hpc_install_rdma</h2>
 <p>Whether to install the NVIDIA RDMA package.</p>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
+<h2
+id="hpc_enable_azure_persistent_rdma_naming">hpc_enable_azure_persistent_rdma_naming</h2>
+<p>Whether to configure a persistent RDMA device naming scheme on
+Azure:</p>
+<ul>
+<li>Installs <code>/usr/sbin/azure_persistent_rdma_naming.sh</code></li>
+<li>Installs and enables
+<code>azure_persistent_rdma_naming.service</code></li>
+<li>Installs a udev rule that triggers the service on InfiniBand device
+add/change events</li>
+</ul>
+<p>This is automatically skipped on non-Azure systems.</p>
 <p>Default: <code>true</code></p>
 <p>Type: <code>bool</code></p>
 <h2 id="hpc_install_system_openmpi">hpc_install_system_openmpi</h2>
