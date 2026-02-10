@@ -22,6 +22,10 @@ __hpc_rhui_azure_rhel_9_eus_repo:
   key: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-microsoft-azure-release
   baseurl: https://rhui4-1.microsoft.com/pulp/repos/unprotected/microsoft-azure-rhel9-eus
 
+# RHEL 9 specific RDMA/DOCA settings
+__hpc_doca_host_rpm_url: "https://www.mellanox.com/downloads/DOCA/DOCA_v3.2.1/host/doca-host-3.2.1-044000_25.10_rhel9.x86_64.rpm"
+__hpc_doca_host_rpm_gpg_key_url: "https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox"
+
 # Vars related to RPMs
 __hpc_nvidia_driver_stream:  580-dkms
 __hpc_nvidia_driver_module:  nvidia-driver:{{ __hpc_nvidia_driver_stream }}

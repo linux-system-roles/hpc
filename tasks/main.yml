@@ -460,6 +460,117 @@
         mode: "0644"
       notify: Restart waagent
 
+    - name: Install DOCA host RPM and minimal DOCA packages (RHEL 9 x86_64)
+      when:
+        - not ((__hpc_server_is_ostree | d(false)) | bool)
+        - __hpc_is_rh_distro
+      block:
+        - name: Install DOCA host repo RPM (adds doca repositories)
+          when: ansible_facts.packages['doca-host'] is not defined
+          block:
+            - name: Create a temporary directory for DOCA host RPM download
+              tempfile:
+                state: directory
+                prefix: doca_host_rpm_
+              register: __hpc_doca_rpm_tempdir
+
+            - name: Download DOCA host RPM
+              get_url:
+                url: "{{ __hpc_doca_host_rpm_url }}"
+                dest: "{{ __hpc_doca_rpm_tempdir.path }}/{{ __hpc_doca_host_rpm_url | basename }}"
+                mode: "0644"
+
+            - name: Import DOCA host RPM GPG key
+              rpm_key:
+                key: "{{ __hpc_doca_host_rpm_gpg_key_url }}"
+                state: present
+
+            - name: Install DOCA host RPM
+              package:
+                name: "{{ __hpc_doca_rpm_tempdir.path }}/{{ __hpc_doca_host_rpm_url | basename }}"
+                state: present
+                use: dnf
+              register: __hpc_doca_host_rpm_install
+              notify: Clean dnf metadata
+
+            - name: Remove temporary DOCA host RPM download directory
+              file:
+                path: "{{ __hpc_doca_rpm_tempdir.path }}"
+                state: absent
+              changed_when: false
+
+        - name: Install minimal DOCA packages for RDMA
+          package:
+            name: "{{ __hpc_doca_packages }}"
+            state: present
+            use: dnf
+          register: __hpc_doca_packages_install
+          until: __hpc_doca_packages_install is success
+
+    - name: Configure Azure persistent RDMA naming (systemd + udev)
+      when:
+        - hpc_enable_azure_persistent_rdma_naming
+        - ansible_facts['system_vendor'] == 'Microsoft Corporation'
+      block:
+        - name: Install Azure persistent RDMA naming script
+          template:
+            src: rdma/azure_persistent_rdma_naming.sh.j2
+            dest: /usr/sbin/azure_persistent_rdma_naming.sh
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Install systemd service for Azure persistent RDMA naming
+          template:
+            src: rdma/azure_persistent_rdma_naming.service.j2
+            dest: /etc/systemd/system/azure_persistent_rdma_naming.service
+            owner: root
+            group: root
+            mode: "0644"
+          register: __hpc_azure_persistent_rdma_naming_unit
+
+        - name: Install udev rule to trigger persistent naming on IB device changes
+          template:
+            src: rdma/99-azure-persistent-rdma-naming.rules.j2
+            dest: /etc/udev/rules.d/99-azure-persistent-rdma-naming.rules
+            owner: root
+            group: root
+            mode: "0644"
+          notify:
+            - Reload udev
+            - Trigger udev for infiniband
+
+        - name: Enable and start Azure persistent RDMA naming service
+          systemd:
+            name: azure_persistent_rdma_naming.service
+            enabled: true
+            state: started
+            daemon_reload: "{{ __hpc_azure_persistent_rdma_naming_unit.changed | d(false) }}"
+
+        - name: Install Azure persistent RDMA naming monitor script
+          template:
+            src: rdma/azure_persistent_rdma_naming_monitor.sh.j2
+            dest: /usr/sbin/azure_persistent_rdma_naming_monitor.sh
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Install systemd service for Azure persistent RDMA naming monitor
+          template:
+            src: rdma/azure_persistent_rdma_naming_monitor.service.j2
+            dest: /etc/systemd/system/azure_persistent_rdma_naming_monitor.service
+            owner: root
+            group: root
+            mode: "0644"
+          register: __hpc_azure_persistent_rdma_naming_monitor_unit
+
+        - name: Enable and start Azure persistent RDMA naming monitor service
+          systemd:
+            name: azure_persistent_rdma_naming_monitor.service
+            enabled: true
+            state: started
+            daemon_reload: "{{ __hpc_azure_persistent_rdma_naming_monitor_unit.changed | d(false) }}"
+
 - name: Install common OpenMPI packages
   when: hpc_install_system_openmpi or hpc_build_openmpi_w_nvidia_gpu_support
   package:

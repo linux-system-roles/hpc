@@ -105,6 +105,20 @@ Default: `true`
 
 Type: `bool`
 
+### hpc_enable_azure_persistent_rdma_naming
+
+Whether to configure a persistent RDMA device naming scheme on Azure:
+
+* Installs `/usr/sbin/azure_persistent_rdma_naming.sh`
+* Installs and enables `azure_persistent_rdma_naming.service`
+* Installs a udev rule that triggers the service on InfiniBand device add/change events
+
+This is automatically skipped on non-Azure systems.
+
+Default: `true`
+
+Type: `bool`
+
 ### hpc_install_system_openmpi
 
 Whether to install OpenMPI that comes from AppStream repositories and does not have Nvidia GPU support.

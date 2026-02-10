@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# These are templates, not actual shell scripts, so tell shellcheck to
+# ignore the templated parts
+# shellcheck disable=all
+{{ ansible_managed | comment }}
+{{ "system_role:hpc" | comment(prefix="", postfix="") }}
+# shellcheck enable=all
+set -euo pipefail
+
+# monitoring service to check that hca_id's are named correctly
+# if incorrect, run azure_persistent_rdma_naming.sh again
+
+if ! command -v ibdev2netdev >/dev/null 2>&1; then
+  echo "ibdev2netdev not found; skipping RDMA naming monitor."
+  exit 0
+fi
+
+if ! command -v ibv_devinfo >/dev/null 2>&1; then
+  echo "ibv_devinfo not found; skipping RDMA naming monitor."
+  exit 0
+fi
+
+while true; do
+  for device in $(ibdev2netdev -v | sort -n | cut -f2 -d' '); do
+    if [[ "${device}" != *"an"* && "${device}" != *"ib"* ]]; then
+      /usr/sbin/azure_persistent_rdma_naming.sh >/dev/null 2>&1 || true
+      sleep 60
+      break
+    fi
+  done
+  sleep 60
+done
+
