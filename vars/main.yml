@@ -20,12 +20,6 @@ __hpc_microsoft_prod_rpm_key: https://packages.microsoft.com/keys/microsoft.asc
 
 __hpc_rdma_rename_path: /usr/lib/udev/rdma_rename
 
-# DOCA install package set (minimal drivers-only for RDMA).
-__hpc_doca_packages:
-  - mlnx-ofa_kernel
-  - mlnx-ofa_kernel-dkms
-  - ofed-scripts
-
 __hpc_dkms_packages:
   - dkms
 __hpc_nvidia_driver_packages:

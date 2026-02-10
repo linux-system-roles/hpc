@@ -8,10 +8,6 @@
     name: waagent
     state: restarted
 
-- name: Clean dnf metadata
-  command: dnf clean all
-  changed_when: false
-
 - name: Reload udev
   command: udevadm control --reload
   changed_when: true

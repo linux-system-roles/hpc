@@ -12,17 +12,17 @@ rdma_rename="{{ __hpc_rdma_rename_path }}"
 an_index=0
 ib_index=0
 
-if ! command -v ibdev2netdev >/dev/null 2>&1; then
-  echo "ibdev2netdev not found; ensure RDMA tools are installed."
-  exit
-fi
-
 if ! command -v ibv_devinfo >/dev/null 2>&1; then
   echo "ibv_devinfo not found; ensure libibverbs-utils is installed."
   exit 0
 fi
 
-for old_device in $(ibdev2netdev -v | sort -n | cut -f2 -d' '); do
+if [[ ! -d /sys/class/infiniband ]]; then
+  echo "/sys/class/infiniband not present; skipping RDMA naming."
+  exit 0
+fi
+
+for old_device in $(ls -1 /sys/class/infiniband 2>/dev/null | sort -n); do
   link_layer=$(ibv_devinfo -d "$old_device" | sed -n 's/^[ \t]*link_layer:[ \t]*\([a-zA-Z]*\)$/\1/p')
 
   if [ "$link_layer" = "InfiniBand" ]; then
