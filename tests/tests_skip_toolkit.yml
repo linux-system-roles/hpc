@@ -19,6 +19,9 @@
     hpc_enable_eus_repo: false
     hpc_install_nvidia_fabric_manager: false
     hpc_install_moneo: false
+    hpc_install_nvidia_container_toolkit: false
+    hpc_install_docker: "{{ hpc_install_nvidia_container_toolkit }}"
+    hpc_install_azurehpc_health_checks: "{{ hpc_install_nvidia_container_toolkit }}"
   tags:
     - tests::reboot
   tasks:
