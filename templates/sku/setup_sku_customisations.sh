@@ -16,13 +16,17 @@ export TOPOLOGY_SRC_DIR="{{ __hpc_azure_resource_dir }}"
 export TOPOLOGY_RUNTIME_DIR="{{ __hpc_azure_runtime_dir }}/topology"
 export TOPOLOGY_GRAPH="$TOPOLOGY_RUNTIME_DIR/graph.xml"
 export TOPOLOGY_FILE="$TOPOLOGY_RUNTIME_DIR/topo.xml"
+mkdir -p "$TOPOLOGY_RUNTIME_DIR"
 
 # Use the internal metadata service API to determine the type of machine and
 # apply the necessary customisations for that machine.
 #
 # Note: for manual testing, we mock the SKU from the test environment rather
 # than doing an API lookup. The API based customisation will be tested fully
-# from the CI system that runs the testing on appropriate hardware.
+# from the CI system that runs the testing on appropriate hardware. The CI
+# system will not set __MOCK_SKU at all, so ensure that it is initialised to an
+# empty string in the case where it is undefined in the environment.
+: "${__MOCK_SKU:=}"
 if [ -z "$__MOCK_SKU" ]; then
 	metadata_endpoint="http://169.254.169.254/metadata/instance?api-version=2019-06-04"
 
