@@ -912,6 +912,14 @@
 - name: Tune system for HPC
   when: hpc_tuning
   block:
+    - name: Remove azsec-monitor package if exists to prevent CPU utilization by azsec-monitor
+      package:
+        name: azsec-monitor
+        state: absent
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+      failed_when: false
+
     - name: Remove user memory limits to ensure applications aren't restricted
       template:
         src: 90-hpc-limits.conf
@@ -919,6 +927,24 @@
         owner: root
         group: root
         mode: "0644"
+
+    - name: Set DefaultLimitMEMLOCK=infinity in the systemd system.conf
+      lineinfile:
+        path: /etc/systemd/system.conf
+        line: "DefaultLimitMEMLOCK=infinity"
+        state: present
+        create: false
+        mode: "0644"
+      notify: Reexec systemd
+
+    - name: Set DefaultLimitMEMLOCK=infinity in the systemd user.conf
+      lineinfile:
+        path: /etc/systemd/user.conf
+        line: "DefaultLimitMEMLOCK=infinity"
+        state: present
+        create: false
+        mode: "0644"
+      notify: Reexec systemd
 
     - name: Add sysctl tuning configuration for HPC
       template:
@@ -929,25 +955,34 @@
         mode: '0644'
       notify: Reload sysctl
 
-    - name: Load sunrpc kernel module
-      lineinfile:
-        path: /etc/modules-load.d/sunrpc.conf
-        line: sunrpc
-        create: true
+    - name: Create sunrpc_tcp_settings.sh script
+      template:
+        src: sunrpc_tcp_settings.sh
+        dest: /usr/sbin/sunrpc_tcp_settings.sh
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Create sunrpc_tcp_settings systemd service
+      template:
+        src: sunrpc_tcp_settings.service
+        dest: /etc/systemd/system/sunrpc_tcp_settings.service
         owner: root
         group: root
         mode: '0644'
-      notify: Restart systemd-modules-load
+      notify: Reload systemd
 
-    - name: Check if sunrpc module is loaded
-      command: lsmod
-      register: __hpc_loaded_modules
+    - name: Enable and start sunrpc_tcp_settings service
+      service:
+        name: sunrpc_tcp_settings
+        enabled: true
+        state: started
+
+    - name: Check sunrpc_tcp_settings service
+      command: systemctl is-active sunrpc_tcp_settings
+      register: __hpc_sunrpc_service_status
       changed_when: false
-
-    - name: Load sunrpc module if not loaded
-      when: "'sunrpc' not in __hpc_loaded_modules.stdout"
-      command: modprobe sunrpc
-      changed_when: true
+      failed_when: __hpc_sunrpc_service_status.rc != 0
 
     - name: Copy NFS readahead udev rules for Azure infrastructure
       template:
