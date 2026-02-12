@@ -202,6 +202,26 @@ The role installs Moneo to /opt/hpc/azure/tools/Moneo and adds an alias moneo to
 
 For more information, see <https://github.com/Azure/Moneo>.
 
+### hpc_install_diagnostics
+
+Whether to install the Azure HPC Diagnostics tool.
+
+The Azure HPC Diagnostics tool gathers system information for triage and
+debugging purposes. It collects information and state from the hardware, OS,
+Azure environment and installed applications, then packages it into a tarball
+to simplify the process of system support and bug triage.
+
+To gather diagnostics, run:
+
+```bash
+/opt/hpc/azure/tools/gather_azhpc_vm_diagnostics.sh
+```
+
+The script will indicate where the tarball containing the diagnostic information
+can be found.
+
+For more information, see <https://github.com/Azure/azhpc-diagnostics/>
+
 Default: `true`
 
 Type: `bool`

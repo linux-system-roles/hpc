@@ -73,6 +73,11 @@ __hpc_kernel_versionlock_rpms:
   - kernel-modules-extra
   - kernel-devel
   - kernel-headers
+__hpc_azure_diagnostics_packages:
+  # lsvmbus
+  - hyperv-tools
+  - patch
+
 __hpc_install_prefix: /opt
 
 # packages for azure specific including VM management infrastructure and storage
