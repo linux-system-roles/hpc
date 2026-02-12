@@ -42,7 +42,6 @@ __hpc_rdma_packages:
   - ucx
   - ucx-ib
   - ucx-rdmacm
-  - WALinuxAgent
   - infiniband-diags
   - pciutils-devel
 __hpc_system_openmpi_packages:
@@ -75,6 +74,12 @@ __hpc_kernel_versionlock_rpms:
   - kernel-devel
   - kernel-headers
 __hpc_install_prefix: /opt
+
+# packages for azure specific including VM management infrastructure and storage
+# utilities. These are always installed on azure platform
+__hpc_azure_packages:
+  - WALinuxAgent
+  - aznfs
 
 # location for azure specific scripts and resources
 __hpc_azure_resource_dir: "{{ __hpc_install_prefix }}/hpc/azure"

@@ -300,6 +300,20 @@
     name: "*"
     state: latest  # noqa package-latest
 
+- name: Install Azure-specific platform packages
+  when: ansible_facts["system_vendor"] == "Microsoft Corporation"
+  block:
+    - name: Install Azure platform packages
+      environment:
+        AZNFS_NONINTERACTIVE_INSTALL: "1"
+      package:
+        name: "{{ __hpc_azure_packages }}"
+        state: present
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+      register: __hpc_azure_packages_install
+      until: __hpc_azure_packages_install is success
+
 - name: Install NVidia driver
   # Note that currently the role supports only Microsoft Azure
   # When we add more cloud providers, we need to update this condition

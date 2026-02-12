@@ -61,6 +61,14 @@ Default: `false`
 
 Type: `bool`
 
+### Azure-specific packages
+
+When running on Azure systems, the role automatically installs Azure platform packages, e.g. VM management infrastructure and storage utilities.
+
+**WALinuxAgent**: Azure Linux Agent manages Linux provisioning and VM interaction with the Azure Fabric Controller.
+
+**aznfs**: Azure NFS mount helper is Azure-optimized NFS client that simplifies mounting Azure Blob Storage containers over NFS v3 and applies client-side optimizations for improved performance. The package is installed from the Microsoft Production repository with non-interactive installation mode enabled. For more information, see <https://github.com/Azure/AZNFS-mount>.
+
 ### hpc_install_cuda_driver
 
 Whether to install the CUDA Driver package.
