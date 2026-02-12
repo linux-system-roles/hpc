@@ -1,10 +1,14 @@
-#!/bin/bash -eu
+#!/usr/bin/env bash
 # This is a template, not an actual shell script, so tell shellcheck to
 # ignore the problematic templated parts
 # shellcheck disable=all
 {{ ansible_managed | comment }}
 {{ "system_role:hpc" | comment(prefix="", postfix="") }}
 # shellcheck enable=all
+
+# This is test code, and some operations are expected to fail. Hence we can't
+# use set -e to automatically exist the script if something fails.
+set -u
 
 # Script for testing SKU customisation.
 #
@@ -95,7 +99,7 @@ for sku in $SKU_LIST; do
 	echo
 	echo "Testing $sku"
 	if [ -n "$MANUAL_TEST" ]; then
-		__MOCK_SKU="$sku {{ __hpc_azure_resource_dir }}/bin/setup_sku_customisations.sh"
+		__MOCK_SKU="$sku" "{{ __hpc_azure_resource_dir }}/bin/setup_sku_customisations.sh"
 	fi
 
 	case "$sku" in
