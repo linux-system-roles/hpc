@@ -30,6 +30,7 @@ hpc_install_docker: "{{ hpc_install_nvidia_container_toolkit }}"
 hpc_install_azurehpc_health_checks: "{{ hpc_install_nvidia_container_toolkit }}"
 hpc_tuning: true
 hpc_sku_customisation: true
+hpc_install_diagnostics: true
 
 hpc_update_kernel: true
 hpc_update_all_packages: false

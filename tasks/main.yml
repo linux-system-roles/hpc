@@ -1382,6 +1382,29 @@
         group: root
         mode: '0755'
 
+- name: Install Azure HPC Diagnostics tool
+  when: hpc_install_diagnostics
+  block:
+    - name: Check if diagnostics are already installed
+      stat:
+        path: "{{ __hpc_azure_tools_dir }}/gather_azhpc_vm_diagnostics.sh"
+      register: __hpc_azure_diags_installed
+
+    - name: Download and install Diagnostics
+      when: not __hpc_azure_diags_installed.stat.exists
+      block:
+
+        - name: Download Diagnostics
+          include_tasks: download_extract_package.yml
+          vars:
+            __hpc_pkg_info: "{{ __hpc_azure_diags_info }}"
+
+        - name: Remove extracted temp directory
+          file:
+            path: "{{ __hpc_pkg_extracted.path }}"
+            state: absent
+          changed_when: false
+
 - name: Clean dnf cache
   command: dnf clean all
   changed_when: false
