@@ -156,6 +156,8 @@ Controlling Packages to Install</a>
 id="toc-hpc_update_kernel">hpc_update_kernel</a></li>
 <li><a href="#hpc_update_all_packages"
 id="toc-hpc_update_all_packages">hpc_update_all_packages</a></li>
+<li><a href="#azure-specific-packages"
+id="toc-azure-specific-packages">Azure-specific packages</a></li>
 <li><a href="#hpc_install_cuda_driver"
 id="toc-hpc_install_cuda_driver">hpc_install_cuda_driver</a></li>
 <li><a href="#hpc_install_cuda_toolkit"
@@ -298,6 +300,18 @@ because this is a serious invasion into users environment, this variable
 is set to <code>false</code> by default.</p>
 <p>Default: <code>false</code></p>
 <p>Type: <code>bool</code></p>
+<h2 id="azure-specific-packages">Azure-specific packages</h2>
+<p>When running on Azure systems, the role automatically installs Azure
+platform packages, e.g. VM management infrastructure and storage
+utilities.</p>
+<p><strong>WALinuxAgent</strong>: Azure Linux Agent manages Linux
+provisioning and VM interaction with the Azure Fabric Controller.</p>
+<p><strong>aznfs</strong>: Azure NFS mount helper is Azure-optimized NFS
+client that simplifies mounting Azure Blob Storage containers over NFS
+v3 and applies client-side optimizations for improved performance. The
+package is installed from the Microsoft Production repository with
+non-interactive installation mode enabled. For more information, see <a
+href="https://github.com/Azure/AZNFS-mount">https://github.com/Azure/AZNFS-mount</a>.</p>
 <h2 id="hpc_install_cuda_driver">hpc_install_cuda_driver</h2>
 <p>Whether to install the CUDA Driver package.</p>
 <p>Default: <code>true</code></p>
