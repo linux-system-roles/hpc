@@ -1350,6 +1350,15 @@
         chdir: "{{ __hpc_azure_tests_dir }}/azurehpc-health-checks"
       changed_when: true
 
+    - name: Install azurehpc-health-checks test script
+      when: not __hpc_skip_healthcheck | bool
+      template:
+        src: test-azure-health-checks.sh.j2
+        dest: "{{ __hpc_azure_tests_dir }}/test-azure-health-checks.sh"
+        owner: root
+        group: root
+        mode: '0755'
+
 - name: Clean dnf cache
   command: dnf clean all
   changed_when: false
