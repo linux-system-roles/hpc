@@ -19,6 +19,7 @@
     hpc_install_nvidia_container_toolkit: false
     hpc_install_docker: "{{ hpc_install_nvidia_container_toolkit }}"
     hpc_install_azurehpc_health_checks: "{{ hpc_install_nvidia_container_toolkit }}"
+    hpc_install_diagnostics: false
   tasks:
     - name: Skip unsupported architectures
       include_tasks: tasks/skip_unsupported_archs.yml
