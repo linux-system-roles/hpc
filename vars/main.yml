@@ -75,6 +75,7 @@ __hpc_kernel_versionlock_rpms:
   - kernel-modules
   - kernel-modules-extra
   - kernel-devel
+  - kernel-devel-matched
   - kernel-headers
 __hpc_azure_diagnostics_packages:
   # lsvmbus is required by the diagnostics script, but is provided by the azure
