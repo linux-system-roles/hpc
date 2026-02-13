@@ -72,7 +72,9 @@ __hpc_kernel_versionlock_rpms:
   - kernel-modules
   - kernel-modules-extra
   - kernel-devel
+  - kernel-devel-matched
   - kernel-headers
+
 __hpc_install_prefix: /opt
 
 # packages for azure specific including VM management infrastructure and storage
