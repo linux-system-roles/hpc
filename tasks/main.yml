@@ -161,36 +161,88 @@
 
     - name: Check if rootlv exists
       stat:
-        path: /dev/mapper/{{ hpc_rootvg_name }}-{{ hpc_rootlv_name }}
+        path: /dev/{{ hpc_rootvg_name }}/{{ hpc_rootlv_name }}
       register: __hpc_rootlv_stat
 
     - name: Check if usrlv exists
       stat:
-        path: /dev/mapper/{{ hpc_rootvg_name }}-{{ hpc_usrlv_name }}
+        path: /dev/{{ hpc_rootvg_name }}/{{ hpc_usrlv_name }}
       register: __hpc_usrlv_stat
 
     - name: Check if varlv exists
       stat:
-        path: /dev/mapper/{{ hpc_rootvg_name }}-{{ hpc_varlv_name }}
+        path: /dev/{{ hpc_rootvg_name }}/{{ hpc_varlv_name }}
       register: __hpc_varlv_stat
 
     - name: Get current LV size of rootlv
-      command: lvs --noheadings --units g --nosuffix -o lv_size /dev/mapper/{{ hpc_rootvg_name }}-{{ hpc_rootlv_name }}
+      command: lvs --noheadings --units g --nosuffix -o lv_size /dev/{{ hpc_rootvg_name }}/{{ hpc_rootlv_name }}
       register: __hpc_rootlv_size_cmd
       changed_when: false
       when: __hpc_rootlv_stat.stat.exists
 
     - name: Get current LV size of usrlv
-      command: lvs --noheadings --units g --nosuffix -o lv_size /dev/mapper/{{ hpc_rootvg_name }}-{{ hpc_usrlv_name }}
+      command: lvs --noheadings --units g --nosuffix -o lv_size /dev/{{ hpc_rootvg_name }}/{{ hpc_usrlv_name }}
       register: __hpc_usrlv_size_cmd
       changed_when: false
       when: __hpc_usrlv_stat.stat.exists
 
     - name: Get current LV size of varlv
-      command: lvs --noheadings --units g --nosuffix -o lv_size /dev/mapper/{{ hpc_rootvg_name }}-{{ hpc_varlv_name }}
+      command: lvs --noheadings --units g --nosuffix -o lv_size /dev/{{ hpc_rootvg_name }}/{{ hpc_varlv_name }}
       register: __hpc_varlv_size_cmd
       changed_when: false
       when: __hpc_varlv_stat.stat.exists
+
+    - name: Check if volume group exists
+      command: vgs --noheadings -o vg_name {{ hpc_rootvg_name }}
+      register: __hpc_vg_check
+      changed_when: false
+      failed_when: false
+
+    - name: Get PV devices for volume group
+      command: pvs --noheadings -o pv_name -S vg_name={{ hpc_rootvg_name }}
+      register: __hpc_pv_devices
+      changed_when: false
+      when: __hpc_vg_check.rc == 0
+
+    - name: Set PV device list for storage role
+      set_fact:
+        __hpc_rootvg_disks: "{{ __hpc_pv_devices.stdout_lines | map('trim') | list }}"
+      when:
+        - __hpc_vg_check.rc == 0
+        - __hpc_pv_devices.stdout_lines | length > 0
+
+    - name: Expand partitions if underlying disks have been expanded
+      when:
+        - __hpc_vg_check.rc == 0
+        - __hpc_rootvg_disks is defined
+        - __hpc_rootvg_disks | length > 0
+      block:
+        - name: Install cloud-utils-growpart for partition expansion
+          package:
+            name: cloud-utils-growpart
+            state: present
+            use: "{{ (__hpc_server_is_ostree | d(false)) |
+              ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
+        - name: Expand partitions via growpart
+          vars:
+            # From pv_device to extract parent_device and partition_number example
+            # SCSI: /dev/sda4 -> /dev/sda and 4
+            # NVMe: /dev/nvme0n1p4 -> /dev/nvme0n1 and 4
+            pv_device: "{{ item }}"
+            parent_device: "{{ pv_device | regex_replace('p?([0-9]+)$', '') }}"
+            partition_number: "{{ pv_device | regex_search('([0-9]+)$') }}"
+          command: growpart {{ parent_device }} {{ partition_number }}
+          register: __hpc_growpart_result
+          changed_when:
+            - __hpc_growpart_result.rc == 0
+            - "'NOCHANGE' not in __hpc_growpart_result.stdout"
+          loop: "{{ __hpc_rootvg_disks }}"
+          when:
+            - partition_number | length > 0
+            - parent_device != pv_device
+          # 0: grown, 1: NOCHANGE, others: real error
+          failed_when: __hpc_growpart_result.rc not in [0, 1]
 
     - name: Initialize volumes list
       set_fact:
@@ -238,12 +290,13 @@
         - __hpc_varlv_stat.stat.exists
         - (size_expected | int) > (size_current | int)
 
-    - name: Configure storage
+    - name: Configure storage via storage role
       include_role:
         name: fedora.linux_system_roles.storage
       vars:
         storage_pools:
           - name: "{{ hpc_rootvg_name }}"
+            disks: "{{ __hpc_rootvg_disks | default(omit) }}"
             grow_to_fill: true
             volumes: "{{ __hpc_volumes }}"
       when: __hpc_volumes | length > 0
@@ -1325,7 +1378,7 @@
               Skipping azurehpc-health-checks installation because aznhc-nv Docker image cannot be pulled.
               To install health checks, increase /var space by:
               (1) Expanding the root disk in Azure portal,
-              (2) Adding the new space as a PV to the volume group (e.g., pvresize /dev/sda2),
+              (2) Adding the new space as a PV to the volume group (e.g., pvresize /dev/sda4),
               (3) Expanding the /var logical volume (e.g., lvextend -L +20G /dev/rootvg/varlv && xfs_growfs /var).
               See https://learn.microsoft.com/en-us/azure/virtual-machines/linux/expand-disks?tabs=rhellvm for details.
               Alternatively, configure hpc_varlv_size before running this role.
