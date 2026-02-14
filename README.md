@@ -316,6 +316,8 @@ You can use variables described in this section to control the exact sizes and p
 
 Whether to configure the VG from [hpc_rootvg_name](#hpc_rootvg_name) to have logical volumes [hpc_rootlv_name](#hpc_rootlv_name), [hpc_usrlv_name](#hpc_usrlv_name) and [hpc_varlv_name](#hpc_varlv_name) with indicated sizes and mounted to indicated mount points.
 
+When enabled, it will also automatically handle disk expansion by resizing partitions (via `growpart`), physical volumes (via `pvresize`), as well as logical volumes.
+
 Note that the role configures not the exact size, but ensures that the size is at least as indicated, i.e. the role won't shrink logical volumes.
 
 Default: `true`
