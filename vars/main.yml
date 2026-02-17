@@ -73,6 +73,14 @@ __hpc_kernel_versionlock_rpms:
   - kernel-modules-extra
   - kernel-devel
   - kernel-headers
+__hpc_azure_diagnostics_packages:
+  # lsvmbus is required by the diagnostics script, but is provided by the azure
+  # RHEL 9.6 base image. Testing is often done on other base images (e.g.
+  # ansible system role CI) so this comment is a reminder that we may need to
+  # add this package as a hard dependency in future.
+  - hyperv-tools
+  - patch
+
 __hpc_install_prefix: /opt
 
 # packages for azure specific including VM management infrastructure and storage
