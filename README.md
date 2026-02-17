@@ -208,8 +208,8 @@ Whether to install the Azure HPC Diagnostics tool.
 
 The Azure HPC Diagnostics tool gathers system information for triage and
 debugging purposes. It collects information and state from the hardware, OS,
-azure envinroment and installed applications and packages it into a tarball
-to simplify the process of system support of bug triage.
+Azure environment and installed applications, then packages it into a tarball
+to simplify the process of system support and bug triage.
 
 To gather diagnostics, run:
 

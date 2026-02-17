@@ -1385,7 +1385,7 @@
 - name: Install Azure HPC Diagnostics tool
   when: hpc_install_diagnostics
   block:
-    - name: Check if diagnostics are already installed
+    - name: Check if Diagnostics are already installed
       stat:
         path: "{{ __hpc_azure_tools_dir }}/gather_azhpc_vm_diagnostics.sh"
       register: __hpc_azure_diags_installed
@@ -1393,17 +1393,65 @@
     - name: Download and install Diagnostics
       when: not __hpc_azure_diags_installed.stat.exists
       block:
+        - name: Install dependencies
+          package:
+            name: "{{ __hpc_azure_diagnostics_packages }}"
+            state: present
+            use: "{{ (__hpc_server_is_ostree | d(false)) |
+              ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+          register: __hpc_azure_diagnostics_packages_install
+          until: __hpc_azure_diagnostics_packages_install is success
 
         - name: Download Diagnostics
           include_tasks: download_extract_package.yml
           vars:
-            __hpc_pkg_info: "{{ __hpc_azure_diags_info }}"
+            __hpc_pkg_info: "{{ __hpc_azhpc_diags_info }}"
 
-        - name: Remove extracted temp directory
+        # The downloaded diagnostics script needs sufficient customisation that
+        # the simplest way to do this is to patch it. However, we also have to
+        # replace hard coded paths, so we need to be able to template it as
+        # well.
+        #
+        # Templating can only occur on the control node, so we must first run
+        # the patch through the template module and use the output as the patch
+        # source. Then we can apply the patch to the remote extracted file and
+        # copy it to the install location.
+        - name: Create a temp file for the diagnostics patch
+          tempfile:
+            state: file
+            prefix: hpc_diags
+            suffix: .patch
+          register: __hpc_diags_patch_file
+
+        - name: Configure the diagnostics patch
+          template:
+            src: azhpc_vm_diagnostics.sh.patch.j2
+            dest: "{{ __hpc_diags_patch_file.path }}"
+            mode: '0644'
+
+        - name: Patch Diagnostics script
+          patch:
+            src: "{{ __hpc_diags_patch_file.path }}"
+            dest: "{{ __hpc_pkg_extracted.path }}/Linux/src/gather_azhpc_vm_diagnostics.sh"
+            remote_src: true
+            strip: 1
+
+        - name: Install Diagnostics script
+          copy:
+            src: "{{ __hpc_pkg_extracted.path }}/Linux/src/gather_azhpc_vm_diagnostics.sh"
+            dest: "{{ __hpc_azure_tools_dir }}/gather_azhpc_vm_diagnostics.sh"
+            remote_src: true
+            owner: root
+            group: root
+            mode: '0755'
+
+        - name: Clean up temporary staging files
           file:
-            path: "{{ __hpc_pkg_extracted.path }}"
+            path: "{{ item }}"
             state: absent
-          changed_when: false
+          loop:
+            - "{{ __hpc_diags_patch_file.path }}"
+            - "{{ __hpc_pkg_extracted.path }}"
 
 - name: Clean dnf cache
   command: dnf clean all

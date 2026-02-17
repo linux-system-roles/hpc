@@ -1,0 +1,153 @@
+--- gather_azhpc_vm_diagnostics.sh.orig	2026-02-05 15:20:05.410458535 +1100
++++ gather_azhpc_vm_diagnostics.sh	2026-02-11 18:24:23.902965560 +1100
+@@ -1,4 +1,7 @@
+ #!/bin/bash
++{{ ansible_managed | comment(prefix="", postfix="") | trim }}
++{{ "system_role:hpc" | comment(prefix="", postfix="") | trim }}
++
+ # Azure HPC Diagnostics Tool
+ # Gathers Diagnostic info from guest VM
+ #
+@@ -51,16 +54,11 @@
+ # Copyright (c) Microsoft Corporation.
+ # Licensed under the MIT license.
+ 
+-
+-
+ ####################################################################################################
+ # Begin Constants
+ ####################################################################################################
+ 
+ STREAM_URL='https://azhpcstor.blob.core.windows.net/diagtool-binaries/stream.tgz'
+-LSVMBUS_URL='https://raw.githubusercontent.com/torvalds/linux/master/tools/hv/lsvmbus'
+-HPC_DIAG_URL='https://raw.githubusercontent.com/Azure/azhpc-diagnostics/main/Linux/src/gather_azhpc_vm_diagnostics.sh'
+-SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
+ SYSFS_PATH=/sys # store as a variable so it is mockable
+ ETC_PATH=/etc
+ PROC_PATH=/proc
+@@ -74,15 +72,7 @@
+ CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
+           ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
+ RELEASE_DATE=20220316 # update upon each release
+-COMMIT_HASH=$( 
+-    (
+-        command -v git >/dev/null &&
+-        cd "$SCRIPT_DIR" &&
+-        git config --get remote.origin.url | grep -q 'Azure/azhpc-diagnostics.git$' &&
+-        git rev-parse HEAD 2>/dev/null
+-    ) || 
+-    echo 'Unknown')
+-VERSION_INFO="$RELEASE_DATE-$COMMIT_HASH"
++VERSION_INFO="$RELEASE_DATE-unknown"
+ 
+ HELP_MESSAGE="
+ Usage: $0 [OPTION]
+@@ -100,8 +90,8 @@
+ Execution Mode:
+  --gpu-level=GPU_LEVEL dcgmi run level (default is 1)
+  --mem-level=MEM_LEVEL set to 1 to run stream test (default is 0)
+- --no-update           do not prompt for auto-update
+- --offline             skips steps that require Internet access
++ --no-update           Does nothing, auto-update functionality has been elided.
++ --online              Run steps that require Internet access
+ 
+ For more information on this script and the data it gathers, visit its Github:
+ 
+@@ -217,10 +207,9 @@
+     echo "${CPU_LIST[$1]}"
+ }
+ 
++COLUMNS=80
+ if tput cols >/dev/null 2>/dev/null && (( $(tput cols) < 80 )); then
+     COLUMNS=$(tput cols)
+-else
+-    COLUMNS=80
+ fi
+ 
+ print_enclosed() {
+@@ -244,24 +233,6 @@
+     echo ''
+ }
+ 
+-check_for_updates() {
+-    local message="You are not running the latest release of this tool. Switch to latest version?"
+-
+-    local tmpfile
+-    tmpfile=$(mktemp)
+-    curl -s "$HPC_DIAG_URL" >"$tmpfile" || return 1
+-    if ! cmp --silent "$0" "$tmpfile"; then
+-        if prompt "$message"; then
+-            mv "$tmpfile" "$0"
+-            bash "$0" "$RUNTIME_OPTIONS"
+-            exit $?
+-        else
+-            return 0
+-        fi
+-    fi
+-    rm "$tmpfile"
+-}
+-
+ get_metadata() {
+     local path="$1"
+     curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/$path?api-version=2021-03-01&format=text"
+@@ -876,11 +847,11 @@
+     print_divider
+     print_enclosed "NOTICES:" 
+     print_divider
+-    print_enclosed This tool generates and bundles together various logs and diagnostic information. It, however, DOES NOT TRANSMIT any of said data. It is left to the user to choose to transmit this data to Microsoft.
++    print_enclosed This tool generates and bundles together various logs and diagnostic information. It, however, DOES NOT TRANSMIT any of said data. It is left to the user to choose to transmit this data to Red Hat.
+     print_divider
+-    print_enclosed Some of this info, such as IP addresses, may be Personally Identifiable Information. It is up to the user to redact any sensitive info from the output 'if' necessary before sending it to Microsoft.
++    print_enclosed Some of this info, such as IP addresses, may be Personally Identifiable Information. It is up to the user to redact any sensitive info from the output 'if' necessary before sending it to Red Hat.
+     print_divider
+-    print_enclosed This tool invokes various 3rd party tools 'if' they are present on the system Please review them and their EULAs at:
++    print_enclosed This tool invokes various 3rd party tools 'if' they are present on the system. Please review them and their EULAs at:
+     print_enclosed "https://github.com/Azure/azhpc-diagnostics"
+     print_divider
+     print_enclosed WARNING: THINK BEFORE YOU RUN THIS
+@@ -1018,9 +989,6 @@
+     print_enclosed 'Placing diagnostic files in the following location:'
+     print_enclosed "$DIAG_DIR.tar.gz"
+     print_divider
+-    print_enclosed If you have already opened a support request, you can take the tarball and follow this link to upload it:
+-    print_enclosed 'https://portal.azure.com/#blade/Microsoft_Azure_Support/HelpAndSupportBlade/managesupportrequest'
+-    print_divider
+     tar czf "$DIAG_DIR.tar.gz" -C "$DIAG_DIR_LOC" "$VM_ID.$TIMESTAMP"  2>/dev/null && rm -r "$DIAG_DIR"
+ }
+ 
+@@ -1030,9 +998,11 @@
+ 
+ GPU_LEVEL=1
+ MEM_LEVEL=0
++OFFLINE=true
+ DISPLAY_HELP=false
+-# should be /opt/azurehpc/diagnostics
+-DIAG_DIR_LOC="$SCRIPT_DIR"
++DISPLAY_VERSION=false
++# should be /var/hpc/azure/diagnostics
++DIAG_DIR_LOC="{{ __hpc_azure_runtime_dir }}/diagnostics"
+ 
+ # save options
+ RUNTIME_OPTIONS=$*
+@@ -1063,8 +1033,8 @@
+         validate_run_level "$1"
+         MEM_LEVEL="$1"
+         ;;
+-    --no-update) DISABLE_UPDATE=true;;
+-    --offline) OFFLINE=true;;
++    --no-update) ;; # does nothing
++    --online) OFFLINE=false;;
+     --tuning) TUNING=true;;
+     -V|--version) DISPLAY_VERSION=true;;
+   esac
+@@ -1081,10 +1051,6 @@
+ # End Option Parsing
+ ####################################################################################################
+ 
+-if [ "$OFFLINE" != true ] && [ "$DISABLE_UPDATE" != true ] && ! [[ $- =~ 's' ]]; then
+-    check_for_updates
+-fi
+-
+ if [ ! "${BASH_SOURCE[0]}" -ef "$0" ]; then
+     # This lets us load all functions for unit testing.
+     # We wouldn't want people sourcing this script anyway.
