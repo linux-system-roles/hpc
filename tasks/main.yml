@@ -466,6 +466,7 @@
     # azhpc-images build scripts do the same thing here:
     # https://github.com/Azure/azhpc-images/blob/a3f92d283af6c9d11bf08eb0f8763ab67f7c8713/common/install_waagent.sh#L53
     - name: Enable RDMA in waagent configuration
+      when: ansible_facts['system_vendor'] == 'Microsoft Corporation'
       lineinfile:
         path: /etc/waagent.conf
         line: "OS.EnableRDMA=y"
