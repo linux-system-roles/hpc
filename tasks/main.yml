@@ -71,6 +71,15 @@
     - "{{ __hpc_nvidia_cuda_repo }}"
     - "{{ __hpc_microsoft_prod_repo }}"
 
+- name: Install base packages
+  package:
+    name: "{{ __hpc_base_packages }}"
+    state: present
+    use: "{{ (__hpc_server_is_ostree | d(false)) |
+      ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+  register: __hpc_base_packages_install
+  until: __hpc_base_packages_install is success
+
 - name: Replace default RHUI Azure repository with the EUS repository
   when: hpc_enable_eus_repo
   block:
