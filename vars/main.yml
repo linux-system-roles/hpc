@@ -18,6 +18,9 @@ __hpc_required_facts_subsets: "{{ ['!all', '!min'] +
 
 __hpc_microsoft_prod_rpm_key: https://packages.microsoft.com/keys/microsoft.asc
 
+__hpc_base_packages:
+  - pssh
+
 __hpc_rdma_rename_path: /usr/lib/udev/rdma_rename
 
 __hpc_dkms_packages:
