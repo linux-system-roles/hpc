@@ -313,6 +313,20 @@
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
       register: __hpc_azure_packages_install
       until: __hpc_azure_packages_install is success
+      
+- name: Create Azure HPC resource directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - "{{ __hpc_azure_resource_dir }}"
+    - "{{ __hpc_azure_resource_dir }}/bin"
+    - "{{ __hpc_azure_tools_dir }}"
+    - "{{ __hpc_azure_tests_dir }}"
+    - "{{ __hpc_azure_runtime_dir }}"
 
 - name: Install NVidia driver
   # Note that currently the role supports only Microsoft Azure
@@ -538,6 +552,14 @@
             enabled: true
             state: started
             daemon_reload: "{{ __hpc_azure_persistent_rdma_naming_monitor_unit.changed | d(false) }}"
+
+    - name: Install RDMA validation script
+      copy:
+        src: rdma/test-rdma.sh
+        dest: "{{ __hpc_azure_tests_dir }}/test-rdma.sh"
+        owner: root
+        group: root
+        mode: "0755"
 
 - name: Install common OpenMPI packages
   when: hpc_install_system_openmpi or hpc_build_openmpi_w_nvidia_gpu_support
@@ -958,20 +980,6 @@
         group: root
         mode: '0644'
       notify: Reload udev
-
-- name: Create Azure HPC resource directories
-  file:
-    path: "{{ item }}"
-    state: directory
-    owner: root
-    group: root
-    mode: '0755'
-  loop:
-    - "{{ __hpc_azure_resource_dir }}"
-    - "{{ __hpc_azure_resource_dir }}/bin"
-    - "{{ __hpc_azure_tools_dir }}"
-    - "{{ __hpc_azure_tests_dir }}"
-    - "{{ __hpc_azure_runtime_dir }}"
 
 - name: Install SKU Customisation scripts and services
   when: hpc_sku_customisation
