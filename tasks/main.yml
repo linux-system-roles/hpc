@@ -1039,7 +1039,7 @@
             dest: /etc/systemd/system/
             owner: root
             group: root
-            mode: '0755'
+            mode: '0644'
 
         - name: Enable systemd service file
           service:
