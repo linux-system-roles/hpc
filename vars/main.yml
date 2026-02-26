@@ -31,6 +31,7 @@ __hpc_cuda_driver_packages:
   - cuda-drivers
 __hpc_nvidia_fabric_manager_packages:
   - nvidia-fabric-manager
+__hpc_nvidia_imex_package: nvidia-imex
 __hpc_nvidia_container_toolkit_packages:
   - nvidia-container-toolkit
 __hpc_rdma_packages:
