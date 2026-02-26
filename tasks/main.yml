@@ -944,6 +944,14 @@
 - name: Tune system for HPC
   when: hpc_tuning
   block:
+    - name: Remove azsec-monitor package if exists to prevent CPU utilization by azsec-monitor
+      package:
+        name: azsec-monitor
+        state: absent
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+      failed_when: false
+
     - name: Remove user memory limits to ensure applications aren't restricted
       template:
         src: 90-hpc-limits.conf
@@ -952,14 +960,43 @@
         group: root
         mode: "0644"
 
-    - name: Add sysctl tuning configuration for HPC
-      template:
-        src: 90-hpc-sysctl.conf
-        dest: /etc/sysctl.d/
+    - name: Ensure systemd system.conf.d directory exists
+      file:
+        path: /etc/systemd/system.conf.d
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Set DefaultLimitMEMLOCK=infinity in systemd system.conf.d drop-in
+      copy:
+        dest: /etc/systemd/system.conf.d/99-memlock.conf
+        content: |
+          [Manager]
+          DefaultLimitMEMLOCK=infinity
         owner: root
         group: root
         mode: '0644'
-      notify: Reload sysctl
+      notify: Reexec systemd
+
+    - name: Ensure systemd user.conf.d directory exists
+      file:
+        path: /etc/systemd/user.conf.d
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Set DefaultLimitMEMLOCK=infinity in systemd user.conf.d drop-in
+      copy:
+        dest: /etc/systemd/user.conf.d/99-memlock.conf
+        content: |
+          [Manager]
+          DefaultLimitMEMLOCK=infinity
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reexec systemd
 
     - name: Load sunrpc kernel module
       lineinfile:
@@ -980,6 +1017,15 @@
       when: "'sunrpc' not in __hpc_loaded_modules.stdout"
       command: modprobe sunrpc
       changed_when: true
+
+    - name: Add sysctl tuning configuration for HPC
+      template:
+        src: 90-hpc-sysctl.conf
+        dest: /etc/sysctl.d/90-hpc-sysctl.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload sysctl
 
     - name: Copy NFS readahead udev rules for Azure infrastructure
       template:

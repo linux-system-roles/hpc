@@ -129,10 +129,10 @@
                 '*               soft    memlock         unlimited'
                 in __hpc_limits_conf.stdout
               - >-
-                '*               hard    nofile          65535'
+                '*               hard    nofile          1048576'
                 in __hpc_limits_conf.stdout
               - >-
-                '*               soft    nofile          65535'
+                '*               soft    nofile          1048576'
                 in __hpc_limits_conf.stdout
               - >-
                 '*               hard    stack           unlimited'
