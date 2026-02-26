@@ -527,6 +527,23 @@
         name: nvidia-fabricmanager
         enabled: true
 
+- name: Install/enable NVIDIA IMEX (NVLink multi-node runtime)
+  when:
+    - hpc_install_nvidia_imex
+    - ansible_facts["system_vendor"] == "Microsoft Corporation"
+  block:
+    - name: Install NVIDIA IMEX
+      package:
+        name: "{{ __hpc_nvidia_imex_package }}"
+        state: present
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
+    - name: Enable NVIDIA IMEX service
+      systemd:
+        name: nvidia-imex.service
+        enabled: true
+
 - name: Install RDMA packages
   when: hpc_install_rdma
   block:

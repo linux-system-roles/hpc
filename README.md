@@ -105,6 +105,16 @@ Default: `true`
 
 Type: `bool`
 
+### hpc_install_nvidia_imex
+
+Whether to install NVIDIA IMEX (`nvidia-imex`) and enable `nvidia-imex.service`.
+
+Note: "This role installs and enables the nvidia-imex service but does not start it immediately. The service is configured to launch at boot only on compatible multi-node NVLink switch-fabric systems, such as NVIDIA GB200 or GB300 (NVL72) racks."
+
+Default: `true`
+
+Type: `bool`
+
 ### hpc_install_rdma
 
 Whether to install the NVIDIA RDMA package.
