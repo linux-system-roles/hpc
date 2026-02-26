@@ -552,6 +552,9 @@ href="#hpc_rootlv_name">hpc_rootlv_name</a>, <a
 href="#hpc_usrlv_name">hpc_usrlv_name</a> and <a
 href="#hpc_varlv_name">hpc_varlv_name</a> with indicated sizes and
 mounted to indicated mount points.</p>
+<p>When enabled, it will also automatically handle disk expansion by
+resizing partitions (via <code>growpart</code>), physical volumes (via
+<code>pvresize</code>), as well as logical volumes.</p>
 <p>Note that the role configures not the exact size, but ensures that
 the size is at least as indicated, i.e. the role won't shrink logical
 volumes.</p>
