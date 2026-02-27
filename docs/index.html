@@ -166,6 +166,8 @@ id="toc-hpc_install_cuda_toolkit">hpc_install_cuda_toolkit</a></li>
 id="toc-hpc_install_hpc_nvidia_nccl">hpc_install_hpc_nvidia_nccl</a></li>
 <li><a href="#hpc_install_nvidia_fabric_manager"
 id="toc-hpc_install_nvidia_fabric_manager">hpc_install_nvidia_fabric_manager</a></li>
+<li><a href="#hpc_install_nvidia_imex"
+id="toc-hpc_install_nvidia_imex">hpc_install_nvidia_imex</a></li>
 <li><a href="#hpc_install_rdma"
 id="toc-hpc_install_rdma">hpc_install_rdma</a></li>
 <li><a href="#hpc_enable_azure_persistent_rdma_naming"
@@ -333,6 +335,15 @@ href="https://github.com/Azure/AZNFS-mount">https://github.com/Azure/AZNFS-mount
 id="hpc_install_nvidia_fabric_manager">hpc_install_nvidia_fabric_manager</h2>
 <p>Whether to install the NVIDIA Fabric Manager package and enable the
 nvidia-fabricmanager service.</p>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
+<h2 id="hpc_install_nvidia_imex">hpc_install_nvidia_imex</h2>
+<p>Whether to install NVIDIA IMEX (<code>nvidia-imex</code>) and enable
+<code>nvidia-imex.service</code>.</p>
+<p>Note: "This role installs and enables the nvidia-imex service but
+does not start it immediately. The service is configured to launch at
+boot only on compatible multi-node NVLink switch-fabric systems, such as
+NVIDIA GB200 or GB300 (NVL72) racks."</p>
 <p>Default: <code>true</code></p>
 <p>Type: <code>bool</code></p>
 <h2 id="hpc_install_rdma">hpc_install_rdma</h2>
