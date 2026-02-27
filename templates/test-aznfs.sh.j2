@@ -1,0 +1,187 @@
+#!/usr/bin/env bash
+# These are templates, not actual shell scripts, so tell shellcheck to
+# ignore the templated parts
+# shellcheck disable=all
+{{ ansible_managed | comment }}
+{{ "system_role:hpc" | comment(prefix="", postfix="") }}
+# shellcheck enable=all
+# SPDX-License-Identifier: MIT
+#
+# Azure NFS Mount Helper Test Script
+# Usage: ./test-aznfs.sh [-v]
+#
+
+set -euo pipefail
+
+# Default configuration
+VERBOSE=0
+
+# Test counter
+PASSED=0
+
+# ------------------------------------------------------------------------------
+# Helper Functions
+# ------------------------------------------------------------------------------
+
+pass() {
+    echo "[PASS] $1"
+    PASSED=$((PASSED + 1))
+}
+
+fail() {
+    echo "[FAIL] $1"
+    exit 1
+}
+
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") [OPTIONS]
+
+Test Azure NFS Mount Helper (aznfs) installation and functionality
+
+OPTIONS:
+    -v              Verbose mode
+    -h              Show this help message
+
+EXAMPLES:
+    # Run with default settings
+    sudo ./test-aznfs.sh
+
+    # Run with verbose output
+    sudo ./test-aznfs.sh -v
+
+EOF
+    exit 0
+}
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+}
+
+verbose_log() {
+    if [[ $VERBOSE -eq 1 ]]; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+    fi
+}
+
+# ------------------------------------------------------------------------------
+# Parse Arguments
+# ------------------------------------------------------------------------------
+
+while getopts "vh" opt; do
+    case $opt in
+        v)
+            VERBOSE=1
+            ;;
+        h)
+            usage
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+
+# ------------------------------------------------------------------------------
+# Test: Package Installation
+# ------------------------------------------------------------------------------
+
+test_aznfs_package() {
+    log "Test: aznfs package installation..."
+    echo ""
+
+    echo "Checking: aznfs package is installed or not"
+    if ! rpm -q aznfs >/dev/null 2>&1; then
+        fail "aznfs package is not installed"
+    fi
+    pass "aznfs package is installed"
+
+    if [[ $VERBOSE -eq 1 ]]; then
+        verbose_log "Package: $(rpm -q aznfs)"
+    fi
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: Service Status
+# ------------------------------------------------------------------------------
+
+test_aznfs_service() {
+    log "Test: aznfswatchdog status..."
+    echo ""
+
+    echo "Checking: aznfswatchdog service is active or not"
+    if ! systemctl is-active --quiet aznfswatchdog; then
+        fail "aznfswatchdog service is not active"
+    fi
+    pass "aznfswatchdog service is active"
+
+    # Check if aznfswatchdog service is enabled (verbose mode)
+    if [[ $VERBOSE -eq 1 ]]; then
+        if ! systemctl is-enabled --quiet aznfswatchdog 2>/dev/null; then
+            verbose_log "Warning: aznfswatchdog service is not enabled"
+        fi
+    fi
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: Check "mount.aznfs" command ready or not.
+# It does not cover below test for real mount action:
+# sudo mount -t aznfs -o vers=3 \
+# <account-name>.blob.core.windows.net:/<account-name>/<container-name> /mountpoint
+# ------------------------------------------------------------------------------
+
+test_aznfs_mount() {
+    log "Test: aznfs mount readiness validation"
+    echo ""
+
+    echo "Checking: mount.aznfs command is available or not"
+    if ! command -v mount.aznfs >/dev/null 2>&1; then
+        fail "mount.aznfs command not found"
+    fi
+    pass "mount.aznfs is available"
+
+    echo "Checking: general NFS mount status"
+    # Note: "type nfs" but not "type aznfs" in the mount output
+    if mount | grep -q "type nfs"; then
+        mount_count=$(mount | grep "type nfs" | wc -l)
+        pass "Found $mount_count active nfs mount(s)"
+        if [[ $VERBOSE -eq 1 ]]; then
+            verbose_log "Active nfs mounts:"
+            mount | grep "type nfs"
+        fi
+    else
+        pass "No active nfs mounts"
+    fi
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Main
+# ------------------------------------------------------------------------------
+
+main() {
+    log "========================================"
+    log "Azure NFS Mount Helper (aznfs) Test"
+    log "========================================"
+    echo ""
+
+    test_aznfs_package
+
+    test_aznfs_service
+
+    test_aznfs_mount
+
+    # If we get here, all tests passed
+    echo ""
+    log "========================================"
+    log "All tests passed ($PASSED)"
+    log "========================================"
+    exit 0
+}
+
+main "$@"
