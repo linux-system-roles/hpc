@@ -375,7 +375,15 @@
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
       register: __hpc_azure_packages_install
       until: __hpc_azure_packages_install is success
-      
+
+    - name: Install package aznfs test script
+      template:
+        src: test-aznfs.sh.j2
+        dest: "{{ __hpc_azure_tests_dir }}/test-aznfs.sh"
+        owner: root
+        group: root
+        mode: '0755'
+
 - name: Create Azure HPC resource directories
   file:
     path: "{{ item }}"
