@@ -1019,6 +1019,14 @@
       changed_when: true
       notify: Restart containerd service
 
+    - name: Install NVIDIA Docker test script
+      template:
+        src: test-nvidia-docker.sh.j2
+        dest: "{{ __hpc_azure_tests_dir }}/test-nvidia-docker.sh"
+        owner: root
+        group: root
+        mode: '0755'
+
 - name: Tune system for HPC
   when: hpc_tuning
   block:
