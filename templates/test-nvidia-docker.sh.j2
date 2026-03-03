@@ -1,0 +1,285 @@
+#!/usr/bin/env bash
+# These are templates, not actual shell scripts, so tell shellcheck to
+# ignore the templated parts
+# shellcheck disable=all
+{{ ansible_managed | comment }}
+{{ "system_role:hpc" | comment(prefix="", postfix="") }}
+# shellcheck enable=all
+# SPDX-License-Identifier: MIT
+#
+# NVIDIA Container Runtime Test Script
+# Usage: ./test-nvidia-docker.sh [-v]
+#
+
+set -euo pipefail
+
+# Default configuration
+VERBOSE=0
+NVIDIA_IMAGE="nvidia/cuda:12.9.0-base-ubi9"
+
+# Test counter
+PASSED=0
+
+# GPU detection flag (set during execution)
+HAS_GPU=0
+
+# ------------------------------------------------------------------------------
+# Helper Functions
+# ------------------------------------------------------------------------------
+
+pass() {
+    echo "[PASS] $1"
+    PASSED=$((PASSED + 1))
+}
+
+fail() {
+    echo "[FAIL] $1"
+    exit 1
+}
+
+skip() {
+    echo "[SKIP] $1"
+    exit 77
+}
+
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") [OPTIONS]
+
+Test NVIDIA container runtime and GPU access
+
+OPTIONS:
+    -v              Verbose mode
+    -h              Show this help message
+
+EXAMPLES:
+    # Run with default settings
+    sudo ./test-nvidia-docker.sh
+
+    # Run with verbose output
+    sudo ./test-nvidia-docker.sh -v
+
+EOF
+    exit 0
+}
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+}
+
+verbose_log() {
+    if [[ $VERBOSE -eq 1 ]]; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+    fi
+}
+
+# ------------------------------------------------------------------------------
+# Parse Arguments
+# ------------------------------------------------------------------------------
+
+while getopts "vh" opt; do
+    case $opt in
+        v)
+            VERBOSE=1
+            ;;
+        h)
+            usage
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+
+
+# ------------------------------------------------------------------------------
+# Test: Container Runtime Packages
+# ------------------------------------------------------------------------------
+
+test_container_packages() {
+    log "Test: Container runtime packages installation..."
+    echo ""
+
+    local packages=("moby-engine" "moby-containerd" "nvidia-container-toolkit")
+
+    for pkg in "${packages[@]}"; do
+        echo "Checking: $pkg package is installed"
+        if ! rpm -q "$pkg" >/dev/null 2>&1; then
+            fail "$pkg package is not installed"
+        fi
+        pass "$pkg package is installed"
+
+        if [[ $VERBOSE -eq 1 ]]; then
+            verbose_log "Package: $(rpm -q "$pkg")"
+        fi
+    done
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: Docker Service
+# ------------------------------------------------------------------------------
+
+test_docker_service() {
+    log "Test: Docker service status..."
+    echo ""
+
+    # Check if Docker service is active
+    echo "Checking: Docker service is active"
+    if ! systemctl is-active --quiet docker; then
+        fail "Docker service is not active"
+    fi
+    pass "Docker service is active"
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: containerd Service
+# ------------------------------------------------------------------------------
+
+test_containerd_service() {
+    log "Test: containerd service status..."
+    echo ""
+
+    # Check if containerd service is active
+    echo "Checking: containerd service is active"
+    if ! systemctl is-active --quiet containerd; then
+        fail "containerd service is not active"
+    fi
+    pass "containerd service is active"
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: GPU Detection
+# ------------------------------------------------------------------------------
+
+detect_gpu() {
+    log "Detecting GPU hardware..."
+    echo ""
+
+    # Check if nvidia-smi is available and can detect GPUs
+    echo "Checking: GPU hardware presence"
+    if command -v nvidia-smi >/dev/null 2>&1; then
+        if nvidia-smi >/dev/null 2>&1; then
+            HAS_GPU=1
+            echo "GPU detected"
+
+            if [[ $VERBOSE -eq 1 ]]; then
+                verbose_log "GPU details:"
+                nvidia-smi 2>/dev/null || true
+            fi
+        else
+            echo "[INFO] nvidia-smi command failed - no GPU hardware detected"
+            HAS_GPU=0
+        fi
+    elif [[ -e /dev/nvidia0 ]]; then
+        # Fallback: check for nvidia device files
+        HAS_GPU=1
+        echo "GPU device files detected (/dev/nvidia0)"
+    else
+        echo "[INFO] No GPU hardware detected on this instance"
+        echo "[INFO] GPU container tests will be skipped"
+        HAS_GPU=0
+    fi
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: Run Container with GPU Access (Docker)
+# ------------------------------------------------------------------------------
+
+test_nvidia_gpu_access() {
+    log "Test: GPU access in Docker container..."
+    echo ""
+
+    if [[ $HAS_GPU -eq 0 ]]; then
+        echo ""
+        skip "No GPU hardware detected - cannot test GPU access"
+    fi
+
+    # Check if NVIDIA runtime is registered in Docker
+    echo "Checking: NVIDIA runtime is registered in Docker"
+    if ! docker info | grep -qi nvidia; then
+        fail "NVIDIA runtime not registered in Docker"
+    fi
+    pass "NVIDIA runtime is registered in Docker"
+
+    # Run container with nvidia-smi (Docker will auto-pull image if needed)
+    echo "Checking: GPU is accessible from Docker container"
+
+    output=""
+    ret=0
+    output=$(docker run --rm --gpus all "$NVIDIA_IMAGE" nvidia-smi 2>&1) || ret=$?
+
+    if [[ $ret -ne 0 ]]; then
+        fail "Failed to run Docker container with GPU access (exit code $ret): ${output:0:500}"
+    fi
+
+    # Verify nvidia-smi output contains expected GPU information
+    if ! echo "$output" | grep -q "NVIDIA-SMI"; then
+        fail "nvidia-smi output does not contain expected GPU information"
+    fi
+
+    if ! echo "$output" | grep -q "CUDA Version"; then
+        fail "nvidia-smi output does not contain CUDA version"
+    fi
+
+    pass "GPU is accessible from Docker container"
+
+    if [[ $VERBOSE -eq 1 ]]; then
+        verbose_log "nvidia-smi output from Docker container:"
+        echo "$output"
+    fi
+
+    echo ""
+}
+
+
+# ------------------------------------------------------------------------------
+# Main
+# ------------------------------------------------------------------------------
+
+main() {
+    log "=========================================================="
+    log "NVIDIA Container Runtime Test"
+    log "=========================================================="
+    echo ""
+
+    # Package installation checks
+    test_container_packages
+
+    # Service checks
+    log "=========================================="
+    log "Service Status Tests"
+    log "=========================================="
+    echo ""
+
+    test_containerd_service
+    test_docker_service
+
+    # GPU access test
+    echo ""
+    log "=========================================="
+    log "GPU Access Test"
+    log "=========================================="
+    echo ""
+
+    # Detect GPU hardware first
+    detect_gpu
+
+    test_nvidia_gpu_access
+
+    # If we get here, all tests passed
+    echo ""
+    log "=========================================================="
+    log "All tests passed ($PASSED)"
+    log "=========================================================="
+    exit 0
+}
+
+main "$@"
