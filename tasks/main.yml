@@ -365,6 +365,20 @@
 - name: Install Azure-specific platform packages
   when: ansible_facts["system_vendor"] == "Microsoft Corporation"
   block:
+    - name: Create Azure HPC resource directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      loop:
+        - "{{ __hpc_azure_resource_dir }}"
+        - "{{ __hpc_azure_resource_dir }}/bin"
+        - "{{ __hpc_azure_tools_dir }}"
+        - "{{ __hpc_azure_tests_dir }}"
+        - "{{ __hpc_azure_runtime_dir }}"
+
     - name: Install Azure platform packages
       environment:
         AZNFS_NONINTERACTIVE_INSTALL: "1"
@@ -383,20 +397,6 @@
         owner: root
         group: root
         mode: '0755'
-
-- name: Create Azure HPC resource directories
-  file:
-    path: "{{ item }}"
-    state: directory
-    owner: root
-    group: root
-    mode: '0755'
-  loop:
-    - "{{ __hpc_azure_resource_dir }}"
-    - "{{ __hpc_azure_resource_dir }}/bin"
-    - "{{ __hpc_azure_tools_dir }}"
-    - "{{ __hpc_azure_tests_dir }}"
-    - "{{ __hpc_azure_runtime_dir }}"
 
 - name: Install NVidia driver
   # Note that currently the role supports only Microsoft Azure
