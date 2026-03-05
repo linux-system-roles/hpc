@@ -201,6 +201,17 @@ Default: `"{{ hpc_install_nvidia_container_toolkit }}"`
 
 Type: `bool`
 
+### hpc_docker_subnet
+
+The default docker bridge interface address and subnet configuration of 172.17.0.1/16 conflicts with the subnets Azure CycleCloud uses for internal physical cluster networks.
+
+To avoid this conflict with the Azure CycleCloud networks, the system role will configure the docker interface with a 10.88.0.1/16 address and subnet.
+However, if this is inappropriate for the cluster being deployed, the subnet can be customised to any private subnet using this variable.
+
+Default: `10.88.0.1/16`
+
+Type: `string`
+
 ### hpc_install_moneo
 
 Whether to install the Azure Moneo monitoring tool.

@@ -21,6 +21,8 @@ __hpc_microsoft_prod_rpm_key: https://packages.microsoft.com/keys/microsoft.asc
 __hpc_base_packages:
   - pssh
 
+__hpc_docker_conf_dir: /etc/docker
+__hpc_docker_conf_file: "{{ __hpc_docker_conf_dir }}/daemon.json"
 __hpc_rdma_rename_path: /usr/lib/udev/rdma_rename
 
 __hpc_dkms_packages:

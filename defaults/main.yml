@@ -28,6 +28,7 @@ hpc_build_openmpi_w_nvidia_gpu_support: true
 hpc_install_moneo: true
 hpc_install_nvidia_container_toolkit: true
 hpc_install_docker: "{{ hpc_install_nvidia_container_toolkit }}"
+hpc_docker_subnet: 10.88.0.1/16
 hpc_install_azurehpc_health_checks: "{{ hpc_install_nvidia_container_toolkit }}"
 hpc_tuning: true
 hpc_sku_customisation: true

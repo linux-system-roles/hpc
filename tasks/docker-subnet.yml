@@ -1,0 +1,36 @@
+---
+- name: Ensure docker config directory exists
+  file:
+    path: "{{ __hpc_docker_conf_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Check if daemon.json exists
+  stat:
+    path: "{{ __hpc_docker_conf_file }}"
+  register: __hpc_docker_conf_stat
+
+- name: Slurp file if it exists
+  slurp:
+    src: "{{ __hpc_docker_conf_file }}"
+  register: __hpc_docker_daemon_json_raw
+  when: __hpc_docker_conf_stat.stat.exists and __hpc_docker_conf_stat.stat.size > 0
+
+- name: Write the updated JSON safely
+  copy:
+    content: "{{ updated_daemon_config | to_nice_json }}"
+    dest: "{{ __hpc_docker_conf_file }}"
+    owner: root
+    group: root
+    mode: '0644'
+    validate: '/usr/bin/python3 -m json.tool %s'
+  vars:
+    updated_daemon_config: >-
+      {{
+        (__hpc_docker_daemon_json_raw.content | b64decode | from_json
+        if (__hpc_docker_daemon_json_raw.content is defined)
+        else {})
+        | combine({"bip": hpc_docker_subnet | default('10.88.0.1/16')})
+      }}
