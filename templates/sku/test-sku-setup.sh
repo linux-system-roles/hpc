@@ -148,7 +148,7 @@ for sku in $SKU_LIST; do
 		[ -s "$NCCL_CONF" ] && fail "$sku: $NCCL_CONF not empty"
 	elif [ -z "$unknown_sku" ]; then
 		# check that the customisation service is running
-		if ! systemctl is-active --quiet sku_customisations ; then
+		if ! systemctl is-active --quiet sku_customisation ; then
 			fail "$sku: customisation service not running"
 		fi
 	fi
