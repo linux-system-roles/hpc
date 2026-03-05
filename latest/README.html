@@ -180,6 +180,8 @@ id="toc-hpc_build_openmpi_w_nvidia_gpu_support">hpc_build_openmpi_w_nvidia_gpu_s
 id="toc-hpc_install_nvidia_container_toolkit">hpc_install_nvidia_container_toolkit</a></li>
 <li><a href="#hpc_install_docker"
 id="toc-hpc_install_docker">hpc_install_docker</a></li>
+<li><a href="#hpc_docker_subnet"
+id="toc-hpc_docker_subnet">hpc_docker_subnet</a></li>
 <li><a href="#hpc_install_moneo"
 id="toc-hpc_install_moneo">hpc_install_moneo</a></li>
 <li><a href="#hpc_install_diagnostics"
@@ -421,6 +423,17 @@ disable <code>hpc_install_nvidia_container_toolkit</code>.</p>
 <p>Default:
 <code>"{{ hpc_install_nvidia_container_toolkit }}"</code></p>
 <p>Type: <code>bool</code></p>
+<h2 id="hpc_docker_subnet">hpc_docker_subnet</h2>
+<p>The default docker bridge interface address and subnet configuration
+of 172.17.0.1/16 conflicts with the subnets Azure CycleCloud uses for
+internal physical cluster networks.</p>
+<p>To avoid this conflict with the Azure CycleCloud networks, the system
+role will configure the docker interface with a 10.88.0.1/16 address and
+subnet. However, if this is inappropriate for the cluster being
+deployed, the subnet can be customised to any private subnet using this
+variable.</p>
+<p>Default: <code>10.88.0.1/16</code></p>
+<p>Type: <code>string</code></p>
 <h2 id="hpc_install_moneo">hpc_install_moneo</h2>
 <p>Whether to install the Azure Moneo monitoring tool.</p>
 <p>Moneo is a distributed GPU system monitor for AI training and
