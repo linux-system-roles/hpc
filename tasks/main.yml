@@ -941,6 +941,9 @@
       register: __hpc_docker_packages_install
       until: __hpc_docker_packages_install is success
 
+    - name: Configure Docker bridge network address range
+      include_tasks: tasks/docker-subnet.yml
+
     - name: Enable and start Docker service
       service:
         name: docker
