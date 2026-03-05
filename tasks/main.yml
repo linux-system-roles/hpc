@@ -1125,6 +1125,14 @@
         mode: '0644'
       notify: Reload udev
 
+    - name: Install tuning tests
+      template:
+        src: test-tuning.sh.j2
+        dest: "{{ __hpc_azure_tests_dir }}/test-tuning.sh"
+        owner: root
+        group: root
+        mode: '0755'
+
 - name: Install SKU Customisation scripts and services
   when: hpc_sku_customisation
   block:
