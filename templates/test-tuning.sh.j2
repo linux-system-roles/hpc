@@ -1,0 +1,268 @@
+#!/usr/bin/env bash
+# These are templates, not actual shell scripts, so tell shellcheck to
+# ignore the templated parts
+# shellcheck disable=all
+{{ ansible_managed | comment }}
+{{ "system_role:hpc" | comment(prefix="", postfix="") }}
+# shellcheck enable=all
+# SPDX-License-Identifier: MIT
+#
+# HPC System Tuning Validation Script
+# Usage: ./test-tuning.sh [-v]
+#
+
+set -euo pipefail
+
+# Test counter
+PASSED=0
+
+# ------------------------------------------------------------------------------
+# Helper Functions
+# ------------------------------------------------------------------------------
+
+pass() {
+    echo "[PASS] $1"
+    PASSED=$((PASSED + 1))
+}
+
+fail() {
+    echo "[FAIL] $1"
+    exit 1
+}
+
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") [OPTIONS]
+
+Test HPC system tuning configurations
+
+OPTIONS:
+    -h              Show this help message
+
+EXAMPLES:
+    # Run with default settings
+    sudo ./test-tuning.sh
+
+EOF
+    exit 0
+}
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+}
+
+# ------------------------------------------------------------------------------
+# Parse Arguments
+# ------------------------------------------------------------------------------
+
+while getopts "h" opt; do
+    case $opt in
+        h)
+            usage
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+
+# ------------------------------------------------------------------------------
+# Test: Package Removal (azsec-monitor)
+# ------------------------------------------------------------------------------
+
+test_package_removal() {
+    log "Test: Unwanted package azsec-monitor availability..."
+    echo ""
+
+    if rpm -q azsec-monitor >/dev/null 2>&1; then
+        fail "azsec-monitor package not removed correctly"
+    fi
+
+    pass "azsec-monitor package is not available as expected"
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: Security Limits Configuration
+# ------------------------------------------------------------------------------
+
+test_security_limits() {
+    log "Test: Security limits configuration..."
+    echo ""
+
+    local limits_file="/etc/security/limits.d/90-hpc-limits.conf"
+
+    if [[ ! -f "$limits_file" ]]; then
+        fail "limits configuration file not found at $limits_file"
+    fi
+
+    if ! grep -q "hard.*memlock.*unlimited" "$limits_file" || \
+       ! grep -q "soft.*memlock.*unlimited" "$limits_file" || \
+       ! grep -q "hard.*nofile.*1048576" "$limits_file" || \
+       ! grep -q "soft.*nofile.*1048576" "$limits_file" || \
+       ! grep -q "hard.*stack.*unlimited" "$limits_file" || \
+       ! grep -q "soft.*stack.*unlimited" "$limits_file"; then
+        fail "Security limits not configured correctly"
+    fi
+
+    pass "Security limits configured correctly"
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: Systemd Memory Lock Configuration
+# ------------------------------------------------------------------------------
+
+test_systemd_memlock() {
+    log "Test: Systemd memory lock configuration..."
+    echo ""
+
+    local system_conf="/etc/systemd/system.conf.d/99-memlock.conf"
+    local user_conf="/etc/systemd/user.conf.d/99-memlock.conf"
+
+    if [[ ! -f "$system_conf" ]]; then
+        fail "systemd system.conf.d memlock configuration not found at $system_conf"
+    fi
+
+    if [[ ! -f "$user_conf" ]]; then
+        fail "systemd user.conf.d memlock configuration not found at $user_conf"
+    fi
+
+    if ! grep -q "DefaultLimitMEMLOCK=infinity" "$system_conf" || \
+       ! grep -q "DefaultLimitMEMLOCK=infinity" "$user_conf"; then
+        fail "DefaultLimitMEMLOCK=infinity not found in configuration files"
+    fi
+
+    memlock_value=$(systemctl show --property=DefaultLimitMEMLOCK --value)
+    if [[ "$memlock_value" != "infinity" ]]; then
+        fail "DefaultLimitMEMLOCK is $memlock_value, expected infinity"
+    fi
+
+    pass "Systemd DefaultLimitMEMLOCK configured correctly"
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: Kernel Module sunrpc
+# ------------------------------------------------------------------------------
+
+test_sunrpc_module() {
+    log "Test: kernel module sunrpc ..."
+    echo ""
+
+    if [[ ! -d /sys/module/sunrpc ]]; then
+        fail "sunrpc module is not loaded"
+    fi
+
+    if [[ ! -f /etc/modules-load.d/sunrpc.conf ]]; then
+        fail "sunrpc modules-load.d configuration not found"
+    fi
+
+    if ! grep -qw "sunrpc" /etc/modules-load.d/sunrpc.conf; then
+        fail "sunrpc not configured in /etc/modules-load.d/sunrpc.conf"
+    fi
+
+    pass "sunrpc module configured correctly"
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: Sysctl Tuning Configuration
+# ------------------------------------------------------------------------------
+
+test_sysctl_tuning() {
+    log "Test: Sysctl tuning configuration..."
+    echo ""
+
+    local sysctl_file="/etc/sysctl.d/90-hpc-sysctl.conf"
+
+    if [[ ! -f "$sysctl_file" ]]; then
+        fail "sysctl configuration file not found at $sysctl_file"
+    fi
+
+    # Define expected sysctl parameters
+    local -A expected_sysctls=(
+        ["vm.zone_reclaim_mode"]="1"
+        ["net.ipv4.neigh.default.gc_thresh1"]="4096"
+        ["net.ipv4.neigh.default.gc_thresh2"]="8192"
+        ["net.ipv4.neigh.default.gc_thresh3"]="16384"
+        ["sunrpc.tcp_max_slot_table_entries"]="128"
+    )
+
+    # Check each sysctl parameter
+    for key in "${!expected_sysctls[@]}"; do
+        expected_value="${expected_sysctls[$key]}"
+        current_value=$(sysctl -n "$key" 2>/dev/null || echo "not_set")
+        if [[ "$current_value" != "$expected_value" ]]; then
+            fail "$key is $current_value, expected $expected_value"
+        fi
+    done
+
+    pass "Sysctl parameters configured correctly"
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: NFS Readahead Udev Rules
+# ------------------------------------------------------------------------------
+
+test_nfs_readahead() {
+    log "Test: NFS readahead udev rules..."
+    echo ""
+
+    local udev_file="/etc/udev/rules.d/90-nfs-readahead.rules"
+
+    if [[ ! -f "$udev_file" ]]; then
+        fail "NFS readahead udev rules file not found at $udev_file"
+    fi
+
+    if ! grep -q "read_ahead_kb" "$udev_file"; then
+        fail "NFS readahead udev rules missing read_ahead_kb setting"
+    fi
+
+    pass "NFS readahead udev rules configured correctly"
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Main
+# ------------------------------------------------------------------------------
+
+main() {
+    log "=========================================================="
+    log "HPC System Tuning Validation Test"
+    log "=========================================================="
+    echo ""
+
+    # Package removal tests
+    test_package_removal
+
+    # Security limits tests
+    test_security_limits
+
+    # Systemd memlock tests
+    test_systemd_memlock
+
+    # Kernel modules tests
+    test_sunrpc_module
+
+    # Sysctl tuning tests
+    test_sysctl_tuning
+
+    # NFS readahead tests
+    test_nfs_readahead
+
+    # If we get here, all tests passed
+    echo ""
+    log "=========================================================="
+    log "All tests passed ($PASSED)"
+    log "=========================================================="
+    exit 0
+}
+
+main "$@"
