@@ -16,6 +16,7 @@ set -euo pipefail
 MONEO_HOME="{{ __hpc_azure_moneo_dir }}"
 MONEO_SCRIPT="${MONEO_HOME}/moneo.py"
 HOSTFILE="/tmp/moneo-test-hostfile.txt"
+MONEO_LOG="${MONEO_HOME}/moneoCLI.log"
 
 # Test counter
 PASSED=0
@@ -32,6 +33,16 @@ pass() {
 fail() {
     echo "[FAIL] $1"
     exit 1
+}
+
+print_moneo_log() {
+    echo ""
+    if [[ -f "$MONEO_LOG" ]]; then
+        echo "[DEBUG] Contents of $MONEO_LOG"
+        cat "$MONEO_LOG" 2>/dev/null || true
+    else
+        echo "[DEBUG] Log file not found: $MONEO_LOG"
+    fi
 }
 
 # ------------------------------------------------------------------------------
@@ -59,6 +70,10 @@ _setup() {
     # Create temporary hostfile
     echo "[SETUP] Creating temporary hostfile..."
     echo "localhost" > "$HOSTFILE"
+
+    echo "[SETUP] Ensuring Moneo log file is writable..."
+    sudo truncate -s0 "$MONEO_LOG" 
+    sudo chown "$(id -un):$(id -gn)" "$MONEO_LOG"
 
     echo ""
 }
@@ -90,13 +105,17 @@ test_moneo_deploy() {
 
     cd "$MONEO_HOME"
     ret=0
-    output=$(sudo python3 moneo.py -d -c "$HOSTFILE" full 2>&1) || ret=$?
+    output=$(python3 moneo.py -d -c "$HOSTFILE" full 2>&1) || ret=$?
     cd - > /dev/null
 
     if [[ $ret -ne 0 ]]; then
-        fail "Moneo deployment failed (exit code $ret): ${output:0:500}"
+        echo "$output"
+        print_moneo_log
+        fail "Moneo deployment failed (exit code $ret)"
     elif echo "$output" | grep -qi "exception\|error\|failed\|failure"; then
-        fail "Moneo deployment failed: ${output:0:500}"
+        echo "$output"
+        print_moneo_log
+        fail "Moneo deployment failed"
     else
         pass "Moneo deployed successfully"
     fi
@@ -132,13 +151,15 @@ test_moneo_shutdown() {
     echo "Testing: Moneo shutdown"
 
     cd "$MONEO_HOME"
-    output=$(echo 'y' | sudo python3 moneo.py -s -c "$HOSTFILE" full 2>&1) || true
+    output=$(echo 'y' | python3 moneo.py -s -c "$HOSTFILE" full 2>&1) || true
     cd - > /dev/null
 
     if echo "$output" | grep -qi "shutting down\|shutdown"; then
         pass "Moneo shutdown completed"
     else
-        fail "Moneo shutdown failed: ${output:0:200}"
+        echo "$output"
+        print_moneo_log
+        fail "Moneo shutdown failed"
     fi
 }
 
