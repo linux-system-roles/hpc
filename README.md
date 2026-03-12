@@ -137,6 +137,18 @@ Default: `true`
 
 Type: `bool`
 
+### hpc_azure_disable_predictable_net_names
+
+Whether to disable predictable network interface names by adding `net.ifnames=0`
+to the kernel command line (via the bootloader system role).
+
+This keeps kernel names such as `ib0`, `ib1`, ... instead of `ibP...` on IPoIB,
+but it also affects Ethernet naming (e.g. `eth0` instead of `enP...`).
+
+Default: `true`
+
+Type: `bool`
+
 ### hpc_install_system_openmpi
 
 Whether to install OpenMPI that comes from AppStream repositories and does not have Nvidia GPU support.

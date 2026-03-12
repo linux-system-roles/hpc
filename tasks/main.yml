@@ -578,6 +578,21 @@
         name: nvidia-imex.service
         enabled: true
 
+- name: Disable predictable network interface names on Azure (net.ifnames=0)
+  when:
+    - hpc_azure_disable_predictable_net_names
+  block:
+    - name: Configure net.ifnames via bootloader role
+      include_role:
+        name: fedora.linux_system_roles.bootloader
+      vars:
+        bootloader_settings:
+          - kernel: ALL
+            options:
+              - name: net.ifnames
+                value: "0"
+                state: present
+
 - name: Install RDMA packages
   when: hpc_install_rdma
   block:
