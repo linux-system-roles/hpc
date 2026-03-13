@@ -27,6 +27,7 @@ __hpc_nvidia_driver_stream:  580-dkms
 __hpc_nvidia_driver_module:  nvidia-driver:{{ __hpc_nvidia_driver_stream }}
 __hpc_cuda_toolkit_packages:
   - cuda-toolkit-12-9
+  - cuda-toolkit-config-common-12.9.79-1
 __hpc_nvidia_nccl_packages:
   - libnccl-2.27.5-1+cuda12.9
   - libnccl-devel-2.27.5-1+cuda12.9
