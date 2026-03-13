@@ -640,13 +640,13 @@
             state: started
             daemon_reload: "{{ __hpc_azure_persistent_rdma_naming_monitor_unit.changed | d(false) }}"
 
-    - name: Install RDMA validation script
-      copy:
-        src: rdma/test-rdma.sh
-        dest: "{{ __hpc_azure_tests_dir }}/test-rdma.sh"
-        owner: root
-        group: root
-        mode: "0755"
+        - name: Install RDMA validation script
+          copy:
+            src: rdma/test-rdma.sh
+            dest: "{{ __hpc_azure_tests_dir }}/test-rdma.sh"
+            owner: root
+            group: root
+            mode: "0755"
 
 - name: Install common OpenMPI packages
   when: hpc_install_system_openmpi or hpc_build_openmpi_w_nvidia_gpu_support
