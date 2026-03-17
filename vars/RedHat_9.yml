@@ -34,6 +34,8 @@ __hpc_nvidia_nccl_packages:
 __hpc_docker_packages:
   - moby-engine-29.1.4-1.el9
   - moby-cli-29.1.4-1.el9
+__hpc_nvidia_dcgm:
+  - datacenter-gpu-manager-4-cuda12
 
 # Vars related to building packages from source
 __hpc_gdrcopy_info:

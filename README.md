@@ -115,6 +115,18 @@ Default: `true`
 
 Type: `bool`
 
+### hpc_install_nvidia_dcgm
+
+Whether to install the NVIDIA datacenter GPU manager(DCGM) and  enable its nvidia-dcgm service.
+
+NVIDIA DCGM is a GPU monitoring and management toolkit for large-scale GPU deployments, install DCGM on all GPU nodes in an HPC cluster to maintain reliability and monitor GPU health.
+
+Run `dcgmi` in the GPU nodes, e.g. `dcgmi discovery -l` to list GPUs on the node.
+
+Default: `true`
+
+Type: `bool`
+
 ### hpc_install_rdma
 
 Whether to install the NVIDIA RDMA package.
