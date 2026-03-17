@@ -593,6 +593,23 @@
                 value: "0"
                 state: present
 
+- name: Install NVIDIA datacenter GPU manager enable service
+  when: hpc_install_nvidia_dcgm
+  block:
+    - name: Install NVIDIA datacenter GPU manager
+      package:
+        name: "{{ __hpc_nvidia_dcgm }}"
+        state: present
+        use: "{{ (__hpc_server_is_ostree | d(false)) |
+          ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+      register: __hpc_nvidia_dcgm_install
+      until: __hpc_nvidia_dcgm_install is success
+
+    - name: Ensure dcgm service is enabled
+      service:
+        name: nvidia-dcgm
+        enabled: true
+
 - name: Install RDMA packages
   when: hpc_install_rdma
   block:
