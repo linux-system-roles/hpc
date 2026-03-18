@@ -469,6 +469,32 @@
       register: __hpc_cuda_driver_packages_install
       until: __hpc_cuda_driver_packages_install is success
 
+    # Configure nvidia-persistenced to handle nvidia.ko race condition
+    - name: Ensure nvidia-persistenced systemd override directory exists
+      file:
+        path: /etc/systemd/system/nvidia-persistenced.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Configure nvidia-persistenced systemd override
+      copy:
+        dest: /etc/systemd/system/nvidia-persistenced.service.d/override.conf
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          [Unit]
+          After=systemd-modules-load.service
+          StartLimitBurst=5
+          StartLimitIntervalSec=60
+
+          [Service]
+          Restart=on-failure
+          RestartSec=5s
+      notify: Reload systemd
+
     - name: Enable nvidia-persistenced.service
       service:
         name: nvidia-persistenced.service
