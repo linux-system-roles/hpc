@@ -1,0 +1,287 @@
+#!/usr/bin/env bash
+# These are templates, not actual shell scripts, so tell shellcheck to
+# ignore the templated parts
+# shellcheck disable=all
+{{ ansible_managed | comment }}
+{{ "system_role:hpc" | comment(prefix="", postfix="") }}
+# shellcheck enable=all
+# SPDX-License-Identifier: MIT
+#
+# Azure HPC Diagnostics Test Script
+# Usage: ./test-diagnostics.sh [-v]
+#
+
+set -euo pipefail
+
+# Default configuration
+VERBOSE=0
+
+# Test counter
+PASSED=0
+
+# ------------------------------------------------------------------------------
+# Helper Functions
+# ------------------------------------------------------------------------------
+
+pass() {
+    echo "[PASS] $1"
+    PASSED=$((PASSED + 1))
+}
+
+fail() {
+    echo "[FAIL] $1"
+    exit 1
+}
+
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") [OPTIONS]
+
+Test Azure HPC Diagnostics installation and functionality
+
+OPTIONS:
+    -v              Verbose mode
+    -h              Show this help message
+
+EXAMPLES:
+    # Run with default settings
+    sudo ./test-diagnostics.sh
+
+    # Run with verbose output
+    sudo ./test-diagnostics.sh -v
+
+EOF
+    exit 0
+}
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+}
+
+verbose_log() {
+    if [[ $VERBOSE -eq 1 ]]; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+    fi
+}
+
+# ------------------------------------------------------------------------------
+# Parse Arguments
+# ------------------------------------------------------------------------------
+
+while getopts "vh" opt; do
+    case $opt in
+        v)
+            VERBOSE=1
+            ;;
+        h)
+            usage
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+
+# ------------------------------------------------------------------------------
+# Test: Dependencies Installation
+# ------------------------------------------------------------------------------
+
+test_dependencies() {
+    log "Test: diagnostics dependencies installation..."
+    echo ""
+
+    echo "Checking: hyperv-tools package is installed"
+    if ! rpm -q hyperv-tools >/dev/null 2>&1; then
+        fail "hyperv-tools package is not installed"
+    fi
+    pass "hyperv-tools package is installed"
+
+    if [[ $VERBOSE -eq 1 ]]; then
+        verbose_log "Package: $(rpm -q hyperv-tools)"
+    fi
+
+    echo "Checking: patch package is installed"
+    if ! rpm -q patch >/dev/null 2>&1; then
+        fail "patch package is not installed"
+    fi
+    pass "patch package is installed"
+
+    if [[ $VERBOSE -eq 1 ]]; then
+        verbose_log "Package: $(rpm -q patch)"
+    fi
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: Diagnostics Script Installation
+# ------------------------------------------------------------------------------
+
+test_diagnostics_script() {
+    log "Test: diagnostics script installation..."
+    echo ""
+
+    local script_path="{{ __hpc_azure_tools_dir }}/gather_azhpc_vm_diagnostics.sh"
+
+    echo "Checking: diagnostics script exists"
+    if [[ ! -f "$script_path" ]]; then
+        fail "diagnostics script not found at $script_path"
+    fi
+    pass "diagnostics script exists at $script_path"
+
+    echo "Checking: diagnostics script is executable"
+    if [[ ! -x "$script_path" ]]; then
+        fail "diagnostics script is not executable"
+    fi
+    pass "diagnostics script is executable"
+
+    echo "Checking: diagnostics script ownership"
+    local owner
+    owner=$(stat -c '%U:%G' "$script_path")
+    if [[ "$owner" != "root:root" ]]; then
+        fail "diagnostics script ownership is $owner, expected root:root"
+    fi
+    pass "diagnostics script ownership is correct (root:root)"
+
+    if [[ $VERBOSE -eq 1 ]]; then
+        verbose_log "Script permissions: $(stat -c '%a' "$script_path")"
+        verbose_log "Script size: $(stat -c '%s' "$script_path") bytes"
+    fi
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: Required Directories
+# ------------------------------------------------------------------------------
+
+test_required_directories() {
+    log "Test: required directories for diagnostics operation..."
+    echo ""
+
+    # These directories must exist before the diagnostics script can run
+    # Note: The gather script will create the diagnostics output directory
+    # ({{ __hpc_azure_runtime_dir }}/diagnostics) if it doesn't exist
+    local dirs=(
+        "{{ __hpc_azure_resource_dir }}"
+        "{{ __hpc_azure_tools_dir }}"
+        "{{ __hpc_azure_runtime_dir }}"
+    )
+
+    for dir in "${dirs[@]}"; do
+        echo "Checking: directory $dir exists"
+        if [[ ! -d "$dir" ]]; then
+            fail "required directory $dir does not exist"
+        fi
+        pass "directory $dir exists"
+
+        if [[ $VERBOSE -eq 1 ]]; then
+            verbose_log "Directory permissions: $(stat -c '%a' "$dir")"
+            verbose_log "Directory ownership: $(stat -c '%U:%G' "$dir")"
+        fi
+    done
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: Script Header Customizations
+# ------------------------------------------------------------------------------
+
+test_script_customizations() {
+    log "Test: diagnostics script customizations..."
+    echo ""
+
+    local script_path="{{ __hpc_azure_tools_dir }}/gather_azhpc_vm_diagnostics.sh"
+
+    echo "Checking: script contains ansible_managed header"
+    if ! grep -q "Ansible managed" "$script_path"; then
+        fail "script missing ansible_managed header"
+    fi
+    pass "script contains ansible_managed header"
+
+    echo "Checking: script contains system_role:hpc marker"
+    if ! grep -q "system_role:hpc" "$script_path"; then
+        fail "script missing system_role:hpc marker"
+    fi
+    pass "script contains system_role:hpc marker"
+
+    echo "Checking: script has offline mode as default"
+    if ! grep -q "OFFLINE=true" "$script_path"; then
+        fail "script does not have OFFLINE=true default"
+    fi
+    pass "script has offline mode as default"
+
+    echo "Checking: script uses correct diagnostic output location"
+    if ! grep -q "{{ __hpc_azure_runtime_dir }}/diagnostics" "$script_path"; then
+        fail "script does not use correct diagnostic output location"
+    fi
+    pass "script uses correct diagnostic output location"
+
+    if [[ $VERBOSE -eq 1 ]]; then
+        verbose_log "Script header (first 10 lines):"
+        head -10 "$script_path" | sed 's/^/  /'
+    fi
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: Script Basic Functionality
+# ------------------------------------------------------------------------------
+
+test_script_functionality() {
+    log "Test: diagnostics script basic functionality..."
+    echo ""
+
+    local script_path="{{ __hpc_azure_tools_dir }}/gather_azhpc_vm_diagnostics.sh"
+
+    echo "Checking: script responds to --help flag"
+    if ! "$script_path" --help >/dev/null 2>&1; then
+        fail "script does not respond to --help flag"
+    fi
+    pass "script responds to --help flag"
+
+    echo "Checking: script responds to --version flag"
+    if ! "$script_path" --version >/dev/null 2>&1; then
+        fail "script does not respond to --version flag"
+    fi
+    pass "script responds to --version flag"
+
+    if [[ $VERBOSE -eq 1 ]]; then
+        verbose_log "Script version:"
+        "$script_path" --version 2>&1 | sed 's/^/  /'
+    fi
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Main
+# ------------------------------------------------------------------------------
+
+main() {
+    log "========================================"
+    log "Azure HPC Diagnostics Installation Test"
+    log "========================================"
+    echo ""
+
+    test_dependencies
+
+    test_diagnostics_script
+
+    test_required_directories
+
+    test_script_customizations
+
+    test_script_functionality
+
+    # If we get here, all tests passed
+    echo ""
+    log "========================================"
+    log "All tests passed ($PASSED)"
+    log "========================================"
+    exit 0
+}
+
+main "$@"

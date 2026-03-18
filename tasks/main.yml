@@ -1623,6 +1623,14 @@
             group: root
             mode: '0755'
 
+        - name: Install Diagnostics test script
+          template:
+            src: test-diagnostics.sh.j2
+            dest: "{{ __hpc_azure_tests_dir }}/test-diagnostics.sh"
+            owner: root
+            group: root
+            mode: '0755'
+
         - name: Clean up temporary staging files
           file:
             path: "{{ item }}"
