@@ -20,6 +20,10 @@
   systemd_service:
     daemon_reexec: true
 
+- name: Reload systemd
+  systemd:
+    daemon_reload: true
+
 - name: Restart systemd-modules-load
   service:
     name: systemd-modules-load
