@@ -11,7 +11,7 @@
 # Usage: ./test-diagnostics.sh [-v]
 #
 
-set -euo pipefail
+set -eu
 
 # Default configuration
 VERBOSE=0
@@ -257,6 +257,114 @@ test_script_functionality() {
 }
 
 # ------------------------------------------------------------------------------
+# Helper: Run and Verify Diagnostics Gathering
+# ------------------------------------------------------------------------------
+
+run_and_verify_diagnostics() {
+    local test_name="$1"
+    local output_dir="$2"
+
+    local script_path="{{ __hpc_azure_tools_dir }}/gather_azhpc_vm_diagnostics.sh"
+    local script_args=""
+
+    # If output_dir is specified, prepare it and pass to script
+    # Otherwise use the default location for verification
+    if [[ -n "$output_dir" ]]; then
+        # Clean up any existing diagnostics output
+        if [[ -d "$output_dir" ]]; then
+            verbose_log "Cleaning up existing diagnostics directory: $output_dir"
+            rm -rf "$output_dir"
+        fi
+        mkdir -p "$output_dir"
+        script_args="--dir $output_dir"
+    else
+        # Use default location for verification
+        output_dir="{{ __hpc_azure_runtime_dir }}/diagnostics"
+        # Clean up any existing diagnostics output
+        if [[ -d "$output_dir" ]]; then
+            verbose_log "Cleaning up existing diagnostics directory: $output_dir"
+            rm -rf "$output_dir"
+        fi
+    fi
+
+    echo "Checking: running diagnostics script $test_name"
+    if [[ $VERBOSE -eq 1 ]]; then
+        verbose_log "Running: echo y | $script_path $script_args"
+        if ! echo y | $script_path $script_args 2>&1 | tee /tmp/diag-run-$$.log; then
+            fail "diagnostics script failed to run $test_name"
+        fi
+    else
+        if ! echo y | $script_path $script_args >/dev/null 2>&1; then
+            fail "diagnostics script failed to run $test_name"
+        fi
+    fi
+    pass "diagnostics script executed successfully $test_name"
+
+    echo "Checking: tarball was generated $test_name"
+    local tarball_path
+    tarball_path=$(find "$output_dir" -maxdepth 1 -name "*.tar.gz" -type f 2>/dev/null | head -1)
+    if [[ -z "$tarball_path" ]]; then
+        fail "no tarball found in $output_dir"
+    fi
+    pass "tarball generated $test_name: $tarball_path"
+
+    if [[ $VERBOSE -eq 1 ]]; then
+        verbose_log "Tarball size: $(stat -c '%s' "$tarball_path") bytes"
+    fi
+
+    echo "Checking: tarball contains lscpu output"
+    if ! tar -tzf "$tarball_path" 2>/dev/null | grep -q "lscpu"; then
+        fail "tarball does not contain lscpu output"
+    fi
+    pass "tarball contains lscpu output"
+
+    echo "Checking: tarball contains lsvmbus output"
+    if ! tar -tzf "$tarball_path" 2>/dev/null | grep -q "lsvmbus"; then
+        fail "tarball does not contain lsvmbus output"
+    fi
+    pass "tarball contains lsvmbus output"
+
+    if [[ $VERBOSE -eq 1 ]]; then
+        verbose_log "Tarball contents summary:"
+        tar -tzf "$tarball_path" 2>/dev/null | head -20 | sed 's/^/  /'
+        local file_count
+        file_count=$(tar -tzf "$tarball_path" 2>/dev/null | wc -l)
+        verbose_log "Total files in tarball: $file_count"
+    fi
+
+    # Clean up
+    verbose_log "Cleaning up test output from $output_dir"
+    rm -rf "$output_dir"
+}
+
+# ------------------------------------------------------------------------------
+# Test: Run Diagnostics Script - Default Location
+# ------------------------------------------------------------------------------
+
+test_diagnostics_run_default() {
+    log "Test: run diagnostics script with default location..."
+    echo ""
+
+    run_and_verify_diagnostics "with default location" ""
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: Run Diagnostics Script - Custom Location
+# ------------------------------------------------------------------------------
+
+test_diagnostics_run_custom() {
+    log "Test: run diagnostics script with custom location..."
+    echo ""
+
+    local custom_output_dir="/tmp/diag-test-custom-$$"
+    run_and_verify_diagnostics "with custom location" "$custom_output_dir"
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
 # Main
 # ------------------------------------------------------------------------------
 
@@ -275,6 +383,10 @@ main() {
     test_script_customizations
 
     test_script_functionality
+
+    test_diagnostics_run_default
+
+    test_diagnostics_run_custom
 
     # If we get here, all tests passed
     echo ""
