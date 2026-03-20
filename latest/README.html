@@ -172,6 +172,8 @@ id="toc-hpc_install_nvidia_imex">hpc_install_nvidia_imex</a></li>
 id="toc-hpc_install_rdma">hpc_install_rdma</a></li>
 <li><a href="#hpc_enable_azure_persistent_rdma_naming"
 id="toc-hpc_enable_azure_persistent_rdma_naming">hpc_enable_azure_persistent_rdma_naming</a></li>
+<li><a href="#hpc_azure_disable_predictable_net_names"
+id="toc-hpc_azure_disable_predictable_net_names">hpc_azure_disable_predictable_net_names</a></li>
 <li><a href="#hpc_install_system_openmpi"
 id="toc-hpc_install_system_openmpi">hpc_install_system_openmpi</a></li>
 <li><a href="#hpc_build_openmpi_w_nvidia_gpu_support"
@@ -364,6 +366,17 @@ Azure:</p>
 add/change events</li>
 </ul>
 <p>This is automatically skipped on non-Azure systems.</p>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
+<h2
+id="hpc_azure_disable_predictable_net_names">hpc_azure_disable_predictable_net_names</h2>
+<p>Whether to disable predictable network interface names by adding
+<code>net.ifnames=0</code> to the kernel command line (via the
+bootloader system role).</p>
+<p>This keeps kernel names such as <code>ib0</code>, <code>ib1</code>,
+... instead of <code>ibP...</code> on IPoIB, but it also affects
+Ethernet naming (e.g. <code>eth0</code> instead of
+<code>enP...</code>).</p>
 <p>Default: <code>true</code></p>
 <p>Type: <code>bool</code></p>
 <h2 id="hpc_install_system_openmpi">hpc_install_system_openmpi</h2>
