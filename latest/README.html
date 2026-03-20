@@ -168,6 +168,8 @@ id="toc-hpc_install_hpc_nvidia_nccl">hpc_install_hpc_nvidia_nccl</a></li>
 id="toc-hpc_install_nvidia_fabric_manager">hpc_install_nvidia_fabric_manager</a></li>
 <li><a href="#hpc_install_nvidia_imex"
 id="toc-hpc_install_nvidia_imex">hpc_install_nvidia_imex</a></li>
+<li><a href="#hpc_install_nvidia_dcgm"
+id="toc-hpc_install_nvidia_dcgm">hpc_install_nvidia_dcgm</a></li>
 <li><a href="#hpc_install_rdma"
 id="toc-hpc_install_rdma">hpc_install_rdma</a></li>
 <li><a href="#hpc_enable_azure_persistent_rdma_naming"
@@ -350,6 +352,16 @@ nvidia-fabricmanager service.</p>
 does not start it immediately. The service is configured to launch at
 boot only on compatible multi-node NVLink switch-fabric systems, such as
 NVIDIA GB200 or GB300 (NVL72) racks."</p>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
+<h2 id="hpc_install_nvidia_dcgm">hpc_install_nvidia_dcgm</h2>
+<p>Whether to install the NVIDIA datacenter GPU manager(DCGM) and enable
+its nvidia-dcgm service.</p>
+<p>NVIDIA DCGM is a GPU monitoring and management toolkit for
+large-scale GPU deployments, install DCGM on all GPU nodes in an HPC
+cluster to maintain reliability and monitor GPU health.</p>
+<p>Run <code>dcgmi</code> in the GPU nodes, e.g.
+<code>dcgmi discovery -l</code> to list GPUs on the node.</p>
 <p>Default: <code>true</code></p>
 <p>Type: <code>bool</code></p>
 <h2 id="hpc_install_rdma">hpc_install_rdma</h2>
