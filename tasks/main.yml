@@ -1376,6 +1376,7 @@
         mode: '0755'
 
 - name: Install KVP client
+  when: hpc_install_kvp_client
   block:
     - name: Check if KVP client is already installed
       stat:

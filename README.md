@@ -259,6 +259,18 @@ Default: `true`
 
 Type: `bool`
 
+### hpc_install_kvp_client
+
+Whether to install the Azure KVP (Key-Value Pair) client.
+
+The KVP client is a tool for reading and writing key-value pairs from the Azure host to the guest VM. It is compiled from source and installed to `/opt/hpc/azure/tools/kvp_client`.
+
+This tool is Azure-specific and should only be installed on Azure platforms.
+
+Default: `true`
+
+Type: `bool`
+
 ## hpc_install_azurehpc_health_checks
 
 Whether to install and configure Azure HPC Health Checks (AZNHC).
