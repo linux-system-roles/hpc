@@ -188,6 +188,8 @@ id="toc-hpc_docker_subnet">hpc_docker_subnet</a></li>
 id="toc-hpc_install_moneo">hpc_install_moneo</a></li>
 <li><a href="#hpc_install_diagnostics"
 id="toc-hpc_install_diagnostics">hpc_install_diagnostics</a></li>
+<li><a href="#hpc_install_kvp_client"
+id="toc-hpc_install_kvp_client">hpc_install_kvp_client</a></li>
 </ul></li>
 <li><a href="#hpc_install_azurehpc_health_checks"
 id="toc-hpc_install_azurehpc_health_checks">hpc_install_azurehpc_health_checks</a></li>
@@ -470,6 +472,15 @@ class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="
 information can be found.</p>
 <p>For more information, see <a
 href="https://github.com/Azure/azhpc-diagnostics/">https://github.com/Azure/azhpc-diagnostics/</a></p>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
+<h2 id="hpc_install_kvp_client">hpc_install_kvp_client</h2>
+<p>Whether to install the Azure KVP (Key-Value Pair) client.</p>
+<p>The KVP client is a tool for reading and writing key-value pairs from
+the Azure host to the guest VM. It is compiled from source and installed
+to <code>/opt/hpc/azure/tools/kvp_client</code>.</p>
+<p>This tool is Azure-specific and should only be installed on Azure
+platforms.</p>
 <p>Default: <code>true</code></p>
 <p>Type: <code>bool</code></p>
 <h1
