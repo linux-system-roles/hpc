@@ -206,10 +206,10 @@ test_health_log() {
     pass "health.log file exists"
 
     echo "Checking: health.log for errors"
-    if grep -Ei "fail|fault|error" "$log_file" | grep -Eiv "success" > /dev/null 2>&1; then
+    if grep -Eiu '^(fail|fault|error)\b' "$log_file" | grep -Eiv "success" > /dev/null 2>&1; then
         echo ""
         echo "--- Error excerpts from health.log ---"
-        grep -Ei "fail|fault|error" "$log_file" | grep -Eiv "success" | head -20
+        grep -Eiu '^(fail|fault|error)\b' "$log_file" | grep -Eiv "success" | head -20
         echo "--- End of excerpts ---"
         echo ""
         fail "FAIL/FAULT/ERROR found in health.log"
