@@ -156,6 +156,8 @@ Controlling Packages to Install</a>
 id="toc-hpc_update_kernel">hpc_update_kernel</a></li>
 <li><a href="#hpc_update_all_packages"
 id="toc-hpc_update_all_packages">hpc_update_all_packages</a></li>
+<li><a href="#azure-specific-packages"
+id="toc-azure-specific-packages">Azure-specific packages</a></li>
 <li><a href="#hpc_install_cuda_driver"
 id="toc-hpc_install_cuda_driver">hpc_install_cuda_driver</a></li>
 <li><a href="#hpc_install_cuda_toolkit"
@@ -164,18 +166,42 @@ id="toc-hpc_install_cuda_toolkit">hpc_install_cuda_toolkit</a></li>
 id="toc-hpc_install_hpc_nvidia_nccl">hpc_install_hpc_nvidia_nccl</a></li>
 <li><a href="#hpc_install_nvidia_fabric_manager"
 id="toc-hpc_install_nvidia_fabric_manager">hpc_install_nvidia_fabric_manager</a></li>
+<li><a href="#hpc_install_nvidia_imex"
+id="toc-hpc_install_nvidia_imex">hpc_install_nvidia_imex</a></li>
+<li><a href="#hpc_install_nvidia_dcgm"
+id="toc-hpc_install_nvidia_dcgm">hpc_install_nvidia_dcgm</a></li>
 <li><a href="#hpc_install_rdma"
 id="toc-hpc_install_rdma">hpc_install_rdma</a></li>
+<li><a href="#hpc_enable_azure_persistent_rdma_naming"
+id="toc-hpc_enable_azure_persistent_rdma_naming">hpc_enable_azure_persistent_rdma_naming</a></li>
+<li><a href="#hpc_azure_disable_predictable_net_names"
+id="toc-hpc_azure_disable_predictable_net_names">hpc_azure_disable_predictable_net_names</a></li>
 <li><a href="#hpc_install_system_openmpi"
 id="toc-hpc_install_system_openmpi">hpc_install_system_openmpi</a></li>
 <li><a href="#hpc_build_openmpi_w_nvidia_gpu_support"
 id="toc-hpc_build_openmpi_w_nvidia_gpu_support">hpc_build_openmpi_w_nvidia_gpu_support</a></li>
+<li><a href="#hpc_install_nvidia_container_toolkit"
+id="toc-hpc_install_nvidia_container_toolkit">hpc_install_nvidia_container_toolkit</a></li>
+<li><a href="#hpc_install_docker"
+id="toc-hpc_install_docker">hpc_install_docker</a></li>
+<li><a href="#hpc_docker_subnet"
+id="toc-hpc_docker_subnet">hpc_docker_subnet</a></li>
+<li><a href="#hpc_install_moneo"
+id="toc-hpc_install_moneo">hpc_install_moneo</a></li>
+<li><a href="#hpc_install_diagnostics"
+id="toc-hpc_install_diagnostics">hpc_install_diagnostics</a></li>
+<li><a href="#hpc_install_kvp_client"
+id="toc-hpc_install_kvp_client">hpc_install_kvp_client</a></li>
 </ul></li>
+<li><a href="#hpc_install_azurehpc_health_checks"
+id="toc-hpc_install_azurehpc_health_checks">hpc_install_azurehpc_health_checks</a></li>
 <li><a href="#variables-for-configuring-tuning-for-hpc-workloads"
 id="toc-variables-for-configuring-tuning-for-hpc-workloads">Variables
 for Configuring Tuning for HPC Workloads</a>
 <ul>
 <li><a href="#hpc_tuning" id="toc-hpc_tuning">hpc_tuning</a></li>
+<li><a href="#hpc_sku_customisation"
+id="toc-hpc_sku_customisation">hpc_sku_customisation</a></li>
 </ul></li>
 <li><a href="#variables-for-configuring-how-role-reboots-managed-nodes"
 id="toc-variables-for-configuring-how-role-reboots-managed-nodes">Variables
@@ -214,6 +240,12 @@ id="toc-hpc_usrlv_name">hpc_usrlv_name</a></li>
 id="toc-hpc_usrlv_size">hpc_usrlv_size</a></li>
 <li><a href="#hpc_usrlv_mount"
 id="toc-hpc_usrlv_mount">hpc_usrlv_mount</a></li>
+<li><a href="#hpc_varlv_name"
+id="toc-hpc_varlv_name">hpc_varlv_name</a></li>
+<li><a href="#hpc_varlv_size"
+id="toc-hpc_varlv_size">hpc_varlv_size</a></li>
+<li><a href="#hpc_varlv_mount"
+id="toc-hpc_varlv_mount">hpc_varlv_mount</a></li>
 <li><a href="#example-playbook-for-configuring-storage"
 id="toc-example-playbook-for-configuring-storage">Example Playbook for
 Configuring Storage</a></li>
@@ -280,6 +312,18 @@ because this is a serious invasion into users environment, this variable
 is set to <code>false</code> by default.</p>
 <p>Default: <code>false</code></p>
 <p>Type: <code>bool</code></p>
+<h2 id="azure-specific-packages">Azure-specific packages</h2>
+<p>When running on Azure systems, the role automatically installs Azure
+platform packages, e.g. VM management infrastructure and storage
+utilities.</p>
+<p><strong>WALinuxAgent</strong>: Azure Linux Agent manages Linux
+provisioning and VM interaction with the Azure Fabric Controller.</p>
+<p><strong>aznfs</strong>: Azure NFS mount helper is Azure-optimized NFS
+client that simplifies mounting Azure Blob Storage containers over NFS
+v3 and applies client-side optimizations for improved performance. The
+package is installed from the Microsoft Production repository with
+non-interactive installation mode enabled. For more information, see <a
+href="https://github.com/Azure/AZNFS-mount">https://github.com/Azure/AZNFS-mount</a>.</p>
 <h2 id="hpc_install_cuda_driver">hpc_install_cuda_driver</h2>
 <p>Whether to install the CUDA Driver package.</p>
 <p>Default: <code>true</code></p>
@@ -301,8 +345,52 @@ id="hpc_install_nvidia_fabric_manager">hpc_install_nvidia_fabric_manager</h2>
 nvidia-fabricmanager service.</p>
 <p>Default: <code>true</code></p>
 <p>Type: <code>bool</code></p>
+<h2 id="hpc_install_nvidia_imex">hpc_install_nvidia_imex</h2>
+<p>Whether to install NVIDIA IMEX (<code>nvidia-imex</code>) and enable
+<code>nvidia-imex.service</code>.</p>
+<p>Note: "This role installs and enables the nvidia-imex service but
+does not start it immediately. The service is configured to launch at
+boot only on compatible multi-node NVLink switch-fabric systems, such as
+NVIDIA GB200 or GB300 (NVL72) racks."</p>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
+<h2 id="hpc_install_nvidia_dcgm">hpc_install_nvidia_dcgm</h2>
+<p>Whether to install the NVIDIA datacenter GPU manager(DCGM) and enable
+its nvidia-dcgm service.</p>
+<p>NVIDIA DCGM is a GPU monitoring and management toolkit for
+large-scale GPU deployments, install DCGM on all GPU nodes in an HPC
+cluster to maintain reliability and monitor GPU health.</p>
+<p>Run <code>dcgmi</code> in the GPU nodes, e.g.
+<code>dcgmi discovery -l</code> to list GPUs on the node.</p>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
 <h2 id="hpc_install_rdma">hpc_install_rdma</h2>
 <p>Whether to install the NVIDIA RDMA package.</p>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
+<h2
+id="hpc_enable_azure_persistent_rdma_naming">hpc_enable_azure_persistent_rdma_naming</h2>
+<p>Whether to configure a persistent RDMA device naming scheme on
+Azure:</p>
+<ul>
+<li>Installs <code>/usr/sbin/azure_persistent_rdma_naming.sh</code></li>
+<li>Installs and enables
+<code>azure_persistent_rdma_naming.service</code></li>
+<li>Installs a udev rule that triggers the service on InfiniBand device
+add/change events</li>
+</ul>
+<p>This is automatically skipped on non-Azure systems.</p>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
+<h2
+id="hpc_azure_disable_predictable_net_names">hpc_azure_disable_predictable_net_names</h2>
+<p>Whether to disable predictable network interface names by adding
+<code>net.ifnames=0</code> to the kernel command line (via the
+bootloader system role).</p>
+<p>This keeps kernel names such as <code>ib0</code>, <code>ib1</code>,
+... instead of <code>ibP...</code> on IPoIB, but it also affects
+Ethernet naming (e.g. <code>eth0</code> instead of
+<code>enP...</code>).</p>
 <p>Default: <code>true</code></p>
 <p>Type: <code>bool</code></p>
 <h2 id="hpc_install_system_openmpi">hpc_install_system_openmpi</h2>
@@ -344,6 +432,89 @@ class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb4-1"><a href="
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">hpc_install_hpc_nvidia_nccl</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span></code></pre></div>
 <p>Default: <code>true</code></p>
 <p>Type: <code>bool</code></p>
+<h2
+id="hpc_install_nvidia_container_toolkit">hpc_install_nvidia_container_toolkit</h2>
+<p>Whether to install and configure NVIDIA Container Toolkit.</p>
+<p>This enables GPU support in Docker and containerd by installing the
+nvidia-container-toolkit package. Note that enabling this variable
+automatically sets <code>hpc_install_docker: true</code> unless you
+explicitly override it.</p>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
+<h2 id="hpc_install_docker">hpc_install_docker</h2>
+<p>Whether to install the moby-engine and moby-cli packages as well as
+enable the Docker service. To explicitly disable Docker even when using
+the NVIDIA Container Toolkit, you need to set this to
+<code>false</code>, please note that the role will fail unless you also
+disable <code>hpc_install_nvidia_container_toolkit</code>.</p>
+<p>Default:
+<code>"{{ hpc_install_nvidia_container_toolkit }}"</code></p>
+<p>Type: <code>bool</code></p>
+<h2 id="hpc_docker_subnet">hpc_docker_subnet</h2>
+<p>The default docker bridge interface address and subnet configuration
+of 172.17.0.1/16 conflicts with the subnets Azure CycleCloud uses for
+internal physical cluster networks.</p>
+<p>To avoid this conflict with the Azure CycleCloud networks, the system
+role will configure the docker interface with a 10.88.0.1/16 address and
+subnet. However, if this is inappropriate for the cluster being
+deployed, the subnet can be customised to any private subnet using this
+variable.</p>
+<p>Default: <code>10.88.0.1/16</code></p>
+<p>Type: <code>string</code></p>
+<h2 id="hpc_install_moneo">hpc_install_moneo</h2>
+<p>Whether to install the Azure Moneo monitoring tool.</p>
+<p>Moneo is a distributed GPU system monitor for AI training and
+inferencing clusters. It collects GPU telemetry and supports integration
+with Azure Monitor.</p>
+<p>The role installs Moneo to /opt/hpc/azure/tools/Moneo and adds an
+alias moneo to /etc/bashrc for easy access.</p>
+<p>For more information, see <a
+href="https://github.com/Azure/Moneo">https://github.com/Azure/Moneo</a>.</p>
+<h2 id="hpc_install_diagnostics">hpc_install_diagnostics</h2>
+<p>Whether to install the Azure HPC Diagnostics tool.</p>
+<p>The Azure HPC Diagnostics tool gathers system information for triage
+and debugging purposes. It collects information and state from the
+hardware, OS, Azure environment and installed applications, then
+packages it into a tarball to simplify the process of system support and
+bug triage.</p>
+<p>To gather diagnostics, run:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">/opt/hpc/azure/tools/gather_azhpc_vm_diagnostics.sh</span></span></code></pre></div>
+<p>The script will indicate where the tarball containing the diagnostic
+information can be found.</p>
+<p>For more information, see <a
+href="https://github.com/Azure/azhpc-diagnostics/">https://github.com/Azure/azhpc-diagnostics/</a></p>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
+<h2 id="hpc_install_kvp_client">hpc_install_kvp_client</h2>
+<p>Whether to install the Azure KVP (Key-Value Pair) client.</p>
+<p>The KVP client is a tool for reading and writing key-value pairs from
+the Azure host to the guest VM. It is compiled from source and installed
+to <code>/opt/hpc/azure/tools/kvp_client</code>.</p>
+<p>This tool is Azure-specific and should only be installed on Azure
+platforms.</p>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
+<h1
+id="hpc_install_azurehpc_health_checks">hpc_install_azurehpc_health_checks</h1>
+<p>Whether to install and configure Azure HPC Health Checks (AZNHC).</p>
+<p>This downloads the azurehpc-health-checks toolkit, configures it for
+the target GPU platform, and pulls the appropriate Docker container
+image from MCR. The health checks validate HPC components including
+GPUs, InfiniBand, storage, and MPI operations. For more information, see
+<a
+href="https://github.com/Azure/azurehpc-health-checks">https://github.com/Azure/azurehpc-health-checks</a>.</p>
+<p>The role installs the toolkit in
+<code>/opt/hpc/azure/tests/azurehpc-health-checks/</code> and pulls
+<code>mcr.microsoft.com/aznhc/aznhc-nv:latest</code></p>
+<p>Note that NVIDIA Container Toolkit must be installed and at least 20G
+of free space in /var is required for first-time aznhc-nv docker image
+download. If the image does not exist and /var has insufficient space,
+installation will be skipped with a warning. See <a
+href="https://learn.microsoft.com/en-us/azure/virtual-machines/linux/expand-disks?tabs=rhellvm">Expand
+virtual hard disks on a Linux VM</a> for disk expansion details.</p>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
 <h1 id="variables-for-configuring-tuning-for-hpc-workloads">Variables
 for Configuring Tuning for HPC Workloads</h1>
 <h2 id="hpc_tuning">hpc_tuning</h2>
@@ -372,6 +543,16 @@ to help overcome network latency.</p></li>
 </ul>
 <p>Default: <code>true</code></p>
 <p>Type: <code>bool</code></p>
+<h2 id="hpc_sku_customisation">hpc_sku_customisation</h2>
+<p>Whether to install the hardware tuning files for different Azure VM
+types (SKUs).</p>
+<p>This will install definitions for optimal hardware configurations for
+the different types of high performance VMs that are typically used for
+HPC workloads in the Azure environment. These include InfiniBand and
+GPU/NVLink and NCCL customisations, as well as any workarounds for
+specific hardware problems that may be needed.</p>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
 <h1
 id="variables-for-configuring-how-role-reboots-managed-nodes">Variables
 for Configuring How Role Reboots Managed Nodes</h1>
@@ -389,19 +570,19 @@ a reboot to take effect.</p>
 <p>Type: <code>bool</code></p>
 <h2 id="example-playbook-for-configuring-packages">Example Playbook for
 Configuring Packages</h2>
-<div class="sourceCode" id="cb5"><pre
-class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Configure my virtual machine for HPC</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hosts</span><span class="kw">:</span><span class="at"> localhost</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">vars</span><span class="kw">:</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_cuda_driver</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_cuda_toolkit</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_hpc_nvidia_nccl</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_nvidia_fabric_manager</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_rdma</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_system_openmpi</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_build_openmpi_w_nvidia_gpu_support</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">roles</span><span class="kw">:</span></span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> linux-system-roles.hpc</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Configure my virtual machine for HPC</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hosts</span><span class="kw">:</span><span class="at"> localhost</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">vars</span><span class="kw">:</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_cuda_driver</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_cuda_toolkit</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_hpc_nvidia_nccl</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_nvidia_fabric_manager</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_rdma</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_system_openmpi</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_build_openmpi_w_nvidia_gpu_support</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">roles</span><span class="kw">:</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> linux-system-roles.hpc</span></span></code></pre></div>
 <h1 id="variables-for-configuring-firewall">Variables for Configuring
 Firewall</h1>
 <h2 id="hpc_manage_firewall">hpc_manage_firewall</h2>
@@ -420,16 +601,20 @@ this action by setting this variable to <code>true</code>.</p>
 <p>Type: bool</p>
 <h1 id="variables-for-configuring-storage">Variables for Configuring
 Storage</h1>
-<p>By default, the role ensures that <code>rootlv</code> and
-<code>usrlv</code> in Azure has enough storage for packages to be
-installed. You can use variables described in this section to control
-the exact sizes and paths.</p>
+<p>By default, the role ensures that <code>rootlv</code>,
+<code>usrlv</code> and <code>varlv</code> in Azure has enough storage
+for packages to be installed. You can use variables described in this
+section to control the exact sizes and paths.</p>
 <h2 id="hpc_manage_storage">hpc_manage_storage</h2>
 <p>Whether to configure the VG from <a
 href="#hpc_rootvg_name">hpc_rootvg_name</a> to have logical volumes <a
-href="#hpc_rootlv_name">hpc_rootlv_name</a> and <a
-href="#hpc_usrlv_name">hpc_usrlv_name</a> with indicated sizes and
+href="#hpc_rootlv_name">hpc_rootlv_name</a>, <a
+href="#hpc_usrlv_name">hpc_usrlv_name</a> and <a
+href="#hpc_varlv_name">hpc_varlv_name</a> with indicated sizes and
 mounted to indicated mount points.</p>
+<p>When enabled, it will also automatically handle disk expansion by
+resizing partitions (via <code>growpart</code>), physical volumes (via
+<code>pvresize</code>), as well as logical volumes.</p>
 <p>Note that the role configures not the exact size, but ensures that
 the size is at least as indicated, i.e. the role won't shrink logical
 volumes.</p>
@@ -437,8 +622,9 @@ volumes.</p>
 <p>Type: <code>bool</code></p>
 <h2 id="hpc_rootvg_name">hpc_rootvg_name</h2>
 <p>Name of the root volume group to use. The role configures logical
-volumes <a href="#hpc_rootlv_name">hpc_rootlv_name</a> and <a
-href="#hpc_usrlv_name">hpc_usrlv_name</a> to extend them to the size
+volumes <a href="#hpc_rootlv_name">hpc_rootlv_name</a>, <a
+href="#hpc_usrlv_name">hpc_usrlv_name</a> and <a
+href="#hpc_varlv_name">hpc_varlv_name</a> to extend them to the size
 required to install HPC packages.</p>
 <p>Default: <code>rootvg</code></p>
 <p>Type: <code>string</code></p>
@@ -476,30 +662,25 @@ volumes if current size is larger than value of this variable.</p>
 logical volume to configure.</p>
 <p>Default: <code>/usr</code></p>
 <p>Type: <code>string</code></p>
+<h2 id="hpc_varlv_name">hpc_varlv_name</h2>
+<p>Name of the <code>var</code> logical volume to use.</p>
+<p>Default: <code>varlv</code></p>
+<p>Type: <code>string</code></p>
+<h2 id="hpc_varlv_size">hpc_varlv_size</h2>
+<p>The size of the <a href="#hpc_varlv_name">hpc_varlv_name</a> logical
+volume to configure.</p>
+<p>Note that the role configures not the exact size, but ensures that
+the size is at least as indicated, i.e. the role won't shrink logical
+volumes if current size is larger than value of this variable.</p>
+<p>Default: <code>10G</code></p>
+<p>Type: <code>string</code></p>
+<h2 id="hpc_varlv_mount">hpc_varlv_mount</h2>
+<p>Mount point of the <a href="#hpc_varlv_name">hpc_varlv_name</a>
+logical volume to configure.</p>
+<p>Default: <code>/var</code></p>
+<p>Type: <code>string</code></p>
 <h2 id="example-playbook-for-configuring-storage">Example Playbook for
 Configuring Storage</h2>
-<div class="sourceCode" id="cb6"><pre
-class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Configure my virtual machine for HPC</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hosts</span><span class="kw">:</span><span class="at"> localhost</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">vars</span><span class="kw">:</span></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_manage_storage</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootvg_name</span><span class="kw">:</span><span class="at"> rootvg</span></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootlv_name</span><span class="kw">:</span><span class="at"> rootlv</span></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootlv_size</span><span class="kw">:</span><span class="at"> 10G</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootlv_mount</span><span class="kw">:</span><span class="at"> /</span></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_usrlv_name</span><span class="kw">:</span><span class="at"> usrlv</span></span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_usrlv_size</span><span class="kw">:</span><span class="at"> 20G</span></span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_usrlv_mount</span><span class="kw">:</span><span class="at"> /usr</span></span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">roles</span><span class="kw">:</span></span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> linux-system-roles.hpc</span></span></code></pre></div>
-<h1 id="variables-exported-by-the-role">Variables Exported by the
-Role</h1>
-<h2 id="hpc_reboot_needed">hpc_reboot_needed</h2>
-<p>Default <code>false</code> - if <code>true</code>, this means a
-reboot is needed to apply the changes made by the role.</p>
-<h1 id="example-playbooks">Example Playbooks</h1>
-<p>Run the role to configure storage, install all packages, and reboot
-if needed.</p>
 <div class="sourceCode" id="cb7"><pre
 class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Configure my virtual machine for HPC</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hosts</span><span class="kw">:</span><span class="at"> localhost</span></span>
@@ -512,18 +693,46 @@ class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb7-1"><a href="
 <span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_usrlv_name</span><span class="kw">:</span><span class="at"> usrlv</span></span>
 <span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_usrlv_size</span><span class="kw">:</span><span class="at"> 20G</span></span>
 <span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_usrlv_mount</span><span class="kw">:</span><span class="at"> /usr</span></span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_cuda_driver</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_cuda_toolkit</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_hpc_nvidia_nccl</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_nvidia_fabric_manager</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_rdma</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_system_openmpi</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_build_openmpi_w_nvidia_gpu_support</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_reboot_ok</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">roles</span><span class="kw">:</span></span>
-<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> linux-system-roles.hpc</span></span></code></pre></div>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_varlv_name</span><span class="kw">:</span><span class="at"> varlv</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_varlv_size</span><span class="kw">:</span><span class="at"> 10G</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_varlv_mount</span><span class="kw">:</span><span class="at"> /var</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">roles</span><span class="kw">:</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> linux-system-roles.hpc</span></span></code></pre></div>
+<h1 id="variables-exported-by-the-role">Variables Exported by the
+Role</h1>
+<h2 id="hpc_reboot_needed">hpc_reboot_needed</h2>
+<p>Default <code>false</code> - if <code>true</code>, this means a
+reboot is needed to apply the changes made by the role.</p>
+<h1 id="example-playbooks">Example Playbooks</h1>
+<p>Run the role to configure storage, install all packages, and reboot
+if needed.</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Configure my virtual machine for HPC</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hosts</span><span class="kw">:</span><span class="at"> localhost</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">vars</span><span class="kw">:</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_manage_storage</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootvg_name</span><span class="kw">:</span><span class="at"> rootvg</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootlv_name</span><span class="kw">:</span><span class="at"> rootlv</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootlv_size</span><span class="kw">:</span><span class="at"> 10G</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_rootlv_mount</span><span class="kw">:</span><span class="at"> /</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_usrlv_name</span><span class="kw">:</span><span class="at"> usrlv</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_usrlv_size</span><span class="kw">:</span><span class="at"> 20G</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_usrlv_mount</span><span class="kw">:</span><span class="at"> /usr</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_varlv_name</span><span class="kw">:</span><span class="at"> varlv</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_varlv_size</span><span class="kw">:</span><span class="at"> 10G</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_varlv_mount</span><span class="kw">:</span><span class="at"> /var</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_cuda_driver</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_cuda_toolkit</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_hpc_nvidia_nccl</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_nvidia_fabric_manager</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_rdma</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_install_system_openmpi</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_build_openmpi_w_nvidia_gpu_support</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hpc_reboot_ok</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">roles</span><span class="kw">:</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> linux-system-roles.hpc</span></span></code></pre></div>
 <h1 id="rpm-ostree">rpm-ostree</h1>
 <p>See README-ostree.md</p>
 <h1 id="license">License</h1>
