@@ -1,6 +1,78 @@
 Changelog
 =========
 
+[0.4.0] - 2026-03-23
+--------------------
+
+### New Features
+
+- feat: Moneo monitoring tool package (#46)
+- feat: Installing Moby container runtime and NVIDIA Container Toolkit (#47)
+- feat: add variables for azure resources and tools (#48)
+- feat: SKU customisations (#49)
+- feat: add expanding rootvg-varlv size function (#51)
+- feat: Install and configure Azure HPC Health Checks (#52)
+- feat: RDMA naming infra changes (#67)
+- feat: refine hpc_tuning and add additional tunings (#70)
+- feat: add AZNFS mount helper installation (#72)
+- feat: install the Azure HPC Diagnostics script (#76)
+- feat: add support for disk partition expansion and PV resize (#80)
+- feat: install __hpc_base_packages early via dedicated task (#83)
+- feat: gate NVIDIA IMEX enablement to GB200/GB300 NVLink systems (#85)
+- feat: Add NVIDIA DCGM installation (#100)
+
+### Bug Fixes
+
+- fix: Change installation path/location for moneo tool (#54)
+- fix: fix added for moneo install path (#59)
+- fix: address ansible-lint issues in Azure health check PR #52 (#63)
+- fix: change the condition about lv expansion to use integer comparison (#66)
+- fix: change nvidia-container-toolkit repo and remove version lock (#68)
+- fix: do not pull in OFED IB drivers for the persistent naming monitor (#71)
+- fix: __MOCK_SKU is uninitialised when run from init services (#74)
+- fix: CI fails tests because /var is too small (#75)
+- fix: versionlock kernel-devel-matched to prevent depsolve errors (#79)
+- fix: Don't try to configure WAAgent in non-Azure environments (#81)
+- fix: sku_customisation.service file should not be executable (#84)
+- fix: use an alternate subnet for the docker bridge network (#90)
+- fix: run azure-specific installation after resource path created (#91)
+- fix: correct typo in service running test (#92)
+- fix: moneo test-script fixes (#95)
+- fix: install cuda-toolkit-config-common-12.9.79-1 with cuda-toolkit 12 (#97)
+- fix: install RDMA test script after azure specific resource path created (#98)
+- fix: add opt-in net.ifnames=0 for Azure images (#101)
+- fix: resolve nvidia-persistenced service failure issue on race condition (#102)
+- fix: prevent Azure-specific tasks from running on non-Azure platforms (#104)
+- fix: replace unsupported patch module with patch command (#105)
+
+### Other Changes
+
+- refactor: handle INJECT_FACTS_AS_VARS=false by using ansible_facts instead (#44)
+- ci: use ANSIBLE_INJECT_FACT_VARS=false by default for testing (#45)
+- test: SKU customisations (#50)
+- test: Added Testcases for testing moneo tool (#53)
+- test: skip hpc_install_nvidia_fabric_manager in skip_toolkit test (#55)
+- test: do not install moneo (#57)
+- ci: bump ansible/ansible-lint from 25 to 26 (#58)
+- build: Add a hidden collection directory to be used for building RPM (#60)
+- ci: skip most CI checks if title contains citest skip [citest_skip] (#61)
+- chore: Update nvidia-driver and fabricmanager to 580 (#62)
+- ci: ansible-lint - remove .collection directory from converted collection [citest_skip] (#65)
+- test: add Azure health check test script for basic validation (#69)
+- ci: tox-lsr version 3.15.0 [citest_skip] (#73)
+- test: Added RDMA validation script for waagent, ibverbs tools, and Azure persistent naming (#77)
+- ci: Add Fedora 43, remove Fedora 41 from Testing Farm CI (#78)
+- ci: Ansible version must be string, not float [citest_skip] (#82)
+- test: add test script for aznfs package (#86)
+- ci: bump actions/upload-artifact from 6 to 7 (#88)
+- test: add testing Nvidia docker container script (#89)
+- test: add validation for hpc tuning (#93)
+- ci: tox-lsr 3.16.0 - fix qemu tox test failures - rename to qemu-ansible-core-X-Y [citest_skip] (#94)
+- ci: tox-lsr 3.17.0 - container test improvements, use ansible 2.20 for fedora 43 [citest_skip] (#96)
+- ci: tox-lsr 3.17.1 - previous update broke container tests, this fixes them [citest_skip] (#99)
+- tests: add diagnostics installation validation script (#103)
+- test: remove redundant tuning tests from tests_skip_toolkit.yml (#106)
+
 [0.3.2] - 2026-01-06
 --------------------
 
