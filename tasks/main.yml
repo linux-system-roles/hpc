@@ -1642,7 +1642,7 @@
 
         - name: Patch Diagnostics script
           command:
-            cmd: patch -p1 gather_azhpc_vm_diagnostics.sh "{{ __hpc_diags_patch_file.path | quote }}"
+            cmd: patch -p1 gather_azhpc_vm_diagnostics.sh {{ __hpc_diags_patch_file.path | quote }}
             chdir: "{{ __hpc_pkg_extracted.path }}/Linux/src"
           changed_when: true
           # noqa: command-instead-of-module
