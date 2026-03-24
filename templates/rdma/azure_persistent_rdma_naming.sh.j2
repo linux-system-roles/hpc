@@ -35,4 +35,4 @@ for old_device in $(ls -1 /sys/class/infiniband 2>/dev/null | sort -n); do
     echo "Unknown device type for $old_device - $link_layer."
   fi
 done
-
+exit 0
