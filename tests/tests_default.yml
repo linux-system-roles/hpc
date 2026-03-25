@@ -2,7 +2,6 @@
 ---
 - name: Ensure that the role runs with default parameters
   hosts: all
-  gather_facts: false
   # Do not do anything in this test, otherwise fails with not enough storage
   vars:
     hpc_manage_storage: false
@@ -31,8 +30,7 @@
     - name: Run test in a block to clean up in always
       block:
         - name: Run the role
-          include_role:
-            name: linux-system-roles.hpc
+          include_tasks: tasks/run_role_with_clear_facts.yml
       always:
         - name: Cleanup
           include_tasks: tasks/cleanup.yml

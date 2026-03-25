@@ -2,7 +2,6 @@
 ---
 - name: Verify if role configures a custom storage properly
   hosts: all
-  gather_facts: true
   vars:
     hpc_manage_firewall: true
     hpc_reboot_ok: true
@@ -13,5 +12,4 @@
       when: ansible_facts['system_vendor'] != "Microsoft Corporation"
 
     - name: Run the role
-      include_role:
-        name: linux-system-roles.hpc
+      include_tasks: tasks/run_role_with_clear_facts.yml

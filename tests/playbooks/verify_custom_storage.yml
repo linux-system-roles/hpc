@@ -2,7 +2,6 @@
 ---
 - name: Verify if role configures a custom storage properly
   hosts: localhost
-  gather_facts: false
   vars:
     hpc_install_prefix: /opt
     __hpc_hpcx_info:

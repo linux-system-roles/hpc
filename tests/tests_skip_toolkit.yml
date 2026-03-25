@@ -2,7 +2,6 @@
 ---
 - name: Verify if role configures a custom storage properly
   hosts: all
-  gather_facts: true
   vars:
     hpc_rootvg_name: rootvg
     hpc_rootlv_name: rootlv
@@ -98,8 +97,7 @@
                     mount_point: "{{ hpc_usrlv_mount }}"
 
         - name: Run the role
-          include_role:
-            name: linux-system-roles.hpc
+          include_tasks: tasks/run_role_with_clear_facts.yml
 
         # Both should be 2G
         # rootlv because it was set to 2G with the storage role
