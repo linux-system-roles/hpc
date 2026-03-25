@@ -2,12 +2,13 @@
 ---
 # ansible_facts required by the role
 __hpc_required_facts:
+  - architecture
+  # required for ansible_facts["system_vendor"]
+  - devices
   - distribution
   - distribution_major_version
   - distribution_version
   - os_family
-  # required for ansible_facts["system_vendor"]
-  - devices
   # required for ansible_facts["processor_nproc"]
   - processor
 # the subsets of ansible_facts that need to be gathered in case any of the
