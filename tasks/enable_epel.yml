@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: MIT
+---
+# EPEL may be installed (e.g. epel-release) but left disabled in test images.
+# Enable only the "epel" repository.
+# This was really a pain to do because dnf4 and dnf5 have different ways of doing this.
+- name: Enable disabled EPEL repositories
+  ansible.builtin.shell: |
+    set -euo pipefail
+    if dnf --version | grep -q "^4[.]"; then
+      dnf_ver=4
+    elif dnf --version | grep -q dnf5; then
+      dnf_ver=5
+    else
+      echo "Unknown dnf version: $(dnf --version)" >&2
+      exit 1
+    fi
+    dnf repolist --disabled | while read -r repo_id repo_name; do
+      if [ "$repo_id" = epel ]; then
+        echo CHANGED
+        if [ "$dnf_ver" = 4 ]; then
+          dnf config-manager --set-enabled "$repo_id" >&2
+        elif [ "$dnf_ver" = 5 ]; then
+          dnf config-manager setopt "$repo_id.enabled=1" >&2
+        fi
+      fi
+    done
+  register: __hpc_epel_enable
+  changed_when: __hpc_epel_enable.stdout is search("CHANGED")

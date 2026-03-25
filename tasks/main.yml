@@ -71,6 +71,9 @@
     - "{{ __hpc_nvidia_cuda_repo }}"
     - "{{ __hpc_microsoft_prod_repo }}"
 
+- name: Ensure EPEL repository is enabled
+  include_tasks: tasks/enable_epel.yml
+
 - name: Install base packages
   package:
     name: "{{ __hpc_base_packages }}"
@@ -239,7 +242,10 @@
             - "'NOCHANGE' not in __hpc_growpart_result.stdout"
           loop: "{{ __hpc_rootvg_disks }}"
           when:
+            - partition_number | d(none) is not none
             - partition_number | length > 0
+            - parent_device | d(none) is not none
+            - parent_device | length > 0
             - parent_device != pv_device
           # 0: grown, 1: NOCHANGE, others: real error
           failed_when: __hpc_growpart_result.rc not in [0, 1]
