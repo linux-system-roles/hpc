@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+# shellcheck disable=all
+{{ ansible_managed | comment }}
+{{ "system_role:hpc" | comment(prefix="", postfix="") }}
+# SPDX-License-Identifier: MIT
+#
+# Test Script: DCGM (NVIDIA Data Center GPU Manager) installation and basic functionality
+#
+
+set -euo pipefail
+
+VERBOSE=0
+PASSED=0
+
+# ------------------------------------------------------------------------------
+# Helper Functions
+# ------------------------------------------------------------------------------
+
+pass() {
+    echo "[PASS] $1"
+    PASSED=$((PASSED + 1))
+}
+
+fail() {
+    echo "[FAIL] $1"
+    exit 1
+}
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+}
+
+verbose_log() {
+    if [[ $VERBOSE -eq 1 ]]; then
+        echo "[$(date "+%Y-%m-%d %H:%M:%S")] $*"
+    fi
+}
+
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") [OPTIONS]
+Test NVIDIA DCGM GPU support presence and functionality
+
+OPTIONS:
+  -v    Verbose output
+  -h    Show this help message
+
+EOF
+    exit 0
+}
+
+# ------------------------------------------------------------------------------
+# Parse Arguments
+# ------------------------------------------------------------------------------
+
+while getopts "vh" opt; do
+    case $opt in
+        v) VERBOSE=1 ;;
+        h) usage ;;
+        *) usage ;;
+    esac
+done
+
+# ------------------------------------------------------------------------------
+# Test: DCGM Binary
+# ------------------------------------------------------------------------------
+
+test_dcgmi_binary() {
+    log_msg="Checking for dcgmi binary"
+    log "Test: $log_msg"
+    if command -v dcgmi >/dev/null 2>&1; then
+        pass "$log_msg"
+        verbose_log "dcgmi path: $(command -v dcgmi)"
+    else
+        fail "$log_msg: dcgmi command not found"
+    fi
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: DCGM Service Active
+# ------------------------------------------------------------------------------
+
+test_dcgm_service() {
+    log "Test: Checking DCGM service status"
+    if systemctl is-active --quiet nvidia-dcgm; then
+        pass "DCGM service is active"
+    else
+        log "$(systemctl status nvidia-dcgm || true)"
+        fail "DCGM service is not active"
+    fi
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: DCGM Discovery
+# ------------------------------------------------------------------------------
+
+test_dcgm_discovery() {
+    log "Test: Running 'dcgmi discovery -l'"
+    DISCOVERY_OUT=$(dcgmi discovery -l || true)
+    verbose_log "$DISCOVERY_OUT"
+
+    # check if at least one GPU found
+    GPU_COUNT=$(echo "$DISCOVERY_OUT" | grep -c '^[0-9]\+ GPU')
+    if [[ "$GPU_COUNT" =~ ^[0-9]+$ && "$GPU_COUNT" -gt 0 ]]; then
+        pass "Discovery found $GPU_COUNT GPU(s)"
+    else
+        fail "Discovery did not report any GPUs"
+    fi
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: DCGM Diagnostic (quick)
+# ------------------------------------------------------------------------------
+
+test_dcgm_diag() {
+    log "Test: Running 'dcgmi diag -r 1' (quick diagnostic)"
+    DIAG_OUT=$(dcgmi diag -r 1 || true)
+    verbose_log "$DIAG_OUT"
+
+    if echo "$DIAG_OUT" | grep -qiE "fail|error"; then
+        fail "Diagnostic returned error/failure"
+    else
+        pass "Diagnostic returned no obvious failures"
+    fi
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Main
+# ------------------------------------------------------------------------------
+
+main() {
+    log "========================================"
+    log "NVIDIA DCGM Test"
+    log "========================================"
+
+    test_dcgmi_binary
+
+    test_dcgm_service
+
+    test_dcgm_discovery
+
+    test_dcgm_diag
+
+    # If we get here, all tests passed
+
+    log "========================================"
+    log "All tests passed ($PASSED)"
+    log "========================================"
+    exit 0
+}
+
+main "$@"
