@@ -616,6 +616,14 @@
         name: nvidia-dcgm
         enabled: true
 
+    - name: Install test script for DCGM
+      template:
+        src: test-dcgm.sh.j2
+        dest: "{{ __hpc_azure_tests_dir }}/test-dcgm.sh"
+        owner: root
+        group: root
+        mode: '0755'
+
 - name: Install RDMA packages
   when: hpc_install_rdma
   block:
