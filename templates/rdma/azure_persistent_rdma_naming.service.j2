@@ -8,6 +8,10 @@ After=network.target
 Type=oneshot
 ExecStart=/usr/sbin/azure_persistent_rdma_naming.sh
 StandardOutput=journal
+# Retry on failure to handle race conditions during boot
+Restart=on-failure
+RestartSec=2
+StartLimitBurst=3
 
 [Install]
 WantedBy=multi-user.target

@@ -15,6 +15,12 @@ fail()
 	exit 1
 }
 
+skip()
+{
+	echo Skipped: "$1"
+	exit 77
+}
+
 require_file() {
   local path="$1"
   [[ -e "$path" ]] || fail "missing file: $path"
@@ -56,17 +62,11 @@ main() {
 
 	# Azure persistent RDMA naming artifacts/services (Azure only)
 	if [ "$(sys_vendor)" != "Microsoft Corporation" ]; then
-		echo
-		echo "Testing Azure persistent RDMA naming (skip: not Azure)"
-		echo Test Passed: "not running on Azure; Azure persistent RDMA naming checks skipped"
-		return 0
+		skip "not running on Azure; Azure persistent RDMA naming checks skipped"
 	fi
 
 	if ! is_systemd; then
-		echo
-		echo "Testing Azure persistent RDMA naming (skip: not systemd)"
-		echo Test Passed: "not running systemd; systemd unit checks skipped"
-		return 0
+		skip "not running systemd; systemd unit checks skipped"
 	fi
 
 	echo

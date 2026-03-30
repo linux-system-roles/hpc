@@ -5,7 +5,8 @@
 {{ ansible_managed | comment }}
 {{ "system_role:hpc" | comment(prefix="", postfix="") }}
 # shellcheck enable=all
-set -euo pipefail
+# Remove -e to prevent exiting on first error (allows retries for transient failures)
+set -uo pipefail
 
 rdma_rename="{{ __hpc_rdma_rename_path }}"
 
@@ -26,10 +27,14 @@ for old_device in $(ls -1 /sys/class/infiniband 2>/dev/null | sort -n); do
   link_layer=$(ibv_devinfo -d "$old_device" | sed -n 's/^[ \t]*link_layer:[ \t]*\([a-zA-Z]*\)$/\1/p')
 
   if [ "$link_layer" = "InfiniBand" ]; then
-    "$rdma_rename" "$old_device" NAME_FIXED "mlx5_ib${ib_index}"
+    if ! "$rdma_rename" "$old_device" NAME_FIXED "mlx5_ib${ib_index}"; then
+      echo "Warning: Failed to rename $old_device to mlx5_ib${ib_index}"
+    fi
     ib_index=$((ib_index + 1))
   elif [ "$link_layer" = "Ethernet" ]; then
-    "$rdma_rename" "$old_device" NAME_FIXED "mlx5_an${an_index}"
+    if ! "$rdma_rename" "$old_device" NAME_FIXED "mlx5_an${an_index}"; then
+      echo "Warning: Failed to rename $old_device to mlx5_an${an_index}"
+    fi
     an_index=$((an_index + 1))
   else
     echo "Unknown device type for $old_device - $link_layer."
