@@ -619,6 +619,28 @@
       register: __hpc_nvidia_dcgm_install
       until: __hpc_nvidia_dcgm_install is success
 
+    # DCGM CUDA plugin workaround
+    # Only create a symlink cuda13 -> cuda12 if needed
+    - name: Check if cuda12 plugin exists
+      stat:
+        path: /usr/libexec/datacenter-gpu-manager-4/plugins/cuda12
+      register: dcgm_cuda12_plugin
+
+    - name: Check if cuda13 plugin exists
+      stat:
+        path: /usr/libexec/datacenter-gpu-manager-4/plugins/cuda13
+        follow: false
+      register: dcgm_cuda13_plugin
+
+    - name: Create symlink as workaround for cuda13 plugins load issue
+      file:
+        src: /usr/libexec/datacenter-gpu-manager-4/plugins/cuda12
+        dest: /usr/libexec/datacenter-gpu-manager-4/plugins/cuda13
+        state: link
+      when:
+        - dcgm_cuda12_plugin.stat.exists
+        - not dcgm_cuda13_plugin.stat.exists
+
     - name: Ensure dcgm service is enabled
       service:
         name: nvidia-dcgm
