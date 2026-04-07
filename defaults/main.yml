@@ -36,6 +36,7 @@ hpc_tuning: true
 hpc_sku_customisation: true
 hpc_install_diagnostics: true
 hpc_install_kvp_client: true
+hpc_install_intel_mkl: true
 
 hpc_update_kernel: true
 hpc_update_all_packages: false

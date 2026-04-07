@@ -1,0 +1,303 @@
+#!/usr/bin/env bash
+# These are templates, not actual shell scripts, so tell shellcheck to
+# ignore the templated parts
+# shellcheck disable=all
+{{ ansible_managed | comment }}
+{{ "system_role:hpc" | comment(prefix="", postfix="") }}
+# shellcheck enable=all
+# SPDX-License-Identifier: MIT
+#
+# Intel oneAPI Math Kernel Library Test Script
+# Usage: ./test-intel-mkl.sh [-v]
+#
+
+set -euo pipefail
+
+# Default configuration
+VERBOSE=0
+
+# Test counter
+PASSED=0
+
+# ------------------------------------------------------------------------------
+# Helper Functions
+# ------------------------------------------------------------------------------
+
+pass() {
+    echo "[PASS] $1"
+    PASSED=$((PASSED + 1))
+}
+
+fail() {
+    echo "[FAIL] $1"
+    exit 1
+}
+
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") [OPTIONS]
+
+Test Intel oneAPI Math Kernel Library installation and functionality
+
+OPTIONS:
+    -v              Verbose mode
+    -h              Show this help message
+
+EXAMPLES:
+    # Run with default settings
+    sudo ./test-intel-mkl.sh
+
+    # Run with verbose output
+    sudo ./test-intel-mkl.sh -v
+
+EOF
+    exit 0
+}
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+}
+
+verbose_log() {
+    if [[ $VERBOSE -eq 1 ]]; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+    fi
+}
+
+# ------------------------------------------------------------------------------
+# Parse Arguments
+# ------------------------------------------------------------------------------
+
+while getopts "vh" opt; do
+    case $opt in
+        v)
+            VERBOSE=1
+            ;;
+        h)
+            usage
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+
+# ------------------------------------------------------------------------------
+# Test: Intel oneAPI Repository Configuration
+# ------------------------------------------------------------------------------
+
+test_oneapi_repo() {
+    log "Test: Intel oneAPI repository configuration..."
+    echo ""
+
+    # Check if oneAPI repository is configured
+    echo "Checking: oneAPI repository is configured"
+    if ! dnf repolist --enabled | grep -qi oneAPI; then
+        fail "Intel oneAPI repository is not enabled"
+    fi
+    pass "Intel oneAPI repository is configured"
+
+    if [[ $VERBOSE -eq 1 ]]; then
+        verbose_log "Repository details:"
+        dnf repoinfo oneAPI 2>/dev/null || true
+    fi
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: Intel MKL Package Installation
+# ------------------------------------------------------------------------------
+
+test_mkl_package() {
+    log "Test: Intel MKL package installation..."
+    echo ""
+
+    # Check if intel-oneapi-mkl-devel package is installed
+    echo "Checking: intel-oneapi-mkl-devel package is installed"
+    if ! rpm -q intel-oneapi-mkl-devel >/dev/null 2>&1; then
+        fail "intel-oneapi-mkl-devel package is not installed"
+    fi
+    pass "intel-oneapi-mkl-devel package is installed"
+
+    if [[ $VERBOSE -eq 1 ]]; then
+        verbose_log "Package: $(rpm -q intel-oneapi-mkl-devel)"
+    fi
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: MKL Installation Directory
+# ------------------------------------------------------------------------------
+
+test_mkl_installation() {
+    log "Test: MKL installation directory and files..."
+    echo ""
+
+    # Check if MKL installation directory exists
+    echo "Checking: MKL installation directory exists"
+    if [[ ! -d /opt/intel/oneapi/mkl ]]; then
+        fail "MKL installation directory /opt/intel/oneapi/mkl does not exist"
+    fi
+    pass "MKL installation directory exists"
+
+    # Check for MKL libraries
+    echo "Checking: MKL libraries are present"
+    local mkl_lib_dir
+    mkl_lib_dir=$(find /opt/intel/oneapi/mkl -type d \( -name "lib" -o -name "lib64" \) | head -1)
+    if [[ -z "$mkl_lib_dir" ]] || [[ ! -d "$mkl_lib_dir" ]]; then
+        fail "MKL library directory not found"
+    fi
+
+    if ! ls "$mkl_lib_dir"/libmkl_core.* >/dev/null 2>&1; then
+        fail "MKL core libraries not found in $mkl_lib_dir"
+    fi
+    pass "MKL libraries are present"
+
+    # Check for MKL headers
+    echo "Checking: MKL header files are present"
+    local mkl_include_dir
+    mkl_include_dir=$(find /opt/intel/oneapi/mkl -type d -name "include" | head -1)
+    if [[ -z "$mkl_include_dir" ]] || [[ ! -d "$mkl_include_dir" ]]; then
+        fail "MKL include directory not found"
+    fi
+
+    if [[ ! -f "$mkl_include_dir/mkl.h" ]]; then
+        fail "MKL header file mkl.h not found in $mkl_include_dir"
+    fi
+    pass "MKL header files are present"
+
+    if [[ $VERBOSE -eq 1 ]]; then
+        verbose_log "MKL installation details:"
+        verbose_log "Library directory: $mkl_lib_dir"
+        verbose_log "Include directory: $mkl_include_dir"
+        verbose_log "Core libraries:"
+        ls -lh "$mkl_lib_dir"/libmkl_core.* 2>/dev/null || true
+    fi
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Test: MKL Environment Variables
+# ------------------------------------------------------------------------------
+
+test_mkl_environment() {
+    log "Test: MKL environment setup..."
+    echo ""
+
+    # Check for setvars.sh script
+    echo "Checking: MKL environment setup script exists"
+    if [[ ! -f /opt/intel/oneapi/setvars.sh ]]; then
+        fail "Intel oneAPI environment setup script not found at /opt/intel/oneapi/setvars.sh"
+    fi
+    pass "MKL environment setup script exists"
+}
+
+# ------------------------------------------------------------------------------
+# Test: MKL Compile and Link Test
+# ------------------------------------------------------------------------------
+
+test_mkl_compile() {
+    log "Test: MKL compile and link test..."
+    echo ""
+
+    # Create temporary directory for test
+    local test_dir
+    test_dir=$(mktemp -d)
+
+    # Create simple MKL test program
+    cat > "$test_dir/mkl_test.c" <<'EOF'
+#include <stdio.h>
+#include <mkl.h>
+
+int main() {
+    MKLVersion version;
+    mkl_get_version(&version);
+    printf("Intel MKL %d.%d.%d\n", version.MajorVersion, version.MinorVersion, version.UpdateVersion);
+    return 0;
+}
+EOF
+
+    # Source oneAPI environment and compile
+    echo "Checking: MKL test program compiles and links"
+
+    # Source setvars.sh only if MKLROOT is not already set
+    if [[ -z "${MKLROOT:-}" ]]; then
+        # shellcheck disable=SC1091
+        source /opt/intel/oneapi/setvars.sh >/dev/null 2>&1 || true
+    fi
+
+    # Verify MKLROOT is set
+    if [[ -z "${MKLROOT:-}" ]]; then
+        fail "MKLROOT not set - Intel oneAPI environment not loaded"
+    fi
+
+    local compile_output
+    local compile_ret=0
+    compile_output=$(gcc -o "$test_dir/mkl_test" "$test_dir/mkl_test.c" \
+        -lmkl_intel_lp64 -lmkl_sequential -lmkl_core \
+        -lpthread -lm -ldl 2>&1) || compile_ret=$?
+
+    if [[ $compile_ret -ne 0 ]]; then
+        fail "Failed to compile MKL test program: $compile_output"
+    fi
+    pass "MKL test program compiled successfully"
+
+    # Run the test program
+    echo "Checking: MKL test program executes"
+    local run_output
+    local run_ret=0
+    run_output=$("$test_dir/mkl_test" 2>&1) || run_ret=$?
+
+    if [[ $run_ret -ne 0 ]]; then
+        fail "Failed to run MKL test program: $run_output"
+    fi
+    pass "MKL test program executed successfully"
+
+    if [[ $VERBOSE -eq 1 ]]; then
+        verbose_log "MKL version: $run_output"
+    fi
+
+    # Clean up temporary directory
+    rm -rf "$test_dir"
+
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Main
+# ------------------------------------------------------------------------------
+
+main() {
+    log "=========================================================="
+    log "Intel oneAPI Math Kernel Library Test"
+    log "=========================================================="
+    echo ""
+
+    # Repository configuration check
+    test_oneapi_repo
+
+    # Package installation check
+    test_mkl_package
+
+    # Installation directory and files check
+    test_mkl_installation
+
+    # Environment setup check
+    test_mkl_environment
+
+    # Compile and link test
+    test_mkl_compile
+
+    # If we get here, all tests passed
+    echo ""
+    log "=========================================================="
+    log "All tests passed ($PASSED)"
+    log "=========================================================="
+    echo ""
+    exit 0
+}
+
+main "$@"

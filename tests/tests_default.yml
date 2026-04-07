@@ -24,6 +24,7 @@
     hpc_tuning: false
     hpc_sku_customisation: false
     hpc_install_kvp_client: false
+    hpc_install_intel_mkl: false
   tasks:
     - name: Skip unsupported architectures
       include_tasks: tasks/skip_unsupported_archs.yml

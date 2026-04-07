@@ -333,6 +333,20 @@ Default: `true`
 
 Type: `bool`
 
+### hpc_install_intel_mkl
+
+Whether to install Intel oneAPI Math Kernel Library (MKL).
+
+Intel MKL provides optimized mathematical functions for scientific computing, data analytics, and machine learning workloads. The role installs the development package (`intel-oneapi-mkl-devel`) including headers and libraries for building applications with MKL.
+
+Note that a standalone MKL version is installed. The role also configures the Intel oneAPI repository and installs the latest MKL version. For more information, see <https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html>.
+
+**License**: By enabling this variable and installing Intel MKL, you accept the Intel End User License Agreement (EULA). The license is available at <https://www.intel.com/content/www/us/en/developer/articles/license/end-user-license-agreement.html#inpage-nav-2> and in the installed package at `/opt/intel/oneapi/mkl/latest/share/doc/mkl/licensing/license.txt`.
+
+Default: `true`
+
+Type: `bool`
+
 ## Variables for Configuring How Role Reboots Managed Nodes
 
 ### hpc_reboot_ok
