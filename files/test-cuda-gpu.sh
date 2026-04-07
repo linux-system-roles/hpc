@@ -157,7 +157,7 @@ test_cuda_compiler() {
     fi
     pass "nvcc version is ${NVCC_VERSION}"
 
-    verbose_log "nvcc location: $(which nvcc)"
+    verbose_log "nvcc location: $(command -v nvcc)"
     verbose_log "Full nvcc version:"
     if [[ $VERBOSE -eq 1 ]]; then
         nvcc --version | sed 's/^/  /'
