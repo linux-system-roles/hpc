@@ -529,6 +529,14 @@
         not in __hpc_versionlock_check.stdout
       loop: "{{ __hpc_kernel_versionlock_rpms }}"
 
+    - name: Install CUDA and GPU validation test script
+      copy:
+        src: test-cuda-gpu.sh
+        dest: "{{ __hpc_azure_tests_dir }}/test-cuda-gpu.sh"
+        owner: root
+        group: root
+        mode: "0755"
+
 - name: Install NVIDIA NCCL and lock version of its packages
   when: hpc_install_hpc_nvidia_nccl
   block:
