@@ -1264,7 +1264,7 @@
 
         - name: Install setup script
           template:
-            src: sku/setup_sku_customisations.sh
+            src: sku/setup_sku_customisations.sh.j2
             dest: "{{ __hpc_azure_resource_dir }}/bin/setup_sku_customisations.sh"
             owner: root
             group: root
@@ -1272,7 +1272,7 @@
 
         - name: Install removal script
           template:
-            src: sku/remove_sku_customisations.sh
+            src: sku/remove_sku_customisations.sh.j2
             dest: "{{ __hpc_azure_resource_dir }}/bin/remove_sku_customisations.sh"
             owner: root
             group: root
@@ -1293,7 +1293,7 @@
 
         - name: Install tests
           template:
-            src: sku/test-sku-setup.sh
+            src: sku/test-sku-setup.sh.j2
             dest: "{{ __hpc_azure_tests_dir }}/"
             owner: root
             group: root
