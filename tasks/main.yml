@@ -1386,9 +1386,7 @@
         name:
           - policycoreutils-python-utils
         state: present
-      when:
-        - ansible_selinux is defined
-        - ansible_selinux.status | d('disabled') == 'enabled'
+      when: ansible_facts.get("selinux", {}).get("status", "disabled") == "enabled"
 
     - name: Allow containers to read Prometheus config (SELinux fcontext)
       shell: |
@@ -1402,17 +1400,13 @@
         fi
       register: __hpc_prometheus_fcontext
       changed_when: "'changed' in __hpc_prometheus_fcontext.stdout"
-      when:
-        - ansible_selinux is defined
-        - ansible_selinux.status | d('disabled') == 'enabled'
+      when: ansible_facts.get("selinux", {}).get("status", "disabled") == "enabled"
 
     - name: Apply SELinux context labels for Prometheus config directory
       command: restorecon -Rv /etc/prometheus
       changed_when: false
       failed_when: false
-      when:
-        - ansible_selinux is defined
-        - ansible_selinux.status | d('disabled') == 'enabled'
+      when: ansible_facts.get("selinux", {}).get("status", "disabled") == "enabled"
 
     - name: Remove extracted temp directory
       when: not __hpc_moneo_installed.stat.exists
