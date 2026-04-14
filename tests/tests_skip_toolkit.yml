@@ -28,6 +28,7 @@
     hpc_tuning: false
     hpc_sku_customisation: false
     hpc_install_kvp_client: false
+    hpc_install_intel_mkl: false
   tags:
     - tests::reboot
   tasks:

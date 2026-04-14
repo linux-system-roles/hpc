@@ -52,6 +52,7 @@
     - "{{ __hpc_rhel_epel_repo }}"
     - "{{ __hpc_nvidia_cuda_repo }}"
     - "{{ __hpc_microsoft_prod_repo }}"
+    - "{{ __hpc_intel_oneapi_repo }}"
 
 # package dkms is required from this repo
 - name: Install EPEL release package
@@ -70,6 +71,7 @@
   loop:
     - "{{ __hpc_nvidia_cuda_repo }}"
     - "{{ __hpc_microsoft_prod_repo }}"
+    - "{{ __hpc_intel_oneapi_repo }}"
 
 - name: Ensure EPEL repository is enabled
   include_tasks: tasks/enable_epel.yml
@@ -1709,6 +1711,25 @@
           loop:
             - "{{ __hpc_diags_patch_file.path }}"
             - "{{ __hpc_pkg_extracted.path }}"
+
+# Installing Intel MKL implies acceptance of the Intel End User License Agreement (EULA)
+# License: https://www.intel.com/content/www/us/en/developer/articles/license/end-user-license-agreement.html
+# Installed license file: /opt/intel/oneapi/mkl/latest/share/doc/mkl/licensing/license.txt
+- name: Install Intel oneAPI Math Kernel Library
+  when: hpc_install_intel_mkl
+  block:
+    - name: Install Intel MKL development package (standalone MKL version)
+      package:
+        name: intel-oneapi-mkl-devel
+        state: present
+
+    - name: Install Intel MKL test script
+      template:
+        src: test-intel-mkl.sh.j2
+        dest: "{{ __hpc_azure_tests_dir }}/test-intel-mkl.sh"
+        owner: root
+        group: root
+        mode: '0755'
 
 - name: Clean dnf cache
   command: dnf clean all
