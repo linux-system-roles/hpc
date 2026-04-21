@@ -1,0 +1,10 @@
+{{ ansible_managed | comment }}
+{{ "system_role:hpc" | comment(prefix="", postfix="") }}
+
+[Unit]
+# The ConditionKernelModuleLoaded directive was added in systemd version 258.
+# The RHEL version this aims to support has an older systemd version,
+# so work around it by using ConditionPathExists with a well-known
+# path in /dev created by the relevant kernel module on load.
+#ConditionKernelModuleLoaded=gdrdrv
+ConditionPathExists=/dev/gdrdrv

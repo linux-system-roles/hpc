@@ -501,6 +501,15 @@
           RestartSec=5s
       notify: Reload systemd
 
+    - name: Create systemd drop-in for nvidia-persistenced.service to only start if the nvidia kernel module is loaded
+      template:
+        src: 50-skip-when-nvidia-kernel-module-not-loaded.conf.j2
+        dest: /etc/systemd/system/nvidia-persistenced.service.d/50-skip-when-nvidia-kernel-module-not-loaded.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
+
     - name: Enable nvidia-persistenced.service
       service:
         name: nvidia-persistenced.service
@@ -570,6 +579,23 @@
       register: __hpc_nvidia_fabric_manager_packages_install
       until: __hpc_nvidia_fabric_manager_packages_install is success
 
+    - name: Ensure nvidia-fabricmanager drop-in directory exists
+      file:
+        path: /etc/systemd/system/nvidia-fabricmanager.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Create systemd drop-in for nvidia-fabricmanager.service to only start if NVswitch devices are detected
+      template:
+        src: 50-skip-when-no-nvswitch-devices-present.conf.j2
+        dest: /etc/systemd/system/nvidia-fabricmanager.service.d/50-skip-when-no-nvswitch-devices-present.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
+
     - name: Ensure that Fabric Manager service is enabled
       service:
         name: nvidia-fabricmanager
@@ -586,6 +612,23 @@
         state: present
         use: "{{ (__hpc_server_is_ostree | d(false)) |
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
+    - name: Ensure nvidia-imex drop-in directory exists
+      file:
+        path: /etc/systemd/system/nvidia-imex.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Create systemd drop-in for nvidia-imex.service to only start if the nvidia kernel module is loaded
+      template:
+        src: 50-skip-when-nvidia-kernel-module-not-loaded.conf.j2
+        dest: /etc/systemd/system/nvidia-imex.service.d/50-skip-when-nvidia-kernel-module-not-loaded.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
 
     - name: Enable NVIDIA IMEX service
       systemd:
@@ -885,6 +928,23 @@
             state: absent
           changed_when: false
 
+        - name: Ensure gdrcopy drop-in directory exists
+          file:
+            path: /etc/systemd/system/gdrcopy.service.d
+            state: directory
+            owner: root
+            group: root
+            mode: '0755'
+
+        - name: Create systemd drop-in for gdrcopy.service to only start if the gdrcopy kernel module is loaded
+          template:
+            src: 50-skip-when-gdrdrv-kernel-module-not-loaded.conf.j2
+            dest: /etc/systemd/system/gdrcopy.service.d/50-skip-when-gdrdrv-kernel-module-not-loaded.conf
+            owner: root
+            group: root
+            mode: '0644'
+          notify: Reload systemd
+
     - name: Get stat of hpcx-rebuild path
       stat:
         path: "{{ __hpc_hpcx_rebuild_path }}"
@@ -1071,6 +1131,23 @@
           ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
       register: __hpc_nvidia_container_toolkit_install
       until: __hpc_nvidia_container_toolkit_install is success
+
+    - name: Ensure nvidia-cdi-refresh drop-in directory exists
+      file:
+        path: /etc/systemd/system/nvidia-cdi-refresh.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Create systemd drop-in for nvidia-cdi-refresh.service to only start if the nvidia kernel module is loaded
+      template:
+        src: 50-skip-when-nvidia-kernel-module-not-loaded.conf.j2
+        dest: /etc/systemd/system/nvidia-cdi-refresh.service.d/50-skip-when-nvidia-kernel-module-not-loaded.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
 
     - name: Check if NVIDIA runtime is configured in Docker daemon
       find:
