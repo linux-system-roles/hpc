@@ -326,7 +326,7 @@
 
 - name: Get package facts
   package_facts:
-  no_log: true
+  no_log: "{{ ansible_verbosity < 2 }}"
 
 # This is required for dkms to build NVidia drivers for all kernels
 - name: Install kernel-devel and kernel-headers packages for all kernels
