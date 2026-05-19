@@ -1371,7 +1371,7 @@
         - name: Install tests
           template:
             src: sku/test-sku-setup.sh.j2
-            dest: "{{ __hpc_azure_tests_dir }}/"
+            dest: "{{ __hpc_azure_tests_dir }}/test-sku-setup.sh"
             owner: root
             group: root
             mode: '0755'
