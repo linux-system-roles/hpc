@@ -10,11 +10,10 @@
       - You must set the following variables true to build OpenMPI with Nvidia
       - GPU support
       - "hpc_install_cuda_toolkit: true"
-      - "hpc_install_nvidia_nccl: true"
+      - "hpc_install_hpc_nvidia_nccl: true"
   when:
     - hpc_build_openmpi_w_nvidia_gpu_support
-    - not hpc_install_cuda_toolkit
-    - not hpc_install_nvidia_nccl
+    - not (hpc_install_cuda_toolkit and hpc_install_hpc_nvidia_nccl)
 
 - name: Install common OpenMPI packages
   when: hpc_install_system_openmpi or hpc_build_openmpi_w_nvidia_gpu_support
