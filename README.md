@@ -206,6 +206,22 @@ Default: `true`
 
 Type: `bool`
 
+### hpc_install_mpifileutils
+
+Whether to download, build, and install [mpifileutils](https://github.com/hpc/mpifileutils) - a suite of MPI-based tools for managing large datasets across parallel file systems.
+
+mpifileutils provides commands such as `dcp` (distributed copy), `drm` (distributed remove), `dwalk` (distributed walk), and others that leverage MPI for high-performance file operations across HPC clusters.
+
+Note that building mpifileutils requires HPC-X MPI to be installed. The following variable must be set to `true`:
+
+```yaml
+hpc_build_openmpi_w_nvidia_gpu_support: true
+```
+
+Default: `true`
+
+Type: `bool`
+
 ### hpc_install_nvidia_container_toolkit
 
 Whether to install and configure NVIDIA Container Toolkit.
