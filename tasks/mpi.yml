@@ -3,16 +3,16 @@
 # MPI library installation, configuration and testing
 #
 ---
-- name: Fail if role installs openmpi without cuda toolkit
+- name: Fail if role builds MPI with GPU support without CUDA toolkit
   fail:
     msg:
-      - Building OpenMPI requires multiple packages to be installed
-      - You must set the following variables true to build OpenMPI with Nvidia
-      - GPU support
+      - Building MPI libraries with NVIDIA GPU support requires multiple
+      - packages to be installed.
+      - You must set the following variables true
       - "hpc_install_cuda_toolkit: true"
       - "hpc_install_hpc_nvidia_nccl: true"
   when:
-    - hpc_build_openmpi_w_nvidia_gpu_support
+    - hpc_build_mpi_w_nvidia_gpu_support
     - not (hpc_install_cuda_toolkit and hpc_install_hpc_nvidia_nccl)
 
 - name: Fail if role installs mpifileutils without HPC-X MPI
@@ -20,13 +20,13 @@
     msg:
       - Building mpifileutils requires HPC-X MPI to be installed
       - You must set the following variable true to build mpifileutils
-      - "hpc_build_openmpi_w_nvidia_gpu_support: true"
+      - "hpc_build_mpi_w_nvidia_gpu_support: true"
   when:
     - hpc_install_mpifileutils
-    - not hpc_build_openmpi_w_nvidia_gpu_support
+    - not hpc_build_mpi_w_nvidia_gpu_support
 
 - name: Install common OpenMPI packages
-  when: hpc_install_system_openmpi or hpc_build_openmpi_w_nvidia_gpu_support
+  when: hpc_install_system_openmpi or hpc_build_mpi_w_nvidia_gpu_support
   package:
     name: "{{ __hpc_openmpi_common_packages }}"
     state: present
@@ -46,7 +46,7 @@
   until: __hpc_system_openmpi_packages_install is success
 
 - name: Set facts for building HPC-X, OpenMPI and mpifileutils
-  when: hpc_build_openmpi_w_nvidia_gpu_support
+  when: hpc_build_mpi_w_nvidia_gpu_support
   block:
     # Must keep the original tarball name because it's hardcoded in hpcx
     - name: Set __hpc_hpcx_path fact
@@ -67,7 +67,7 @@
         __hpc_cuda_path: /usr/local/cuda
 
 - name: Download, build, and configure OpenMPI and all required packages
-  when: hpc_build_openmpi_w_nvidia_gpu_support
+  when: hpc_build_mpi_w_nvidia_gpu_support
   block:
     - name: Install build dependencies
       package:
@@ -321,6 +321,69 @@
       template:
         src: openmpi-ver-cuda12-gpu.lua.j2
         dest: "{{ __hpc_module_dir }}/mpi/openmpi-{{ __hpc_openmpi_info.version }}-cuda12-gpu.lua"
+        owner: root
+        group: root
+        mode: '0755'
+
+- name: Download, build, and install MVAPICH
+  when: hpc_install_mvapich
+  block:
+    - name: Set MVAPICH install path
+      set_fact:
+        __hpc_mvapich_path: "{{ __hpc_mvapich_install_dir }}-{{ __hpc_mvapich_info.version }}"
+
+    - name: Get stat of MVAPICH install path
+      stat:
+        path: "{{ __hpc_mvapich_path }}/bin/mpicc"
+      register: __hpc_mvapich_path_stat
+
+    - name: Build and install MVAPICH
+      when: not __hpc_mvapich_path_stat.stat.exists
+      block:
+        - name: Download MVAPICH
+          include_tasks: tasks/download_extract_package.yml
+          vars:
+            __hpc_pkg_info: "{{ __hpc_mvapich_info }}"
+
+        - name: Set MVAPICH configure flags
+          set_fact:
+            __hpc_mvapich_configure_flags: >-
+              --prefix={{ __hpc_mvapich_path }}
+              --enable-g=none
+              --enable-fast=yes
+              --with-device=ch4:ucx
+              {{ ('--with-ucx=' + __hpc_ucx_path +
+                  ' --with-cuda=' + __hpc_cuda_path)
+                 if hpc_build_mpi_w_nvidia_gpu_support else '' }}
+
+        - name: Build MVAPICH
+          command:
+            cmd: "{{ item }}"
+            chdir: "{{ __hpc_pkg_extracted.path }}"
+          changed_when: true
+          loop:
+            - ./configure {{ __hpc_mvapich_configure_flags }}
+            - make -j {{ ansible_facts["processor_nproc"] }}
+            - make install
+
+        - name: Remove extracted tarball
+          file:
+            path: "{{ __hpc_pkg_extracted.path }}"
+            state: absent
+          changed_when: false
+
+    - name: Ensure MPI modulefile directory exists
+      file:
+        path: "{{ __hpc_module_dir }}/mpi"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Install MVAPICH modulefile
+      template:
+        src: mvapich-ver.lua.j2
+        dest: "{{ __hpc_module_dir }}/mpi/mvapich-{{ __hpc_mvapich_info.version }}.lua"
         owner: root
         group: root
         mode: '0755'

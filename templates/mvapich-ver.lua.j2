@@ -1,0 +1,40 @@
+{{ ansible_managed | comment(decoration="-- ") }}
+{{ "system_role:hpc" | comment(decoration="-- ", prefix="", postfix="") }}
+-- MVAPICH {{ __hpc_mvapich_info.version }} MPI environment module
+--
+-- This allows the module to conflict against other mpi modules already loaded,
+-- so only one MPI environment module can be loaded at any time.
+--
+conflict("mpi")
+
+{% if hpc_build_mpi_w_nvidia_gpu_support %}
+whatis("Description: MVAPICH {{ __hpc_mvapich_info.version }} with CUDA and UCX support")
+{% else %}
+whatis("Description: MVAPICH {{ __hpc_mvapich_info.version }}")
+{% endif %}
+whatis("Version: {{ __hpc_mvapich_info.version }}")
+
+local mvapich_dir = "{{ __hpc_mvapich_path }}"
+{% if hpc_build_mpi_w_nvidia_gpu_support %}
+local ucx_dir = "{{ __hpc_ucx_path }}"
+local cuda_dir = "{{ __hpc_cuda_path }}"
+{% endif %}
+
+prepend_path("PATH", pathJoin(mvapich_dir, "bin"))
+{% if hpc_build_mpi_w_nvidia_gpu_support %}
+prepend_path("PATH", pathJoin(ucx_dir, "bin"))
+{% endif %}
+
+prepend_path("LD_LIBRARY_PATH", pathJoin(mvapich_dir, "lib"))
+{% if hpc_build_mpi_w_nvidia_gpu_support %}
+prepend_path("LD_LIBRARY_PATH", pathJoin(ucx_dir, "lib"))
+prepend_path("LD_LIBRARY_PATH", pathJoin(cuda_dir, "lib64"))
+{% endif %}
+
+prepend_path("MANPATH", pathJoin(mvapich_dir, "share/man"))
+
+setenv("MPI_HOME", mvapich_dir)
+setenv("MPI_BIN", pathJoin(mvapich_dir, "bin"))
+setenv("MPI_INCLUDE", pathJoin(mvapich_dir, "include"))
+setenv("MPI_LIB", pathJoin(mvapich_dir, "lib"))
+setenv("MPI_MAN", pathJoin(mvapich_dir, "share/man"))
