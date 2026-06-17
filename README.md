@@ -179,23 +179,32 @@ Type: `bool`
 
 ### hpc_build_openmpi_w_nvidia_gpu_support
 
-Whether to build OpenMPI with Nvidia GPU support.
+**[DEPRECATED]** Use [hpc_build_mpi_w_nvidia_gpu_support](#hpc_build_mpi_w_nvidia_gpu_support) instead.
 
-Currently, the role builds OpenMPI from source.
-Prior to building OpenMPI, it builds its requirements - GDRCopy, HPCX, and PMIx.
+Default: `true`
+
+Type: `bool`
+
+### hpc_build_mpi_w_nvidia_gpu_support
+
+Whether to build MPI Libraries with NVIDIA GPU support.
+
+If this option is selected, then OpenMPI will be built from source with Nvidia GPU support build in.
+If [hpc_install_mvapich](#hpc_install_mvapich) is set to `true` then the MVAPICH library will also be built with NVIDIA GPU support.
+Prior to building these MPI libraries, it builds the requirements - GDRCopy, HPCX, and PMIx.
 
 Microsoft-supplied PMIx library RPM is built with versioning that replaces the system (appstream) PMIx package (i.e. v4.2.9 vs v3.2.3).
 However, the library it installs as libpmix.so.2 is incorrectly versioned - v4.2.9 implements a newer PMIX API that is not backwards compatible with applications linked against older versions of libpmix.so.2.
 
 As OpenMPI v5.x requires PMIx >= 4.2.0, we have no choice but to build PMIx from source so that we can have both versions installed on the system at the same time. This also requires a pmix-4.2.9 environment module to put the pmix install into various paths.
 
-You can run an `lmod` environmental module to select this openmpi by entering the following command:
+You can run an `lmod` environmental module to select this MPI variant by entering the following command:
 
 ```bash
-module load mpi/openmpi-5.0.8
+module load mpi/openmpi-5.0.8-cuda12-gpu
 ```
 
-Note that building OpenMPI requires the following variables to be set to `true`, which is the default value:
+Note that building MPI libraries with GPU support requires the following variables to be set to `true`, which is the default value:
 
 ```yaml
 hpc_install_cuda_toolkit: true
@@ -215,7 +224,27 @@ mpifileutils provides commands such as `dcp` (distributed copy), `drm` (distribu
 Note that building mpifileutils requires HPC-X MPI to be installed. The following variable must be set to `true`:
 
 ```yaml
-hpc_build_openmpi_w_nvidia_gpu_support: true
+hpc_build_mpi_w_nvidia_gpu_support: true
+```
+
+Default: `true`
+
+Type: `bool`
+
+### hpc_install_mvapich
+
+Whether to build and install MVAPICH MPI library support.
+
+This enables the installation of the MVAPICH MPI library written by Ohio State University.
+MVAPICH has different ABI, performance and functional characteristics compared to OpenMPI and so applications built for MVAPICH require this MPI library to be installed.
+It can be installed alongside OpenMPI libraries.
+
+If the variable [hpc_build_mpi_w_nvidia_gpu_support](#hpc_build_mpi_w_nvidia_gpu_support) is set to `true`, then the library will be built with NVIDIA GPU support.
+
+You can run an `lmod` environmental module to select this MPI variant by entering the following command:
+
+```bash
+module load mpi/mvapich-4.0
 ```
 
 Default: `true`
@@ -375,7 +404,7 @@ Type: `bool`
     hpc_install_nvidia_fabric_manager: true
     hpc_install_rdma: true
     hpc_install_system_openmpi: true
-    hpc_build_openmpi_w_nvidia_gpu_support: true
+    hpc_build_mpi_w_nvidia_gpu_support: true
   roles:
     - linux-system-roles.hpc
 ```
@@ -557,7 +586,9 @@ Run the role to configure storage, install all packages, and reboot if needed.
     hpc_install_nvidia_fabric_manager: true
     hpc_install_rdma: true
     hpc_install_system_openmpi: true
-    hpc_build_openmpi_w_nvidia_gpu_support: true
+    hpc_build_mpi_w_nvidia_gpu_support: true
+    hpc_install_mpifileutils: true
+    hpc_install_mvapich: true
 
     hpc_reboot_ok: true
   roles:

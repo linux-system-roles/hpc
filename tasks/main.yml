@@ -11,6 +11,15 @@
       Let us know if you need the role to support it.
   when: ansible_facts['architecture'] != 'x86_64'
 
+- name: Check for deprecated configuration variables
+  ansible.builtin.debug:
+    msg:
+      - "[DEPRECATION WARNING]"
+      - "The variable 'hpc_build_openmpi_w_nvidia_gpu_support' was deprecated in"
+      - "June 2026 and will be removed in December 2026."
+      - "Please migrate to using 'hpc_build_mpi_w_nvidia_gpu_support' instead."
+  when: hpc_build_openmpi_w_nvidia_gpu_support is defined
+
 - name: Fail if role installs NVIDIA Container Toolkit without Docker
   fail:
     msg:

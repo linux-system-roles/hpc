@@ -13,7 +13,8 @@
     # Toolkit is about 6GB, let's skip it to save bandwidth
     hpc_install_cuda_toolkit: false
     hpc_install_system_openmpi: false
-    hpc_build_openmpi_w_nvidia_gpu_support: false
+    hpc_build_mpi_w_nvidia_gpu_support: false
+    hpc_install_mvapich: false
     hpc_install_mpifileutils: false
     hpc_reboot_ok: true
     hpc_enable_eus_repo: false
