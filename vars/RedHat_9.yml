@@ -59,6 +59,11 @@ __hpc_pmix_info:
   version: 4.2.9
   sha256: 6b11f4fd5c9d7f8e55fc6ebdee9af04b839f44d06044e58cea38c87c168784b3
   url: https://github.com/openpmix/openpmix/releases/download/v4.2.9/pmix-4.2.9.tar.bz2
+__hpc_mpifileutils_info:
+  name: mpifileutils
+  version: 0.12
+  sha256: 7a5ed469be579bc0e9480febc127991467bc71aa37ded083265b859245300206
+  url: https://github.com/hpc/mpifileutils/releases/download/v0.12/mpifileutils-v0.12.tgz
 __hpc_moneo_info:
   name: moneo
   version: 0.3.4
