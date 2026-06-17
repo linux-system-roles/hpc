@@ -14,3 +14,5 @@ prepend_path("MODULEPATH", "{{__hpc_hpcx_path }}/modulefiles")
 
 -- Pull in the HPCX module
 load("hpcx")
+
+{% include 'openmpi-no-gpu-defaults.lua.j2' %}

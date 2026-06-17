@@ -14,24 +14,46 @@ whatis("Description: MVAPICH {{ __hpc_mvapich_info.version }}")
 {% endif %}
 whatis("Version: {{ __hpc_mvapich_info.version }}")
 
+{% if hpc_build_mpi_w_nvidia_gpu_support %}
+-- MVAPICH hard-codes HPC-X UCX library paths into libmpi.so at build
+-- time, so it cannot fall back to system UCX on machines without GPUs.
+local function has_nvidia_gpu()
+    local f = io.open("/dev/nvidia0", "r")
+    if f then
+        f:close()
+        return true
+    end
+    return false
+end
+
+if not has_nvidia_gpu() then
+    -- LmodError() prints the message twice (as warning then error).
+    -- Use LmodMessage() + LmodBreak() for a single clean error message.
+    LmodMessage("Error: MVAPICH {{ __hpc_mvapich_info.version }} was built with CUDA/UCX support and requires NVidia GPUs. This machine has no GPUs. Use a different MPI module (e.g. hpcx or openmpi).")
+
+    -- Force-inject a shell snippet that instantly evaluates an exit state.
+    -- This modifies the shell's active line status token directly.
+    -- modeA={"load"} restricts this to module load only so it does not
+    -- fire during unload, display, or other module operations.
+    execute{cmd="false", modeA={"load"}}
+
+    LmodBreak()
+end
+{% endif %}
+
 local mvapich_dir = "{{ __hpc_mvapich_path }}"
+
+prepend_path("PATH", pathJoin(mvapich_dir, "bin"))
+prepend_path("LD_LIBRARY_PATH", pathJoin(mvapich_dir, "lib"))
+prepend_path("MANPATH", pathJoin(mvapich_dir, "share/man"))
+
 {% if hpc_build_mpi_w_nvidia_gpu_support %}
 local ucx_dir = "{{ __hpc_ucx_path }}"
 local cuda_dir = "{{ __hpc_cuda_path }}"
-{% endif %}
-
-prepend_path("PATH", pathJoin(mvapich_dir, "bin"))
-{% if hpc_build_mpi_w_nvidia_gpu_support %}
 prepend_path("PATH", pathJoin(ucx_dir, "bin"))
-{% endif %}
-
-prepend_path("LD_LIBRARY_PATH", pathJoin(mvapich_dir, "lib"))
-{% if hpc_build_mpi_w_nvidia_gpu_support %}
 prepend_path("LD_LIBRARY_PATH", pathJoin(ucx_dir, "lib"))
 prepend_path("LD_LIBRARY_PATH", pathJoin(cuda_dir, "lib64"))
 {% endif %}
-
-prepend_path("MANPATH", pathJoin(mvapich_dir, "share/man"))
 
 setenv("MPI_HOME", mvapich_dir)
 setenv("MPI_BIN", pathJoin(mvapich_dir, "bin"))
