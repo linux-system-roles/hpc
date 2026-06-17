@@ -1,0 +1,25 @@
+{{ ansible_managed | comment(decoration="-- ") }}
+{{ "system_role:hpc" | comment(decoration="-- ", prefix="", postfix="") }}
+--
+-- Shared GPU detection for OpenMPI-based MPI modules.
+--
+-- When no NVidia GPUs are present, disable the UCX/CUDA-based transports
+-- that cause warnings or failures on GPU-less machines. This is sourced
+-- by each OpenMPI-derived module file via dofile().
+--
+
+local function has_nvidia_gpu()
+    local f = io.open("/dev/nvidia0", "r")
+    if f then
+        f:close()
+        return true
+    end
+    return false
+end
+
+if not has_nvidia_gpu() then
+    setenv("OMPI_MCA_pml", "^ucx")
+    setenv("OMPI_MCA_btl", "^smcuda")
+    setenv("OMPI_MCA_osc", "^ucx")
+    setenv("OMPI_MCA_coll", "^ucc,cuda,hcoll")
+end

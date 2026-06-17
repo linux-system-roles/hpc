@@ -17,3 +17,5 @@ load("{{ __hpc_pmix_info.name }}/{{ __hpc_pmix_info.name }}-{{ __hpc_pmix_info.v
 
 -- Pull in the HPCX module
 load("hpcx-rebuild")
+
+{% include 'openmpi-no-gpu-defaults.lua.j2' %}
