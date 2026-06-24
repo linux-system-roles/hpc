@@ -251,6 +251,16 @@ Default: `true`
 
 Type: `bool`
 
+### hpc_install_mpi_tests
+
+Whether to download and install the OSU Micro-Benchmarks (OMB) for MPI performance testing.
+
+OMB provides a suite of benchmarks for measuring MPI latency, bandwidth, and collective operation performance. The benchmarks are installed as source to `/opt/hpc/azure/tests/osu-micro-benchmarks/` along with a test script that builds and runs the benchmarks using the installed MPI libraries.
+
+Default: `true`
+
+Type: `bool`
+
 ### hpc_install_nvidia_container_toolkit
 
 Whether to install and configure NVIDIA Container Toolkit.

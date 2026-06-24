@@ -402,6 +402,55 @@
         group: root
         mode: '0755'
 
+- name: Download and install OSU Micro-Benchmarks
+  when: hpc_install_mpi_tests
+  block:
+    - name: Get stat of OMB source directory
+      stat:
+        path: "{{ __hpc_azure_omb_dir }}/configure"
+      register: __hpc_omb_path_stat
+
+    - name: Download and extract OMB
+      when: not __hpc_omb_path_stat.stat.exists
+      block:
+        - name: Download OMB
+          include_tasks: tasks/download_extract_package.yml
+          vars:
+            __hpc_pkg_info: "{{ __hpc_omb_info }}"
+
+        - name: Copy OMB source to tests directory
+          copy:
+            src: "{{ __hpc_pkg_extracted.path }}/"
+            remote_src: true
+            dest: "{{ __hpc_azure_omb_dir }}"
+            owner: root
+            group: root
+            mode: '0755'
+
+        # OMB doesn't support out-of-tree builds, so users need write
+        # access to the source directories for in-tree configure and make.
+        # Capital X applies +x only to directories and files that already
+        # have owner execute set (e.g. scripts like configure).
+        - name: Fix OMB permissions for non-root users
+          file:
+            path: "{{ __hpc_azure_omb_dir }}"
+            mode: "u+rwX,go+rwX"
+            recurse: true
+
+        - name: Remove extracted tarball
+          file:
+            path: "{{ __hpc_pkg_extracted.path }}"
+            state: absent
+          changed_when: false
+
+    - name: Install MPI test script
+      template:
+        src: test-mpi-omb.sh.j2
+        dest: "{{ __hpc_azure_tests_dir }}/test-mpi-omb.sh"
+        owner: root
+        group: root
+        mode: '0755'
+
 - name: Download, build, and install mpifileutils
   when: hpc_install_mpifileutils
   block:

@@ -64,6 +64,11 @@ __hpc_mvapich_info:
   version: 4.0
   sha256: c532f7bdd5cca71f78c12e0885c492f6e276e283711806c84d0b0f80bb3e3b74
   url: https://mvapich.cse.ohio-state.edu/download/mvapich/mv2/mvapich-4.0.tar.gz
+__hpc_omb_info:
+  name: osu-micro-benchmarks
+  version: 8.0b2
+  sha256: 2ea96f0d569b012e70eb5cf8d1025890a228e0dfdb3e84d202c3cf53ee34f1b7
+  url: https://mvapich.cse.ohio-state.edu/download/mvapich/osu-micro-benchmarks-8.0b2.tar.gz
 __hpc_mpifileutils_info:
   name: mpifileutils
   version: 0.12
