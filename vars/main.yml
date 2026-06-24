@@ -110,6 +110,7 @@ __hpc_azure_tests_dir: "{{ __hpc_azure_resource_dir }}/tests"
 __hpc_azure_moneo_dir: "{{ __hpc_azure_tools_dir }}/Moneo"
 __hpc_mpifileutils_install_dir: "{{ __hpc_azure_resource_dir }}/mpifileutils"
 __hpc_mvapich_install_dir: "{{ __hpc_install_prefix }}/mvapich"
+__hpc_azure_omb_dir: "{{ __hpc_azure_tests_dir }}/osu-micro-benchmarks"
 
 # location for runtime selected azure resources
 __hpc_azure_runtime_dir: /var/hpc/azure

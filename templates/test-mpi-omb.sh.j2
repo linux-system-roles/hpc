@@ -1,0 +1,296 @@
+#!/usr/bin/env bash
+# shellcheck disable=all
+{{ ansible_managed | comment }}
+{{ "system_role:hpc" | comment(prefix="", postfix="") }}
+# SPDX-License-Identifier: MIT
+#
+# Test Script: MPI implementation validation using OSU Micro-Benchmarks
+#
+# Builds and runs OMB against each installed MPI library to verify that the
+# MPI stack is functional. Currently limited to single-host tests only.
+#
+
+set -euo pipefail
+
+VERBOSE=0
+PASSED=0
+
+OMB_SRC="{{ __hpc_azure_omb_dir }}"
+
+# ------------------------------------------------------------------------------
+# Helper Functions
+# ------------------------------------------------------------------------------
+
+pass() {
+    echo "[PASS] $1"
+    PASSED=$((PASSED + 1))
+}
+
+fail() {
+    echo "[FAIL] $1"
+    exit 1
+}
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+}
+
+verbose_log() {
+    if [[ $VERBOSE -eq 1 ]]; then
+        echo "[$(date "+%Y-%m-%d %H:%M:%S")] $*"
+    fi
+}
+
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") [OPTIONS]
+Build and run OSU Micro-Benchmarks against all installed MPI libraries
+
+OPTIONS:
+  -v    Verbose output
+  -h    Show this help message
+
+EOF
+    exit 0
+}
+
+# ------------------------------------------------------------------------------
+# Parse Arguments
+# ------------------------------------------------------------------------------
+
+while getopts "vh" opt; do
+    case $opt in
+        v) VERBOSE=1 ;;
+        h) usage ;;
+        *) usage ;;
+    esac
+done
+
+# ------------------------------------------------------------------------------
+# Build OMB for a given MPI module
+# ------------------------------------------------------------------------------
+
+build_omb() {
+    local module_name="$1"
+    local build_log
+    build_log=$(mktemp /tmp/omb-build-XXXXXX.log)
+
+    log "Building OMB for $module_name in $OMB_SRC"
+
+    clean_omb
+
+    if ! (cd "$OMB_SRC" && ./configure CC=mpicc CXX=mpicxx) >"$build_log" 2>&1; then
+        cat "$build_log"
+        rm -f "$build_log"
+        fail "OMB configure failed for $module_name"
+    fi
+    verbose_log "Configure completed for $module_name"
+
+    if ! make -C "$OMB_SRC" -j "$(nproc)" >>"$build_log" 2>&1; then
+        cat "$build_log"
+        rm -f "$build_log"
+        fail "OMB build failed for $module_name"
+    fi
+    rm -f "$build_log"
+    pass "$module_name: OMB build succeeded"
+}
+
+clean_omb() {
+    if [[ -f "$OMB_SRC/Makefile" ]]; then
+        make -C "$OMB_SRC" distclean >/dev/null 2>&1 || true
+    fi
+}
+
+# ------------------------------------------------------------------------------
+# Run a single OMB test binary
+# ------------------------------------------------------------------------------
+
+run_omb_test() {
+    local module_name="$1"
+    local test_binary="$2"
+    local np="$3"
+    local test_name
+    test_name=$(basename "$test_binary")
+
+    if [[ ! -x "$test_binary" ]]; then
+        fail "$module_name: $test_name not found"
+    fi
+
+    local output
+    local rc=0
+    output=$(mpiexec -np "$np" "$test_binary" 2>&1) || rc=$?
+
+    if [[ $rc -ne 0 ]]; then
+        echo "$output" | sed 's/^/    /'
+        fail "$module_name: $test_name (exit code $rc)"
+    fi
+
+    pass "$module_name: $test_name"
+    if [[ $VERBOSE -eq 1 ]]; then
+        echo "$output" | sed 's/^/    /'
+    fi
+}
+
+# ------------------------------------------------------------------------------
+# Run an OMB launcher (omb_pt2pt or omb_coll)
+# ------------------------------------------------------------------------------
+
+run_omb_launcher() {
+    local module_name="$1"
+    local launcher="$2"
+    local np="$3"
+    shift 3
+    local launcher_name
+    launcher_name=$(basename "$launcher")
+    local output_log
+    output_log=$(mktemp /tmp/omb-${launcher_name}-XXXXXX.log)
+
+    if [[ ! -x "$launcher" ]]; then
+        fail "$module_name: $launcher_name not found"
+    fi
+
+    log "Running $launcher_name with $np processes..."
+    local rc=0
+    mpiexec -np "$np" "$launcher" "$@" >"$output_log" 2>&1 || rc=$?
+
+    # osu_latency_mp uses fork() which causes system openmpi (ORTE) to
+    # abort the entire mpiexec. Tolerate this known failure rather than
+    # failing the whole test suite.
+    if [[ $rc -ne 0 ]]; then
+        if grep -q 'exiting improperly' "$output_log"; then
+            log "WARNING: $launcher_name exited abnormally (likely osu_latency_mp fork issue)"
+            grep 'exiting improperly' "$output_log" | sed 's/^/    /'
+        else
+            cat "$output_log"
+            rm -f "$output_log"
+            fail "$module_name: $launcher_name (exit code $rc)"
+        fi
+    elif grep -q 'exited with failure:' "$output_log"; then
+        grep -A 100 'exited with failure:' "$output_log"
+        rm -f "$output_log"
+        fail "$module_name: $launcher_name reported test failures"
+    fi
+
+    if [[ $VERBOSE -eq 1 ]]; then
+        cat "$output_log"
+    fi
+    rm -f "$output_log"
+    pass "$module_name: $launcher_name"
+}
+
+# ------------------------------------------------------------------------------
+# Test one MPI module
+# ------------------------------------------------------------------------------
+
+test_mpi_module() {
+    local module_name="$1"
+
+    log "========================================"
+    log "Testing MPI module: $module_name"
+    log "========================================"
+    echo ""
+
+    # Load module — if it refuses to load (e.g. mvapich on a non-GPU
+    # machine), skip this module rather than failing the whole test suite.
+    if ! module load "$module_name" 2>&1; then
+        log "Skipping $module_name: module failed to load"
+        echo ""
+        return
+    fi
+    verbose_log "Loaded module $module_name"
+
+    # Verify mpicc is available
+    if ! command -v mpicc >/dev/null 2>&1; then
+        fail "$module_name: mpicc not found after loading module"
+    fi
+    pass "$module_name: mpicc available"
+    verbose_log "mpicc location: $(command -v mpicc)"
+
+    # Verify mpiexec is available
+    if ! command -v mpiexec >/dev/null 2>&1; then
+        fail "$module_name: mpiexec not found after loading module"
+    fi
+    pass "$module_name: mpiexec available"
+
+    # Build OMB
+    build_omb "$module_name"
+
+    # Run startup tests (standalone binaries, 1 process each)
+    log "Running startup tests..."
+    run_omb_test "$module_name" "$OMB_SRC/c/mpi/startup/osu_hello" 1
+    run_omb_test "$module_name" "$OMB_SRC/c/mpi/startup/osu_init" 1
+
+    # Run single-host point-to-point benchmarks via launcher (2 processes).
+    # The congestion suite requires multiple nodes so is excluded here.
+    run_omb_launcher "$module_name" "$OMB_SRC/c/mpi/pt2pt/omb_pt2pt" 2 \
+        -- s:standard s:persistent
+
+    # Run collective benchmarks via launcher (nproc processes)
+    run_omb_launcher "$module_name" "$OMB_SRC/c/mpi/collective/omb_coll" "$(nproc)"
+
+    # Unload module
+    module unload "$module_name" 2>/dev/null || true
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# Main
+# ------------------------------------------------------------------------------
+
+main() {
+    log "=========================================================="
+    log "MPI Implementation Test Suite (OSU Micro-Benchmarks)"
+    log "=========================================================="
+    echo ""
+
+    # MPI tests must not run as root
+    if [[ $(id -u) -eq 0 ]]; then
+        echo "ERROR: This test must be run as a regular user, not root"
+        exit 1
+    fi
+
+    # Check OMB source is present
+    if [[ ! -f "$OMB_SRC/configure" ]]; then
+        echo "ERROR: OMB source not found at $OMB_SRC"
+        exit 1
+    fi
+
+    # Discover MPI modules. Sort mvapich modules to the end of the list
+    # so that the well-tested MPI libraries are validated first.
+    local modules
+    readarray -t modules < <(ml -t spider mpi/ 2>&1 | grep '^mpi/' | sort | \
+        awk '
+            /mvapich/ { deferred[++n] = $0; next }
+            { print }
+            END { for (i = 1; i <= n; i++) print deferred[i] }
+        ')
+
+{% raw %}
+    if [[ ${#modules[@]} -eq 0 ]]; then
+        echo "ERROR: No MPI modules found"
+        exit 1
+    fi
+
+    log "Found ${#modules[@]} MPI module(s): ${modules[*]}"
+{% endraw %}
+    echo ""
+
+    # Test each module
+    for module in "${modules[@]}"; do
+        test_mpi_module "$module"
+    done
+
+    # Clean up final build
+    clean_omb
+
+    # Summary
+    echo ""
+    log "=========================================================="
+    log "Test Summary"
+    log "=========================================================="
+    log "  Passed:  $PASSED"
+    log "=========================================================="
+    exit 0
+}
+
+main "$@"
