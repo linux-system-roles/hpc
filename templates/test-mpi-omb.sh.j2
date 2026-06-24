@@ -13,6 +13,7 @@
 set -euo pipefail
 
 VERBOSE=0
+ENABLE_CUDA=0
 PASSED=0
 
 OMB_SRC="{{ __hpc_azure_omb_dir }}"
@@ -47,6 +48,7 @@ Usage: $(basename "$0") [OPTIONS]
 Build and run OSU Micro-Benchmarks against all installed MPI libraries
 
 OPTIONS:
+  -g    Enable CUDA/GPU support (build with --enable-cuda)
   -v    Verbose output
   -h    Show this help message
 
@@ -58,13 +60,21 @@ EOF
 # Parse Arguments
 # ------------------------------------------------------------------------------
 
-while getopts "vh" opt; do
+while getopts "gvh" opt; do
     case $opt in
+        g) ENABLE_CUDA=1 ;;
         v) VERBOSE=1 ;;
         h) usage ;;
         *) usage ;;
     esac
 done
+
+if [[ $ENABLE_CUDA -eq 1 ]]; then
+    if ! nvidia-smi -L >/dev/null 2>&1; then
+        echo "ERROR: -g requires NVidia GPUs but none were detected"
+        exit 1
+    fi
+fi
 
 # ------------------------------------------------------------------------------
 # Build OMB for a given MPI module
@@ -75,11 +85,23 @@ build_omb() {
     local build_log
     build_log=$(mktemp /tmp/omb-build-XXXXXX.log)
 
-    log "Building OMB for $module_name in $OMB_SRC"
+    local cuda_flags=""
+    if [[ $ENABLE_CUDA -eq 1 ]]; then
+{% if hpc_build_mpi_w_nvidia_gpu_support %}
+        cuda_flags="--enable-cuda --with-cuda={{ __hpc_cuda_path }}"
+        log "Building OMB for $module_name in $OMB_SRC (CUDA enabled)"
+{% else %}
+        echo "ERROR: CUDA/GPU support was not enabled when MPI libraries were built"
+        exit 1
+{% endif %}
+    else
+        log "Building OMB for $module_name in $OMB_SRC"
+    fi
 
     clean_omb
 
-    if ! (cd "$OMB_SRC" && ./configure CC=mpicc CXX=mpicxx) >"$build_log" 2>&1; then
+    # shellcheck disable=SC2086
+    if ! (cd "$OMB_SRC" && ./configure CC=mpicc CXX=mpicxx $cuda_flags) >"$build_log" 2>&1; then
         cat "$build_log"
         rm -f "$build_log"
         fail "OMB configure failed for $module_name"
