@@ -88,8 +88,8 @@ build_omb() {
     local cuda_flags=""
     if [[ $ENABLE_CUDA -eq 1 ]]; then
 {% if hpc_build_mpi_w_nvidia_gpu_support %}
-        cuda_flags="--enable-cuda --with-cuda={{ __hpc_cuda_path }}"
-        log "Building OMB for $module_name in $OMB_SRC (CUDA enabled)"
+        cuda_flags="--enable-cuda --with-cuda={{ __hpc_cuda_path }} --enable-ncclomb"
+        log "Building OMB for $module_name in $OMB_SRC (CUDA/NCCL enabled)"
 {% else %}
         echo "ERROR: CUDA/GPU support was not enabled when MPI libraries were built"
         exit 1
@@ -99,6 +99,23 @@ build_omb() {
     fi
 
     clean_omb
+
+    # Workarounds for OMB 8.0b2 bugs (patch sources then regenerate).
+    if [[ $ENABLE_CUDA -eq 1 ]]; then
+        # xccl Makefile.am files are missing omb_color.c from UTILITIES
+        for mkfile in "$OMB_SRC"/c/xccl/*/Makefile.am; do
+            if ! grep -q 'omb_color' "$mkfile"; then
+                sed -i '/osu_util_papi\.c \.\.\/\.\.\/util\/osu_util_papi\.h \\/a\    ../../util/omb_color.c ../../util/omb_color.h \\' "$mkfile"
+            fi
+        done
+
+        # configure.ac uses cudaFree to detect libcudart, but cudaFree is
+        # resolved via the rpath to libcuda so AC_SEARCH_LIBS doesn't add
+        # -lcudart. Use cudaStreamSynchronize which is only in libcudart.
+        sed -i 's/cudaFree/cudaStreamSynchronize/' "$OMB_SRC/configure.ac"
+
+        (cd "$OMB_SRC" && autoreconf -fi) >"$build_log" 2>&1
+    fi
 
     # shellcheck disable=SC2086
     if ! (cd "$OMB_SRC" && ./configure CC=mpicc CXX=mpicxx $cuda_flags) >"$build_log" 2>&1; then
@@ -249,6 +266,30 @@ test_mpi_module() {
 
     # Run collective benchmarks via launcher (nproc processes)
     run_omb_launcher "$module_name" "$OMB_SRC/c/mpi/collective/omb_coll" "$(nproc)"
+
+    # NCCL tests (only when -g is passed)
+    if [[ $ENABLE_CUDA -eq 1 ]]; then
+        local gpu_count
+        gpu_count=$(nvidia-smi -L 2>/dev/null | grep -c '^GPU')
+
+        # NCCL requires one GPU per rank and at least 2 ranks
+        if [[ $gpu_count -lt 2 ]]; then
+            log "Skipping NCCL tests: requires at least 2 GPUs ($gpu_count found)"
+        else
+            log "Running NCCL pt2pt benchmarks..."
+            run_omb_test "$module_name" "$OMB_SRC/c/xccl/pt2pt/osu_xccl_latency" 2
+            run_omb_test "$module_name" "$OMB_SRC/c/xccl/pt2pt/osu_xccl_bw" 2
+            run_omb_test "$module_name" "$OMB_SRC/c/xccl/pt2pt/osu_xccl_bibw" 2
+
+            log "Running NCCL collective benchmarks ($gpu_count GPUs)..."
+            run_omb_test "$module_name" "$OMB_SRC/c/xccl/collective/osu_xccl_allreduce" "$gpu_count"
+            run_omb_test "$module_name" "$OMB_SRC/c/xccl/collective/osu_xccl_allgather" "$gpu_count"
+            run_omb_test "$module_name" "$OMB_SRC/c/xccl/collective/osu_xccl_bcast" "$gpu_count"
+            run_omb_test "$module_name" "$OMB_SRC/c/xccl/collective/osu_xccl_reduce" "$gpu_count"
+            run_omb_test "$module_name" "$OMB_SRC/c/xccl/collective/osu_xccl_reduce_scatter" "$gpu_count"
+            run_omb_test "$module_name" "$OMB_SRC/c/xccl/collective/osu_xccl_alltoall" "$gpu_count"
+        fi
+    fi
 
     # Unload module
     module unload "$module_name" 2>/dev/null || true

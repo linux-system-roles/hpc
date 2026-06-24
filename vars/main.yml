@@ -73,11 +73,12 @@ __hpc_gdrcopy_build_dependencies:
 __hpc_pmix_build_dependencies:
   - hwloc-devel
   - libevent-devel
-__hpc_openmpi_build_dependencies:
-  - binutils-devel
+__hpc_mpi_packages:
   - autoconf
   - automake
   - libtool
+__hpc_openmpi_build_dependencies:
+  - binutils-devel
 __hpc_versionlock_path: /etc/dnf/plugins/versionlock.list
 __hpc_kernel_versionlock_rpms:
   - kernel

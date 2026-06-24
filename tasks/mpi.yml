@@ -72,7 +72,8 @@
     - name: Install build dependencies
       package:
         name: >-
-          {{ __hpc_pmix_build_dependencies
+          {{ __hpc_mpi_packages
+          + __hpc_pmix_build_dependencies
           + __hpc_gdrcopy_build_dependencies
           + __hpc_openmpi_build_dependencies }}
         state: present
