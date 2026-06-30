@@ -156,6 +156,8 @@ Controlling Packages to Install</a>
 id="toc-hpc_update_kernel">hpc_update_kernel</a></li>
 <li><a href="#hpc_update_all_packages"
 id="toc-hpc_update_all_packages">hpc_update_all_packages</a></li>
+<li><a href="#hpc_install_python312"
+id="toc-hpc_install_python312">hpc_install_python312</a></li>
 <li><a href="#azure-specific-packages"
 id="toc-azure-specific-packages">Azure-specific packages</a></li>
 <li><a href="#hpc_install_cuda_driver"
@@ -319,6 +321,20 @@ version.</p>
 because this is a serious invasion into users environment, this variable
 is set to <code>false</code> by default.</p>
 <p>Default: <code>false</code></p>
+<p>Type: <code>bool</code></p>
+<h2 id="hpc_install_python312">hpc_install_python312</h2>
+<p>Whether to install Python 3.12 from the AppStream repository
+alongside the system default Python 3.9.</p>
+<p>RHEL 9.6 ships with Python 3.9 as the default, but the Azure Slurm
+cluster infrastructure that deploys images built by this role requires
+Python 3.11 or newer. When enabled, the role installs the
+<code>python3.12</code>, <code>python3.12-pip</code>, and
+<code>python3.12-devel</code> packages from the RHEL 9.6 AppStream
+repository. The system default Python is left unchanged at 3.9 to avoid
+breaking OS tools (e.g. <code>firewall-cmd</code>, <code>dnf</code>)
+that depend on Python 3.9 modules not available for 3.12. Python 3.12 is
+available as <code>/usr/bin/python3.12</code>.</p>
+<p>Default: <code>true</code></p>
 <p>Type: <code>bool</code></p>
 <h2 id="azure-specific-packages">Azure-specific packages</h2>
 <p>When running on Azure systems, the role automatically installs Azure
