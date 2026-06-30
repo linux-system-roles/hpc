@@ -186,6 +186,8 @@ id="toc-hpc_build_mpi_w_nvidia_gpu_support">hpc_build_mpi_w_nvidia_gpu_support</
 id="toc-hpc_install_mpifileutils">hpc_install_mpifileutils</a></li>
 <li><a href="#hpc_install_mvapich"
 id="toc-hpc_install_mvapich">hpc_install_mvapich</a></li>
+<li><a href="#hpc_install_mpi_tests"
+id="toc-hpc_install_mpi_tests">hpc_install_mpi_tests</a></li>
 <li><a href="#hpc_install_nvidia_container_toolkit"
 id="toc-hpc_install_nvidia_container_toolkit">hpc_install_nvidia_container_toolkit</a></li>
 <li><a href="#hpc_install_docker"
@@ -480,6 +482,17 @@ GPU support.</p>
 MPI variant by entering the following command:</p>
 <div class="sourceCode" id="cb6"><pre
 class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> load mpi/mvapich-4.0</span></code></pre></div>
+<p>Default: <code>true</code></p>
+<p>Type: <code>bool</code></p>
+<h2 id="hpc_install_mpi_tests">hpc_install_mpi_tests</h2>
+<p>Whether to download and install the OSU Micro-Benchmarks (OMB) for
+MPI performance testing.</p>
+<p>OMB provides a suite of benchmarks for measuring MPI latency,
+bandwidth, and collective operation performance. The benchmarks are
+installed as source to
+<code>/opt/hpc/azure/tests/osu-micro-benchmarks/</code> along with a
+test script that builds and runs the benchmarks using the installed MPI
+libraries.</p>
 <p>Default: <code>true</code></p>
 <p>Type: <code>bool</code></p>
 <h2
