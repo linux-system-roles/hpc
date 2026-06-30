@@ -61,6 +61,19 @@ Default: `false`
 
 Type: `bool`
 
+### hpc_install_python312
+
+Whether to install Python 3.12 from the AppStream repository alongside the system default Python 3.9.
+
+RHEL 9.6 ships with Python 3.9 as the default, but the Azure Slurm cluster infrastructure that deploys images built by this role requires Python 3.11 or newer.
+When enabled, the role installs the `python3.12`, `python3.12-pip`, and `python3.12-devel` packages from the RHEL 9.6 AppStream repository.
+The system default Python is left unchanged at 3.9 to avoid breaking OS tools (e.g. `firewall-cmd`, `dnf`) that depend on Python 3.9 modules not available for 3.12.
+Python 3.12 is available as `/usr/bin/python3.12`.
+
+Default: `true`
+
+Type: `bool`
+
 ### Azure-specific packages
 
 When running on Azure systems, the role automatically installs Azure platform packages, e.g. VM management infrastructure and storage utilities.
