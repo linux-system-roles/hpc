@@ -121,6 +121,8 @@ __hpc_module_dir: /usr/share/modulefiles
 # A variable for testing purposes to force a specific kernel version to be installed
 __hpc_force_kernel_version: null
 
+__hpc_write_log_file: false
+
 # BEGIN - DO NOT EDIT THIS BLOCK - rh distros variables
 # Ansible distribution identifiers that the role treats like RHEL
 __hpc_rh_distros:
