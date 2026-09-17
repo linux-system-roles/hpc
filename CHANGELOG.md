@@ -1,6 +1,61 @@
 Changelog
 =========
 
+[0.5.0] - 2026-09-17
+--------------------
+
+### New Features
+
+- feat: avoid degraded systemd state on hosts without GPUs (#126)
+- feat: add role fingerprints to syslog (#127)
+- feat: Add new MPI utilities, libraries and functionality (#134)
+- feat: Write roles fingerprints to /var/log/sysroles.jsonl [citest_skip] (#145)
+
+### Bug Fixes
+
+- fix: remove double quotes from patch command path argument (#108)
+- fix: ensure EPEL repo is enabled (#112)
+- fix: Use exit 77 for skipped tests in test-rdma.sh (#113)
+- fix: workaround for cuda13 plugin load failure (#118)
+- fix: ensure selinux facts are gathered (#124)
+- fix: add verbosity-based no_log to facts modules (#129)
+- fix: Use verbosity level 3 for no_log (#130)
+- fix: Fix template file naming to have .j2 extension (#132)
+- fix: Install Python 3.12 alongside system Python 3.9 (#137)
+
+### Other Changes
+
+- test: ensure role gathers the facts it uses by having test clear_facts before include_role (#111)
+- test: add test for DCGM  basic functionality (#114)
+- ci: fix yum repos to use devel site instead of old site name [citest_skip] (#115)
+- test: Add comprehensive CUDA and GPU validation test script (#117)
+- refactor: handle INJECT_FACTS_AS_VARS=false by using ansible_facts instead (#120)
+- refactor: comply with Ansible partner certification checks (#121)
+- ci: Comply with Ansible partner certification checking [citest_skip] (#123)
+- ci: ansible-lint requires dependencies to be installed [citest_skip] (#125)
+- ci: bump actions/github-script from 8 to 9 (#128)
+- refactor: use ansible.posix 2.1.X for EL7 compatibility (#131)
+- ci: Add config file for CodeRabbit with custom rules (#133)
+- test: Add MPI library test script (#135)
+- ci: Skip reviews for PRs with [citest_skip] in the title (#136)
+- ci: bump actions/checkout from 6 to 7 (#138)
+- ci: Use our own pr_title_lint.py instead of NPM commitlint [citest_skip] (#139)
+- ci: bump tox-lsr version to 3.20.0 to fix tox 4.58 api breakage [citest_skip] (#140)
+- ci: Add support for Fedora 44 and drop Fedora 42 - use ansible-core 2.21 [citest_skip] (#142)
+- ci: bump actions/setup-python from 6 to 7 (#143)
+- ci: ensure dependabot updates do not invoke ci tests [citest_skip] (#144)
+- ci: use commit hash for github action, add persist-credentials false [citest_skip] (#146)
+- ci: refactor build_docs so that pandoc runs in isolated read-only job [citest_skip] (#147)
+- ci: use exact match for systemroller instead of contains [citest_skip] (#148)
+- ci(build_docs): fix pandoc container syntax [citest_skip] (#149)
+- ci: [citest_skip] bump actions/download-artifact from 7.0.0 to 8.0.1 (#150)
+- ci: [citest_skip] bump codespell-project/actions-codespell from 2.1 to 2.2 (#151)
+- ci: [citest_skip] bump myrotvorets/set-commit-status-action (#152)
+- refactor: Relax collection constraints, gate vendored modules by python version, update ci versions [citest_skip] (#153)
+- ci: do not run ci tests by default, require citest comment or label [citest_skip] (#154)
+- ci: replace weekly_ci with periodic_ci, stagger schedules [citest_skip] (#155)
+- ci: update status when action triggered by issue comment (#156)
+
 [0.4.0] - 2026-03-23
 --------------------
 
