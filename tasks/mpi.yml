@@ -3,28 +3,6 @@
 # MPI library installation, configuration and testing
 #
 ---
-- name: Fail if role builds MPI with GPU support without CUDA toolkit
-  fail:
-    msg:
-      - Building MPI libraries with NVIDIA GPU support requires multiple
-      - packages to be installed.
-      - You must set the following variables true
-      - "hpc_install_cuda_toolkit: true"
-      - "hpc_install_hpc_nvidia_nccl: true"
-  when:
-    - hpc_build_mpi_w_nvidia_gpu_support
-    - not (hpc_install_cuda_toolkit and hpc_install_hpc_nvidia_nccl)
-
-- name: Fail if role installs mpifileutils without HPC-X MPI
-  fail:
-    msg:
-      - Building mpifileutils requires HPC-X MPI to be installed
-      - You must set the following variable true to build mpifileutils
-      - "hpc_build_mpi_w_nvidia_gpu_support: true"
-  when:
-    - hpc_install_mpifileutils
-    - not hpc_build_mpi_w_nvidia_gpu_support
-
 - name: Install common OpenMPI packages
   when: hpc_install_system_openmpi or hpc_build_mpi_w_nvidia_gpu_support
   package:
