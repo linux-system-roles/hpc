@@ -1,0 +1,452 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Verify invalid parameters are rejected
+  hosts: all
+  vars:
+    # Keep the role invocation cheap: these tests exercise validation, not
+    # full HPC provisioning. Matches tests_default.yml plus extra disables.
+    hpc_manage_storage: false
+    hpc_install_cuda_driver: false
+    hpc_install_cuda_toolkit: false
+    hpc_install_hpc_nvidia_nccl: false
+    hpc_install_nvidia_fabric_manager: false
+    hpc_install_nvidia_imex: false
+    hpc_install_nvidia_dcgm: false
+    hpc_install_rdma: false
+    hpc_enable_azure_persistent_rdma_naming: false
+    hpc_install_system_openmpi: false
+    hpc_build_mpi_w_nvidia_gpu_support: false
+    hpc_install_mvapich: false
+    hpc_install_mpifileutils: false
+    hpc_install_mpi_tests: false
+    hpc_install_python312: false
+    hpc_enable_eus_repo: false
+    hpc_install_moneo: false
+    hpc_install_nvidia_container_toolkit: false
+    hpc_install_docker: false
+    hpc_install_azurehpc_health_checks: false
+    hpc_install_diagnostics: false
+    hpc_azure_disable_predictable_net_names: false
+    hpc_tuning: false
+    hpc_sku_customisation: false
+    hpc_install_kvp_client: false
+    hpc_update_kernel: false
+  tasks:
+    - name: Skip unsupported architectures
+      ansible.builtin.include_tasks: tasks/skip_unsupported_archs.yml
+
+    - name: Run invalid input tests
+      block:
+        # ====================================================
+        # Section 1: Verify valid parameters are accepted
+        # ====================================================
+        # Run only the validation entry point. The full role needs
+        # distro-specific vars (EL9 today) and would fail on images
+        # such as RHEL 10 before any invalid-input checks run.
+        - name: Run role validation with valid test parameters
+          ansible.builtin.include_tasks: tasks/run_role_with_clear_facts.yml
+          vars:
+            __sr_tasks_from: assert_role_vars.yml
+
+        - name: Mark valid parameters succeeded
+          ansible.builtin.set_fact:
+            __valid_defaults_succeeded: true
+
+        - name: Assert role completed with valid parameters
+          ansible.builtin.assert:
+            that:
+              - __valid_defaults_succeeded | default(false)
+            fail_msg: >-
+              Role should succeed with valid test parameters
+
+        # ====================================================
+        # Section 2: argument_specs validation (Ansible 2.11+)
+        # ====================================================
+        - name: Run argument specs validation tests
+          when: ansible_version.full is version("2.11", ">=")
+          block:
+            # --- Test: boolean types ---
+            - name: Argument specs reject non-boolean hpc_reboot_ok
+              block:
+                - name: Run role with non-boolean hpc_reboot_ok
+                  ansible.builtin.include_tasks: tasks/run_role_with_clear_facts.yml
+                  vars:
+                    hpc_reboot_ok: not_a_bool
+              rescue:
+                - name: Mark invalid hpc_reboot_ok type rejected
+                  ansible.builtin.set_fact:
+                    __invalid_input_reboot_ok_type_failed: true
+
+            - name: Assert invalid hpc_reboot_ok type was rejected
+              ansible.builtin.assert:
+                that:
+                  - __invalid_input_reboot_ok_type_failed | default(false)
+                fail_msg: >-
+                  argument_specs should reject hpc_reboot_ok values that
+                  are not booleans
+
+            - name: Argument specs reject non-boolean hpc_manage_firewall
+              block:
+                - name: Run role with non-boolean hpc_manage_firewall
+                  ansible.builtin.include_tasks: tasks/run_role_with_clear_facts.yml
+                  vars:
+                    hpc_manage_firewall: not_a_bool
+              rescue:
+                - name: Mark invalid hpc_manage_firewall type rejected
+                  ansible.builtin.set_fact:
+                    __invalid_input_manage_firewall_type_failed: true
+
+            - name: Assert invalid hpc_manage_firewall type was rejected
+              ansible.builtin.assert:
+                that:
+                  - __invalid_input_manage_firewall_type_failed | default(false)
+                fail_msg: >-
+                  argument_specs should reject hpc_manage_firewall values
+                  that are not booleans
+
+            - name: Argument specs reject non-boolean hpc_manage_storage
+              block:
+                - name: Run role with non-boolean hpc_manage_storage
+                  ansible.builtin.include_tasks: tasks/run_role_with_clear_facts.yml
+                  vars:
+                    hpc_manage_storage: not_a_bool
+              rescue:
+                - name: Mark invalid hpc_manage_storage type rejected
+                  ansible.builtin.set_fact:
+                    __invalid_input_manage_storage_type_failed: true
+
+            - name: Assert invalid hpc_manage_storage type was rejected
+              ansible.builtin.assert:
+                that:
+                  - __invalid_input_manage_storage_type_failed | default(false)
+                fail_msg: >-
+                  argument_specs should reject hpc_manage_storage values
+                  that are not booleans
+
+            - name: Argument specs reject non-boolean hpc_install_cuda_driver
+              block:
+                - name: Run role with non-boolean hpc_install_cuda_driver
+                  ansible.builtin.include_tasks: tasks/run_role_with_clear_facts.yml
+                  vars:
+                    hpc_install_cuda_driver: not_a_bool
+              rescue:
+                - name: Mark invalid hpc_install_cuda_driver type rejected
+                  ansible.builtin.set_fact:
+                    __invalid_input_cuda_driver_type_failed: true
+
+            - name: Assert invalid hpc_install_cuda_driver type was rejected
+              ansible.builtin.assert:
+                that:
+                  - __invalid_input_cuda_driver_type_failed | default(false)
+                fail_msg: >-
+                  argument_specs should reject hpc_install_cuda_driver
+                  values that are not booleans
+
+            - name: Argument specs reject non-boolean hpc_install_nvidia_container_toolkit
+              block:
+                - name: Run role with non-boolean hpc_install_nvidia_container_toolkit
+                  ansible.builtin.include_tasks: tasks/run_role_with_clear_facts.yml
+                  vars:
+                    hpc_install_nvidia_container_toolkit: not_a_bool
+                    hpc_install_docker: false
+                    hpc_install_azurehpc_health_checks: false
+              rescue:
+                - name: Mark invalid hpc_install_nvidia_container_toolkit type rejected
+                  ansible.builtin.set_fact:
+                    __invalid_input_nvidia_ctk_type_failed: true
+
+            - name: Assert invalid hpc_install_nvidia_container_toolkit type was rejected
+              ansible.builtin.assert:
+                that:
+                  - __invalid_input_nvidia_ctk_type_failed | default(false)
+                fail_msg: >-
+                  argument_specs should reject
+                  hpc_install_nvidia_container_toolkit values that are
+                  not booleans
+
+            - name: Argument specs reject non-boolean hpc_tuning
+              block:
+                - name: Run role with non-boolean hpc_tuning
+                  ansible.builtin.include_tasks: tasks/run_role_with_clear_facts.yml
+                  vars:
+                    hpc_tuning: not_a_bool
+              rescue:
+                - name: Mark invalid hpc_tuning type rejected
+                  ansible.builtin.set_fact:
+                    __invalid_input_tuning_type_failed: true
+
+            - name: Assert invalid hpc_tuning type was rejected
+              ansible.builtin.assert:
+                that:
+                  - __invalid_input_tuning_type_failed | default(false)
+                fail_msg: >-
+                  argument_specs should reject hpc_tuning values that
+                  are not booleans
+
+            - name: Argument specs reject non-boolean hpc_update_kernel
+              block:
+                - name: Run role with non-boolean hpc_update_kernel
+                  ansible.builtin.include_tasks: tasks/run_role_with_clear_facts.yml
+                  vars:
+                    hpc_update_kernel: not_a_bool
+              rescue:
+                - name: Mark invalid hpc_update_kernel type rejected
+                  ansible.builtin.set_fact:
+                    __invalid_input_update_kernel_type_failed: true
+
+            - name: Assert invalid hpc_update_kernel type was rejected
+              ansible.builtin.assert:
+                that:
+                  - __invalid_input_update_kernel_type_failed | default(false)
+                fail_msg: >-
+                  argument_specs should reject hpc_update_kernel values
+                  that are not booleans
+
+            - name: Argument specs reject non-boolean hpc_enable_eus_repo
+              block:
+                - name: Run role with non-boolean hpc_enable_eus_repo
+                  ansible.builtin.include_tasks: tasks/run_role_with_clear_facts.yml
+                  vars:
+                    hpc_enable_eus_repo: not_a_bool
+              rescue:
+                - name: Mark invalid hpc_enable_eus_repo type rejected
+                  ansible.builtin.set_fact:
+                    __invalid_input_eus_repo_type_failed: true
+
+            - name: Assert invalid hpc_enable_eus_repo type was rejected
+              ansible.builtin.assert:
+                that:
+                  - __invalid_input_eus_repo_type_failed | default(false)
+                fail_msg: >-
+                  argument_specs should reject hpc_enable_eus_repo values
+                  that are not booleans
+
+            # String and path options are not tested with integers here.
+            # Ansible argument_specs type: str and type: path coerce
+            # integers to strings, so those values are accepted.
+
+        # ====================================================
+        # Section 3: assert_role_vars validation (all versions)
+        # ====================================================
+
+        # --- Test: storage size format ---
+        - name: Assert rejects hpc_rootlv_size with a fractional GiB value
+          block:
+            - name: Run role with fractional hpc_rootlv_size
+              ansible.builtin.include_tasks: tasks/run_role_with_clear_facts.yml
+              vars:
+                hpc_rootlv_size: 15.5G
+          rescue:
+            - name: Mark invalid hpc_rootlv_size format rejected
+              ansible.builtin.set_fact:
+                __invalid_input_rootlv_size_format_failed: true
+              when: >-
+                'hpc_rootlv_size must be a whole number of GiB' in
+                (ansible_failed_result | default({}) | to_json)
+
+        - name: Assert fractional hpc_rootlv_size was rejected
+          ansible.builtin.assert:
+            that:
+              - __invalid_input_rootlv_size_format_failed | default(false)
+            fail_msg: >-
+              assert_role_vars should reject hpc_rootlv_size values that
+              are not whole-number GiB strings
+
+        - name: Assert rejects hpc_usrlv_size with a non-GiB unit
+          block:
+            - name: Run role with hpc_usrlv_size in mebibytes
+              ansible.builtin.include_tasks: tasks/run_role_with_clear_facts.yml
+              vars:
+                hpc_usrlv_size: 25M
+          rescue:
+            - name: Mark invalid hpc_usrlv_size format rejected
+              ansible.builtin.set_fact:
+                __invalid_input_usrlv_size_format_failed: true
+              when: >-
+                'hpc_usrlv_size must be a whole number of GiB' in
+                (ansible_failed_result | default({}) | to_json)
+
+        - name: Assert non-GiB hpc_usrlv_size was rejected
+          ansible.builtin.assert:
+            that:
+              - __invalid_input_usrlv_size_format_failed | default(false)
+            fail_msg: >-
+              assert_role_vars should reject hpc_usrlv_size values that
+              are not whole-number GiB strings
+
+        - name: Assert rejects hpc_varlv_size that is not a size string
+          block:
+            - name: Run role with hpc_varlv_size as an invalid size
+              ansible.builtin.include_tasks: tasks/run_role_with_clear_facts.yml
+              vars:
+                hpc_varlv_size: not_a_size
+          rescue:
+            - name: Mark invalid hpc_varlv_size format rejected
+              ansible.builtin.set_fact:
+                __invalid_input_varlv_size_format_failed: true
+              when: >-
+                'hpc_varlv_size must be a whole number of GiB' in
+                (ansible_failed_result | default({}) | to_json)
+
+        - name: Assert invalid hpc_varlv_size format was rejected
+          ansible.builtin.assert:
+            that:
+              - __invalid_input_varlv_size_format_failed | default(false)
+            fail_msg: >-
+              assert_role_vars should reject hpc_varlv_size values that
+              are not whole-number GiB strings
+
+        # --- Test: docker subnet format ---
+        - name: Assert rejects hpc_docker_subnet that is not an IPv4 CIDR prefix
+          block:
+            - name: Run role with invalid hpc_docker_subnet
+              ansible.builtin.include_tasks: tasks/run_role_with_clear_facts.yml
+              vars:
+                hpc_docker_subnet: not_a_cidr
+          rescue:
+            - name: Mark invalid hpc_docker_subnet format rejected
+              ansible.builtin.set_fact:
+                __invalid_input_docker_subnet_format_failed: true
+              when: >-
+                'hpc_docker_subnet must be an IPv4 CIDR prefix' in
+                (ansible_failed_result | default({}) | to_json)
+
+        - name: Assert invalid hpc_docker_subnet format was rejected
+          ansible.builtin.assert:
+            that:
+              - __invalid_input_docker_subnet_format_failed | default(false)
+            fail_msg: >-
+              assert_role_vars should reject hpc_docker_subnet values
+              that are not IPv4 CIDR prefixes
+
+        # --- Test: cross-field dependencies ---
+        - name: Assert rejects NVIDIA Container Toolkit without Docker
+          block:
+            - name: Run role with toolkit enabled and Docker disabled
+              ansible.builtin.include_tasks: tasks/run_role_with_clear_facts.yml
+              vars:
+                hpc_install_nvidia_container_toolkit: true
+                hpc_install_docker: false
+                hpc_install_azurehpc_health_checks: false
+          rescue:
+            - name: Mark toolkit without Docker rejected
+              ansible.builtin.set_fact:
+                __invalid_input_toolkit_without_docker_failed: true
+              when: >-
+                'hpc_install_docker is required' in
+                (ansible_failed_result | default({}) | to_json)
+
+        - name: Assert NVIDIA Container Toolkit without Docker was rejected
+          ansible.builtin.assert:
+            that:
+              - __invalid_input_toolkit_without_docker_failed | default(false)
+            fail_msg: >-
+              assert_role_vars should reject
+              hpc_install_nvidia_container_toolkit when
+              hpc_install_docker is false
+
+        - name: Assert rejects azurehpc-health-checks without NVIDIA Container Toolkit
+          block:
+            - name: Run role with health checks enabled and toolkit disabled
+              ansible.builtin.include_tasks: tasks/run_role_with_clear_facts.yml
+              vars:
+                hpc_install_azurehpc_health_checks: true
+                hpc_install_nvidia_container_toolkit: false
+                hpc_install_docker: false
+          rescue:
+            - name: Mark health checks without toolkit rejected
+              ansible.builtin.set_fact:
+                __invalid_input_health_checks_without_toolkit_failed: true
+              when: >-
+                'hpc_install_nvidia_container_toolkit is required' in
+                (ansible_failed_result | default({}) | to_json)
+
+        - name: Assert azurehpc-health-checks without toolkit was rejected
+          ansible.builtin.assert:
+            that:
+              - >-
+                __invalid_input_health_checks_without_toolkit_failed
+                | default(false)
+            fail_msg: >-
+              assert_role_vars should reject
+              hpc_install_azurehpc_health_checks when
+              hpc_install_nvidia_container_toolkit is false
+
+        - name: Assert rejects MPI GPU support without CUDA toolkit and NCCL
+          block:
+            - name: Run role with MPI GPU support and CUDA packages disabled
+              ansible.builtin.include_tasks: tasks/run_role_with_clear_facts.yml
+              vars:
+                hpc_build_mpi_w_nvidia_gpu_support: true
+                hpc_install_cuda_toolkit: false
+                hpc_install_hpc_nvidia_nccl: false
+                hpc_install_mpifileutils: false
+          rescue:
+            - name: Mark MPI GPU support without CUDA rejected
+              ansible.builtin.set_fact:
+                __invalid_input_mpi_gpu_without_cuda_failed: true
+              when: >-
+                'hpc_install_cuda_toolkit and hpc_install_hpc_nvidia_nccl
+                are required' in
+                (ansible_failed_result | default({}) | to_json)
+
+        - name: Assert MPI GPU support without CUDA toolkit and NCCL was rejected
+          ansible.builtin.assert:
+            that:
+              - __invalid_input_mpi_gpu_without_cuda_failed | default(false)
+            fail_msg: >-
+              assert_role_vars should reject
+              hpc_build_mpi_w_nvidia_gpu_support when
+              hpc_install_cuda_toolkit or hpc_install_hpc_nvidia_nccl
+              is false
+
+        - name: Assert rejects mpifileutils without MPI GPU support
+          block:
+            - name: Run role with mpifileutils enabled and MPI GPU support disabled
+              ansible.builtin.include_tasks: tasks/run_role_with_clear_facts.yml
+              vars:
+                hpc_install_mpifileutils: true
+                hpc_build_mpi_w_nvidia_gpu_support: false
+          rescue:
+            - name: Mark mpifileutils without MPI GPU support rejected
+              ansible.builtin.set_fact:
+                __invalid_input_mpifileutils_without_mpi_gpu_failed: true
+              when: >-
+                'hpc_build_mpi_w_nvidia_gpu_support is required' in
+                (ansible_failed_result | default({}) | to_json)
+
+        - name: Assert mpifileutils without MPI GPU support was rejected
+          ansible.builtin.assert:
+            that:
+              - >-
+                __invalid_input_mpifileutils_without_mpi_gpu_failed
+                | default(false)
+            fail_msg: >-
+              assert_role_vars should reject hpc_install_mpifileutils
+              when hpc_build_mpi_w_nvidia_gpu_support is false
+
+      always:
+        - name: Clear test facts
+          ansible.builtin.set_fact:
+            __valid_defaults_succeeded:
+            __invalid_input_reboot_ok_type_failed:
+            __invalid_input_manage_firewall_type_failed:
+            __invalid_input_manage_storage_type_failed:
+            __invalid_input_cuda_driver_type_failed:
+            __invalid_input_nvidia_ctk_type_failed:
+            __invalid_input_tuning_type_failed:
+            __invalid_input_update_kernel_type_failed:
+            __invalid_input_eus_repo_type_failed:
+            __invalid_input_rootlv_size_format_failed:
+            __invalid_input_usrlv_size_format_failed:
+            __invalid_input_varlv_size_format_failed:
+            __invalid_input_docker_subnet_format_failed:
+            __invalid_input_toolkit_without_docker_failed:
+            __invalid_input_health_checks_without_toolkit_failed:
+            __invalid_input_mpi_gpu_without_cuda_failed:
+            __invalid_input_mpifileutils_without_mpi_gpu_failed:
+          tags: tests::cleanup
+
+        - name: Clean up after the role invocation
+          ansible.builtin.include_tasks: tasks/cleanup.yml
+          tags: tests::cleanup

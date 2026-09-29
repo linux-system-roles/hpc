@@ -1,0 +1,274 @@
+# SPDX-License-Identifier: MIT
+---
+argument_specs:
+  main:
+    short_description: The hpc role.
+    description: >
+      The hpc role configures RHEL 9 systems in Microsoft Azure for
+      high-performance computing workloads. It can expand LVM storage,
+      install NVIDIA GPU and CUDA software, RDMA and MPI stacks, Docker
+      with the NVIDIA Container Toolkit, and Azure HPC tools, and apply
+      HPC-oriented system tuning.
+    options:
+      hpc_reboot_ok:
+        type: bool
+        default: false
+        description: >
+          Whether the role may reboot the managed host when a change
+          requires a reboot to take effect. When `false`, the role sets
+          `hpc_reboot_needed` instead of rebooting.
+      hpc_manage_firewall:
+        type: bool
+        default: false
+        description: >
+          Whether to run the `firewall` system role and set the default
+          firewall zone to `trusted`. This allows all connections, which
+          is a common practice when cloud-provider security groups handle
+          access control.
+      hpc_manage_storage:
+        type: bool
+        default: true
+        description: >
+          Whether to ensure that the logical volumes in
+          `hpc_rootvg_name` are at least the configured sizes and are
+          mounted at the configured mount points. The role expands
+          partitions, physical volumes, and logical volumes as needed
+          and does not shrink volumes.
+      hpc_rootvg_name:
+        type: str
+        default: rootvg
+        description: >
+          The name of the volume group that holds the root, usr, and var
+          logical volumes.
+      hpc_rootlv_name:
+        type: str
+        default: rootlv
+        description: >
+          The name of the root logical volume in `hpc_rootvg_name`.
+      hpc_rootlv_size:
+        type: str
+        default: 15G
+        description: >
+          The minimum size of the root logical volume. Must be a whole
+          number of GiB in the form `<number>G`, for example `15G`.
+      hpc_rootlv_mount:
+        type: path
+        default: /
+        description: >
+          The mount point of the root logical volume.
+      hpc_usrlv_name:
+        type: str
+        default: usrlv
+        description: >
+          The name of the usr logical volume in `hpc_rootvg_name`.
+      hpc_usrlv_size:
+        type: str
+        default: 25G
+        description: >
+          The minimum size of the usr logical volume. Must be a whole
+          number of GiB in the form `<number>G`, for example `25G`.
+      hpc_usrlv_mount:
+        type: path
+        default: /usr
+        description: >
+          The mount point of the usr logical volume.
+      hpc_varlv_name:
+        type: str
+        default: varlv
+        description: >
+          The name of the var logical volume in `hpc_rootvg_name`.
+      hpc_varlv_size:
+        type: str
+        default: 40G
+        description: >
+          The minimum size of the var logical volume. Must be a whole
+          number of GiB in the form `<number>G`, for example `40G`.
+      hpc_varlv_mount:
+        type: path
+        default: /var
+        description: >
+          The mount point of the var logical volume.
+      hpc_install_cuda_driver:
+        type: bool
+        default: true
+        description: >
+          Whether to install the CUDA driver packages and enable
+          `nvidia-persistenced.service`.
+      hpc_install_cuda_toolkit:
+        type: bool
+        default: true
+        description: >
+          Whether to install the CUDA Toolkit packages. Required when
+          `hpc_build_mpi_w_nvidia_gpu_support` is `true`.
+      hpc_install_hpc_nvidia_nccl:
+        type: bool
+        default: true
+        description: >
+          Whether to install the NVIDIA Collective Communications
+          Library (NCCL) packages. Required when
+          `hpc_build_mpi_w_nvidia_gpu_support` is `true`.
+      hpc_install_nvidia_fabric_manager:
+        type: bool
+        default: true
+        description: >
+          Whether to install NVIDIA Fabric Manager and enable the
+          `nvidia-fabricmanager` service.
+      hpc_install_nvidia_imex:
+        type: bool
+        default: true
+        description: >
+          Whether to install NVIDIA IMEX (`nvidia-imex`) and enable
+          `nvidia-imex.service` for NVLink multi-node runtime. The
+          service is enabled at boot on compatible multi-node NVLink
+          systems such as NVIDIA GB200 or GB300 (NVL72) racks.
+      hpc_install_nvidia_dcgm:
+        type: bool
+        default: true
+        description: >
+          Whether to install NVIDIA Data Center GPU Manager (DCGM) and
+          enable the `nvidia-dcgm` service.
+      hpc_install_rdma:
+        type: bool
+        default: true
+        description: >
+          Whether to install RDMA packages and, on Azure, enable RDMA
+          in the WALinuxAgent configuration.
+      hpc_enable_azure_persistent_rdma_naming:
+        type: bool
+        default: true
+        description: >
+          Whether to install persistent RDMA device naming on Azure,
+          including a systemd service, udev rule, and naming scripts.
+          Skipped on non-Azure systems.
+      hpc_azure_disable_predictable_net_names:
+        type: bool
+        default: true
+        description: >
+          Whether to disable predictable network interface names by
+          adding `net.ifnames=0` to the kernel command line via the
+          `bootloader` system role. This keeps names such as `ib0` on
+          IPoIB and also affects Ethernet naming.
+      hpc_install_system_openmpi:
+        type: bool
+        default: true
+        description: >
+          Whether to install the OpenMPI packages from AppStream,
+          without NVIDIA GPU support. This OpenMPI can coexist with
+          GPU-enabled MPI builds.
+      hpc_build_mpi_w_nvidia_gpu_support:
+        type: bool
+        default: "{{ hpc_build_openmpi_w_nvidia_gpu_support | d(true) }}"
+        description: >
+          Whether to build MPI libraries with NVIDIA GPU support,
+          including GDRCopy, HPC-X, PMIx, and OpenMPI from source.
+          Requires `hpc_install_cuda_toolkit` and
+          `hpc_install_hpc_nvidia_nccl`. Falls back to the deprecated
+          `hpc_build_openmpi_w_nvidia_gpu_support` variable when that
+          variable is set.
+      hpc_install_mvapich:
+        type: bool
+        default: true
+        description: >
+          Whether to build and install the MVAPICH MPI library. When
+          `hpc_build_mpi_w_nvidia_gpu_support` is `true`, MVAPICH is
+          built with NVIDIA GPU support.
+      hpc_install_mpifileutils:
+        type: bool
+        default: true
+        description: >
+          Whether to download, build, and install mpifileutils, a suite
+          of MPI-based tools for managing large datasets. Requires
+          `hpc_build_mpi_w_nvidia_gpu_support` so that HPC-X MPI is
+          available.
+      hpc_install_mpi_tests:
+        type: bool
+        default: true
+        description: >
+          Whether to download and install the OSU Micro-Benchmarks for
+          MPI performance testing.
+      hpc_install_python312:
+        type: bool
+        default: true
+        description: >
+          Whether to install Python 3.12 from AppStream alongside the
+          system default Python. The system default Python is left
+          unchanged.
+      hpc_install_moneo:
+        type: bool
+        default: true
+        description: >
+          Whether to install the Azure Moneo GPU monitoring tool under
+          `/opt/hpc/azure/tools/Moneo`.
+      hpc_install_nvidia_container_toolkit:
+        type: bool
+        default: true
+        description: >
+          Whether to install and configure the NVIDIA Container Toolkit
+          for GPU support in Docker and containerd. Requires
+          `hpc_install_docker`.
+      hpc_install_docker:
+        type: bool
+        default: "{{ hpc_install_nvidia_container_toolkit }}"
+        description: >
+          Whether to install `moby-engine` and `moby-cli` and enable
+          the Docker service. Follows
+          `hpc_install_nvidia_container_toolkit` unless overridden.
+      hpc_docker_subnet:
+        type: str
+        default: 10.88.0.1/16
+        description: >
+          The Docker bridge interface address and subnet in IPv4 CIDR
+          notation, such as `10.88.0.1/16`. Used to avoid conflicts
+          with Azure CycleCloud cluster networks.
+      hpc_install_azurehpc_health_checks:
+        type: bool
+        default: "{{ hpc_install_nvidia_container_toolkit }}"
+        description: >
+          Whether to install Azure HPC Health Checks (AZNHC), including
+          the toolkit and the `aznhc-nv` Docker image. Requires
+          `hpc_install_nvidia_container_toolkit`. Follows
+          `hpc_install_nvidia_container_toolkit` unless overridden.
+      hpc_tuning:
+        type: bool
+        default: true
+        description: >
+          Whether to apply HPC workload tuning, including memory
+          limits, sysctl settings, the `sunrpc` module, and NFS
+          readahead udev rules.
+      hpc_sku_customisation:
+        type: bool
+        default: true
+        description: >
+          Whether to install hardware tuning files for Azure VM types
+          (SKUs), including InfiniBand, GPU/NVLink, and NCCL
+          customisations.
+      hpc_install_diagnostics:
+        type: bool
+        default: true
+        description: >
+          Whether to install the Azure HPC Diagnostics tool used to
+          gather hardware, OS, Azure, and application state for triage.
+      hpc_install_kvp_client:
+        type: bool
+        default: true
+        description: >
+          Whether to compile and install the Azure Key-Value Pair (KVP)
+          client under `/opt/hpc/azure/tools/kvp_client`.
+      hpc_update_kernel:
+        type: bool
+        default: true
+        description: >
+          Whether to update the kernel package to the latest version.
+      hpc_update_all_packages:
+        type: bool
+        default: false
+        description: >
+          Whether to update all installed packages to the latest
+          versions.
+      hpc_enable_eus_repo:
+        type: bool
+        default: true
+        description: >
+          Whether to replace the default Azure RHUI repository with the
+          Extended Update Support (EUS) repository so the minor
+          release stays locked, for example RHEL 9.6.z.

@@ -1,0 +1,80 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Assert hpc_rootlv_size uses whole-number GiB format
+  ansible.builtin.assert:
+    that:
+      - hpc_rootlv_size is match('^[0-9]+G$')
+    fail_msg: >-
+      hpc_rootlv_size must be a whole number of GiB in the form
+      <number>G (for example `15G`, not `15.5G`),
+      got {{ hpc_rootlv_size }} ({{ hpc_rootlv_size | type_debug }})
+  when: hpc_rootlv_size is defined
+
+- name: Assert hpc_usrlv_size uses whole-number GiB format
+  ansible.builtin.assert:
+    that:
+      - hpc_usrlv_size is match('^[0-9]+G$')
+    fail_msg: >-
+      hpc_usrlv_size must be a whole number of GiB in the form
+      <number>G (for example `25G`, not `25.5G`),
+      got {{ hpc_usrlv_size }} ({{ hpc_usrlv_size | type_debug }})
+  when: hpc_usrlv_size is defined
+
+- name: Assert hpc_varlv_size uses whole-number GiB format
+  ansible.builtin.assert:
+    that:
+      - hpc_varlv_size is match('^[0-9]+G$')
+    fail_msg: >-
+      hpc_varlv_size must be a whole number of GiB in the form
+      <number>G (for example `40G`, not `40.5G`),
+      got {{ hpc_varlv_size }} ({{ hpc_varlv_size | type_debug }})
+  when: hpc_varlv_size is defined
+
+- name: Assert hpc_docker_subnet is an IPv4 CIDR prefix
+  ansible.builtin.assert:
+    that:
+      - >-
+        hpc_docker_subnet is
+        match('^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/(3[0-2]|[12]?[0-9])$')
+    fail_msg: >-
+      hpc_docker_subnet must be an IPv4 CIDR prefix such as
+      `10.88.0.1/16`,
+      got {{ hpc_docker_subnet }} ({{ hpc_docker_subnet | type_debug }})
+  when: hpc_docker_subnet is defined
+
+- name: Assert NVIDIA Container Toolkit is not enabled without Docker
+  ansible.builtin.assert:
+    that:
+      - hpc_install_docker | bool
+    fail_msg: >-
+      hpc_install_docker is required when
+      hpc_install_nvidia_container_toolkit is true
+  when: hpc_install_nvidia_container_toolkit | bool
+
+- name: Assert azurehpc-health-checks is not enabled without NVIDIA Container Toolkit
+  ansible.builtin.assert:
+    that:
+      - hpc_install_nvidia_container_toolkit | bool
+    fail_msg: >-
+      hpc_install_nvidia_container_toolkit is required when
+      hpc_install_azurehpc_health_checks is true
+  when: hpc_install_azurehpc_health_checks | bool
+
+- name: Assert MPI GPU support is not enabled without CUDA toolkit and NCCL
+  ansible.builtin.assert:
+    that:
+      - hpc_install_cuda_toolkit | bool
+      - hpc_install_hpc_nvidia_nccl | bool
+    fail_msg: >-
+      hpc_install_cuda_toolkit and hpc_install_hpc_nvidia_nccl are
+      required when hpc_build_mpi_w_nvidia_gpu_support is true
+  when: hpc_build_mpi_w_nvidia_gpu_support | bool
+
+- name: Assert mpifileutils is not enabled without MPI GPU support
+  ansible.builtin.assert:
+    that:
+      - hpc_build_mpi_w_nvidia_gpu_support | bool
+    fail_msg: >-
+      hpc_build_mpi_w_nvidia_gpu_support is required when
+      hpc_install_mpifileutils is true
+  when: hpc_install_mpifileutils | bool

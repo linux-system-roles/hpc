@@ -20,25 +20,8 @@
       - "Please migrate to using 'hpc_build_mpi_w_nvidia_gpu_support' instead."
   when: hpc_build_openmpi_w_nvidia_gpu_support is defined
 
-- name: Fail if role installs NVIDIA Container Toolkit without Docker
-  fail:
-    msg:
-      - NVIDIA Container Toolkit requires Docker to be installed
-      - You must set the following variable to true
-      - "hpc_install_docker: true"
-  when:
-    - hpc_install_nvidia_container_toolkit
-    - not hpc_install_docker
-
-- name: Fail if role installs azurehpc-health-checks without NVIDIA Container Toolkit
-  fail:
-    msg:
-      - azurehpc-health-checks requires NVIDIA Container Toolkit to be installed
-      - You must set the following variable to true
-      - "hpc_install_nvidia_container_toolkit: true"
-  when:
-    - hpc_install_azurehpc_health_checks
-    - not hpc_install_nvidia_container_toolkit
+- name: Validate role parameters
+  ansible.builtin.include_tasks: tasks/assert_role_vars.yml
 
 - name: Deploy GPG keys for repositories
   rpm_key:
@@ -154,16 +137,6 @@
 - name: Configure storage
   when: hpc_manage_storage
   block:
-    - name: Validate storage size formats
-      assert:
-        that:
-          - hpc_rootlv_size is match('^[0-9]+G$')
-          - hpc_usrlv_size is match('^[0-9]+G$')
-          - hpc_varlv_size is match('^[0-9]+G$')
-        fail_msg: |
-          Storage size variables should be whole numbers in format <number>G (e.g., '15G', not '15.5G').
-          Got: rootlv={{ hpc_rootlv_size }}, usrlv={{ hpc_usrlv_size }}, varlv={{ hpc_varlv_size }}
-
     - name: Install lvm2 to get lvs command
       package:
         name: lvm2
