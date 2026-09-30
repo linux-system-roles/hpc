@@ -221,6 +221,28 @@
                   argument_specs should reject hpc_enable_eus_repo values
                   that are not booleans
 
+            - name: Argument specs reject non-boolean hpc_build_openmpi_w_nvidia_gpu_support
+              block:
+                - name: Run role with non-boolean hpc_build_openmpi_w_nvidia_gpu_support
+                  ansible.builtin.include_tasks: tasks/run_role_with_clear_facts.yml
+                  vars:
+                    hpc_build_openmpi_w_nvidia_gpu_support: not_a_bool
+              rescue:
+                - name: Mark invalid hpc_build_openmpi_w_nvidia_gpu_support type rejected
+                  ansible.builtin.set_fact:
+                    __invalid_input_deprecated_mpi_alias_type_failed: true
+
+            - name: Assert invalid hpc_build_openmpi_w_nvidia_gpu_support type was rejected
+              ansible.builtin.assert:
+                that:
+                  - >-
+                    __invalid_input_deprecated_mpi_alias_type_failed
+                    | default(false)
+                fail_msg: >-
+                  argument_specs should reject
+                  hpc_build_openmpi_w_nvidia_gpu_support values that are
+                  not booleans
+
             # String and path options are not tested with integers here.
             # Ansible argument_specs type: str and type: path coerce
             # integers to strings, so those values are accepted.
@@ -437,6 +459,7 @@
             __invalid_input_tuning_type_failed:
             __invalid_input_update_kernel_type_failed:
             __invalid_input_eus_repo_type_failed:
+            __invalid_input_deprecated_mpi_alias_type_failed:
             __invalid_input_rootlv_size_format_failed:
             __invalid_input_usrlv_size_format_failed:
             __invalid_input_varlv_size_format_failed:
