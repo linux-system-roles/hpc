@@ -155,6 +155,11 @@ argument_specs:
           Whether to install the OpenMPI packages from AppStream,
           without NVIDIA GPU support. This OpenMPI can coexist with
           GPU-enabled MPI builds.
+      hpc_build_openmpi_w_nvidia_gpu_support:
+        type: bool
+        description: >
+          Deprecated alias for `hpc_build_mpi_w_nvidia_gpu_support`.
+          Deprecated in June 2026 and will be removed in December 2026.
       hpc_build_mpi_w_nvidia_gpu_support:
         type: bool
         default: "{{ hpc_build_openmpi_w_nvidia_gpu_support | d(true) }}"
