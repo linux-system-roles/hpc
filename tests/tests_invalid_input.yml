@@ -31,6 +31,17 @@
     hpc_sku_customisation: false
     hpc_install_kvp_client: false
     hpc_update_kernel: false
+    # Failure details have different shapes across Ansible versions.
+    __invalid_input_failure_text: >-
+      {{
+        (
+          [ansible_failed_result.msg | d(''),
+           ansible_failed_result.msg.msg | d('')]
+          + (ansible_failed_result.results | d([])
+             | selectattr('msg', 'defined')
+             | map(attribute='msg') | list)
+        ) | join(' ')
+      }}
   tasks:
     - name: Skip unsupported architectures
       ansible.builtin.include_tasks: tasks/skip_unsupported_archs.yml
@@ -76,6 +87,9 @@
                 - name: Mark invalid hpc_reboot_ok type rejected
                   ansible.builtin.set_fact:
                     __invalid_input_reboot_ok_type_failed: true
+                  when: >-
+                    "argument 'hpc_reboot_ok'" in __invalid_input_failure_text
+                    and "not a valid boolean" in __invalid_input_failure_text
 
             - name: Assert invalid hpc_reboot_ok type was rejected
               ansible.builtin.assert:
@@ -95,6 +109,9 @@
                 - name: Mark invalid hpc_manage_firewall type rejected
                   ansible.builtin.set_fact:
                     __invalid_input_manage_firewall_type_failed: true
+                  when: >-
+                    "argument 'hpc_manage_firewall'" in __invalid_input_failure_text
+                    and "not a valid boolean" in __invalid_input_failure_text
 
             - name: Assert invalid hpc_manage_firewall type was rejected
               ansible.builtin.assert:
@@ -114,6 +131,9 @@
                 - name: Mark invalid hpc_manage_storage type rejected
                   ansible.builtin.set_fact:
                     __invalid_input_manage_storage_type_failed: true
+                  when: >-
+                    "argument 'hpc_manage_storage'" in __invalid_input_failure_text
+                    and "not a valid boolean" in __invalid_input_failure_text
 
             - name: Assert invalid hpc_manage_storage type was rejected
               ansible.builtin.assert:
@@ -133,6 +153,9 @@
                 - name: Mark invalid hpc_install_cuda_driver type rejected
                   ansible.builtin.set_fact:
                     __invalid_input_cuda_driver_type_failed: true
+                  when: >-
+                    "argument 'hpc_install_cuda_driver'" in __invalid_input_failure_text
+                    and "not a valid boolean" in __invalid_input_failure_text
 
             - name: Assert invalid hpc_install_cuda_driver type was rejected
               ansible.builtin.assert:
@@ -154,6 +177,9 @@
                 - name: Mark invalid hpc_install_nvidia_container_toolkit type rejected
                   ansible.builtin.set_fact:
                     __invalid_input_nvidia_ctk_type_failed: true
+                  when: >-
+                    "argument 'hpc_install_nvidia_container_toolkit'" in __invalid_input_failure_text
+                    and "not a valid boolean" in __invalid_input_failure_text
 
             - name: Assert invalid hpc_install_nvidia_container_toolkit type was rejected
               ansible.builtin.assert:
@@ -174,6 +200,9 @@
                 - name: Mark invalid hpc_tuning type rejected
                   ansible.builtin.set_fact:
                     __invalid_input_tuning_type_failed: true
+                  when: >-
+                    "argument 'hpc_tuning'" in __invalid_input_failure_text
+                    and "not a valid boolean" in __invalid_input_failure_text
 
             - name: Assert invalid hpc_tuning type was rejected
               ansible.builtin.assert:
@@ -193,6 +222,9 @@
                 - name: Mark invalid hpc_update_kernel type rejected
                   ansible.builtin.set_fact:
                     __invalid_input_update_kernel_type_failed: true
+                  when: >-
+                    "argument 'hpc_update_kernel'" in __invalid_input_failure_text
+                    and "not a valid boolean" in __invalid_input_failure_text
 
             - name: Assert invalid hpc_update_kernel type was rejected
               ansible.builtin.assert:
@@ -212,6 +244,9 @@
                 - name: Mark invalid hpc_enable_eus_repo type rejected
                   ansible.builtin.set_fact:
                     __invalid_input_eus_repo_type_failed: true
+                  when: >-
+                    "argument 'hpc_enable_eus_repo'" in __invalid_input_failure_text
+                    and "not a valid boolean" in __invalid_input_failure_text
 
             - name: Assert invalid hpc_enable_eus_repo type was rejected
               ansible.builtin.assert:
@@ -231,6 +266,9 @@
                 - name: Mark invalid hpc_build_openmpi_w_nvidia_gpu_support type rejected
                   ansible.builtin.set_fact:
                     __invalid_input_deprecated_mpi_alias_type_failed: true
+                  when: >-
+                    "argument 'hpc_build_openmpi_w_nvidia_gpu_support'" in __invalid_input_failure_text
+                    and "not a valid boolean" in __invalid_input_failure_text
 
             - name: Assert invalid hpc_build_openmpi_w_nvidia_gpu_support type was rejected
               ansible.builtin.assert:
@@ -264,7 +302,7 @@
                 __invalid_input_rootlv_size_format_failed: true
               when: >-
                 'hpc_rootlv_size must be a whole number of GiB' in
-                (ansible_failed_result | default({}) | to_json)
+                __invalid_input_failure_text
 
         - name: Assert fractional hpc_rootlv_size was rejected
           ansible.builtin.assert:
@@ -286,7 +324,7 @@
                 __invalid_input_usrlv_size_format_failed: true
               when: >-
                 'hpc_usrlv_size must be a whole number of GiB' in
-                (ansible_failed_result | default({}) | to_json)
+                __invalid_input_failure_text
 
         - name: Assert non-GiB hpc_usrlv_size was rejected
           ansible.builtin.assert:
@@ -308,7 +346,7 @@
                 __invalid_input_varlv_size_format_failed: true
               when: >-
                 'hpc_varlv_size must be a whole number of GiB' in
-                (ansible_failed_result | default({}) | to_json)
+                __invalid_input_failure_text
 
         - name: Assert invalid hpc_varlv_size format was rejected
           ansible.builtin.assert:
@@ -331,7 +369,7 @@
                 __invalid_input_docker_subnet_format_failed: true
               when: >-
                 'hpc_docker_subnet must be an IPv4 CIDR prefix' in
-                (ansible_failed_result | default({}) | to_json)
+                __invalid_input_failure_text
 
         - name: Assert invalid hpc_docker_subnet format was rejected
           ansible.builtin.assert:
@@ -356,7 +394,7 @@
                 __invalid_input_toolkit_without_docker_failed: true
               when: >-
                 'hpc_install_docker is required' in
-                (ansible_failed_result | default({}) | to_json)
+                __invalid_input_failure_text
 
         - name: Assert NVIDIA Container Toolkit without Docker was rejected
           ansible.builtin.assert:
@@ -381,7 +419,7 @@
                 __invalid_input_health_checks_without_toolkit_failed: true
               when: >-
                 'hpc_install_nvidia_container_toolkit is required' in
-                (ansible_failed_result | default({}) | to_json)
+                __invalid_input_failure_text
 
         - name: Assert azurehpc-health-checks without toolkit was rejected
           ansible.builtin.assert:
@@ -410,7 +448,7 @@
               when: >-
                 'hpc_install_cuda_toolkit and hpc_install_hpc_nvidia_nccl
                 are required' in
-                (ansible_failed_result | default({}) | to_json)
+                __invalid_input_failure_text
 
         - name: Assert MPI GPU support without CUDA toolkit and NCCL was rejected
           ansible.builtin.assert:
@@ -435,7 +473,7 @@
                 __invalid_input_mpifileutils_without_mpi_gpu_failed: true
               when: >-
                 'hpc_build_mpi_w_nvidia_gpu_support is required' in
-                (ansible_failed_result | default({}) | to_json)
+                __invalid_input_failure_text
 
         - name: Assert mpifileutils without MPI GPU support was rejected
           ansible.builtin.assert:
